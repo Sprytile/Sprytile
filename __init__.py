@@ -14,7 +14,7 @@ else:
     from . import sprytile_modal, sprytile_panel
 
 import bpy
-from bpy.props import EnumProperty, IntProperty
+from bpy.props import EnumProperty, IntProperty, FloatVectorProperty
 
 def setup_props():
     # Scene properties
@@ -26,7 +26,8 @@ def setup_props():
             ("LAST_NORMAL", "Last", "Last Used Normal", 4)
         ],
         name = "Normal Mode",
-        description = "Normal to create in mesh in"
+        description = "Normal to create in mesh in",
+        default = 'Z'
     )
 
     bpy.types.Scene.sprytile_paintmode = EnumProperty(
@@ -35,7 +36,14 @@ def setup_props():
             ("SET_NORMAL",  "Set Normal",   "", 2)
         ],
         name = "Sprytile Paint Mode",
-        description = "Sprytile Paint tool mode"
+        description = "Sprytile Paint tool mode",
+        default = 'PAINT'
+    )
+
+    bpy.types.Scene.sprytile_normal_data = FloatVectorProperty(
+        name = "Srpytile Last Paint Normal",
+        description = "Last saved painting normal used by Sprytile",
+        default = (0.0, 0.0, 1.0)
     )
 
     # Object properties
@@ -47,6 +55,7 @@ def setup_props():
 def teardown_props():
     del bpy.types.Scene.sprytile_normalmode
     del bpy.types.Scene.sprytile_paintmode
+    del bpy.types.Scene.sprytile_normal_data
     del bpy.types.Object.sprytile_matid
 
 def register():

@@ -1,6 +1,8 @@
 import bpy
 import bmesh
 from bpy_extras import view3d_utils
+from mathutils import Vector, Matrix
+from mathutils.geometry import intersect_line_plane
 from mathutils.bvhtree import BVHTree
 
 def ray_cast(self, context, event):
@@ -43,8 +45,52 @@ def ray_cast(self, context, event):
 
     location, normal, face_index, distance = obj_ray_cast(obj, matrix)
     if face_index is not None:
-        hit_world = matrix * location
-        scene.cursor_location = hit_world
+        # if paint mode is set normal, save the normal of the hit
+        # set normal mode to last, switch paint mode back to paint then do nothing
+
+        # Change the uv of the given face
+        print("Hitting face index ", face_index)
+        # hit_world = matrix * location
+        # scene.cursor_location = hit_world
+    else:
+        # Didn't hit a face on this position, build a face
+        build_face(self, context, event)
+
+def build_face(self, context, event):
+    # Build face depending on view
+
+    # get the context arguments
+    scene = context.scene
+    region = context.region
+    rv3d = context.region_data
+    coord = event.mouse_region_x, event.mouse_region_y
+
+    # get the ray from the viewport and mouse
+    view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+    ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+    ray_target = ray_origin + view_vector
+
+    def get_ray_plane_intersection(ray_origin, ray_direction, plane_point, plane_normal):
+        d = ray_direction.dot(plane_normal)
+        if abs(ray_direction.dot(plane_normal)) <= 0.00000001:
+            return None
+        return (plane_point-ray_origin).dot(plane_normal) / d
+
+    camera_vector = rv3d.view_rotation * Vector((0.0, 0.0, -1.0))
+    camera_vector.normalize()
+
+    plane_normal = scene.sprytile_normal_data
+    if scene.sprytile_normalmode == 'X':
+        plane_normal = Vector((1.0, 0.0, 0.0))
+    elif scene.sprytile_normalmode == 'Y':
+        plane_normal = Vector((0.0, 1.0, 0.0))
+    elif scene.sprytile_normalmode == 'Z':
+        plane_normal = Vector((0.0, 0.0, 1.0))
+
+    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_target, scene.cursor_location, plane_normal)
+    if plane_pos is not None:
+        print(plane_pos)
 
 class SprytileModalTool(bpy.types.Operator):
     """Modal object selection with a ray cast"""
@@ -52,7 +98,6 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Tile Paint"
 
     def modal(self, context, event):
-        print(event.type)
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
             return {'PASS_THROUGH'}
