@@ -39,11 +39,17 @@ def setup_props():
         description = "Sprytile Paint tool mode",
         default = 'PAINT'
     )
-
     bpy.types.Scene.sprytile_normal_data = FloatVectorProperty(
         name = "Srpytile Last Paint Normal",
         description = "Last saved painting normal used by Sprytile",
         default = (0.0, 0.0, 1.0)
+    )
+    bpy.types.Scene.sprytile_world_pixels = IntProperty(
+        name = "World pixel density",
+        description = "How many pixels to put in one world unit",
+        default = 16,
+        min = 8,
+        max = 2048
     )
 
     # Object properties
@@ -51,12 +57,30 @@ def setup_props():
         name = "Material ID",
         description = "Material index used for object"
     )
+    bpy.types.Object.sprytile_mat_grid_x = IntProperty(
+        name = "Grid Width",
+        description = "Texture grid width, in pixels",
+        min = 8,
+        max = 2048,
+        default = 32
+    )
+    bpy.types.Object.sprytile_mat_grid_y = IntProperty(
+        name = "Texture Grid Height",
+        description = "Texture grid height, in pixels",
+        min = 8,
+        max = 2048,
+        default = 32
+    )
 
 def teardown_props():
     del bpy.types.Scene.sprytile_normalmode
     del bpy.types.Scene.sprytile_paintmode
     del bpy.types.Scene.sprytile_normal_data
+    del bpy.types.Scene.sprytile_world_pixels
+
     del bpy.types.Object.sprytile_matid
+    del bpy.types.Object.sprytile_mat_grid_x
+    del bpy.types.Object.sprytile_mat_grid_y
 
 def register():
     bpy.utils.register_module(__name__)
