@@ -1,0 +1,9 @@
+https://blenderartists.org/forum/showthread.php?377599-NEW!!-Python-BVH-Tree-for-ray-cast-and-collisions-and-snapping
+
+http://stackoverflow.com/questions/5666222/3d-line-plane-intersection
+
+https://blenderartists.org/forum/showthread.php?223152-Opengl-in-Blender-2-6
+
+http://blender.stackexchange.com/questions/30444/create-an-interface-which-is-similar-to-the-material-list-box
+
+https://www.blender.org/api/blender_python_api_2_70_5/bpy.types.UIList.html
