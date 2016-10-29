@@ -71,15 +71,6 @@ def build_face(self, context, event):
 
     ray_target = ray_origin + view_vector
 
-    def get_ray_plane_intersection(ray_origin, ray_direction, plane_point, plane_normal):
-        d = ray_direction.dot(plane_normal)
-        if abs(ray_direction.dot(plane_normal)) <= 0.00000001:
-            return None
-        return (plane_point-ray_origin).dot(plane_normal) / d
-
-    camera_vector = rv3d.view_rotation * Vector((0.0, 0.0, -1.0))
-    camera_vector.normalize()
-
     plane_normal = scene.sprytile_normal_data
     if scene.sprytile_normalmode == 'X':
         plane_normal = Vector((1.0, 0.0, 0.0))
