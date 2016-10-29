@@ -49,16 +49,22 @@ class SprytilePanel(bpy.types.Panel):
         layout = self.layout
         obj = context.object
 
-        layout.operator("sprytile.modal_tool")
+        layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
 
-        layout.label("Paint Mode")
         layout.prop(context.scene, "sprytile_paintmode", expand=True)
-
-        layout.label("Normal Mode")
         layout.prop(context.scene, "sprytile_normalmode", expand=True)
 
-        layout.label("Select Material")
+        layout.prop(context.scene, "sprytile_world_pixels")
+
+        layout.label("Select Material", icon='MATERIAL_DATA')
         layout.template_list("MATERIAL_UL_matslots_example", "", bpy.data, "materials", obj, "sprytile_matid")
+
+        selected_mat = bpy.data.materials[obj.sprytile_matid]
+
+        layout.label("Material Grid Size", icon='GRID')
+        row = layout.row(align=True)
+        row.prop(selected_mat, "sprytile_mat_grid_x")
+        row.prop(selected_mat, "sprytile_mat_grid_y")
 
 def register():
     bpy.utils.register_module(__name__)

@@ -26,17 +26,18 @@ def setup_props():
             ("LAST_NORMAL", "Last", "Last Used Normal", 4)
         ],
         name = "Normal Mode",
-        description = "Normal to create in mesh in",
+        description = "Normal to create the mesh on",
         default = 'Z'
     )
 
     bpy.types.Scene.sprytile_paintmode = EnumProperty(
         items = [
             ("PAINT",       "Paint",        "", 1),
-            ("SET_NORMAL",  "Set Normal",   "", 2)
+            ("MAKE_FACE",   "Build",        "Only create new faces", 3),
+            ("SET_NORMAL",  "Set Normal",   "Select a normal to use for face creation", 2)
         ],
         name = "Sprytile Paint Mode",
-        description = "Sprytile Paint tool mode",
+        description = "Paint mode",
         default = 'PAINT'
     )
     bpy.types.Scene.sprytile_normal_data = FloatVectorProperty(
@@ -45,9 +46,9 @@ def setup_props():
         default = (0.0, 0.0, 1.0)
     )
     bpy.types.Scene.sprytile_world_pixels = IntProperty(
-        name = "World pixel density",
-        description = "How many pixels to put in one world unit",
-        default = 16,
+        name = "World Pixel Density",
+        description = "How many pixels are displayed in one world unit",
+        default = 32,
         min = 8,
         max = 2048
     )
@@ -57,15 +58,15 @@ def setup_props():
         name = "Material ID",
         description = "Material index used for object"
     )
-    bpy.types.Object.sprytile_mat_grid_x = IntProperty(
-        name = "Grid Width",
+    bpy.types.Material.sprytile_mat_grid_x = IntProperty(
+        name = "Width",
         description = "Texture grid width, in pixels",
         min = 8,
         max = 2048,
         default = 32
     )
-    bpy.types.Object.sprytile_mat_grid_y = IntProperty(
-        name = "Texture Grid Height",
+    bpy.types.Material.sprytile_mat_grid_y = IntProperty(
+        name = "Height",
         description = "Texture grid height, in pixels",
         min = 8,
         max = 2048,
@@ -79,8 +80,8 @@ def teardown_props():
     del bpy.types.Scene.sprytile_world_pixels
 
     del bpy.types.Object.sprytile_matid
-    del bpy.types.Object.sprytile_mat_grid_x
-    del bpy.types.Object.sprytile_mat_grid_y
+    del bpy.types.Material.sprytile_mat_grid_x
+    del bpy.types.Material.sprytile_mat_grid_y
 
 def register():
     bpy.utils.register_module(__name__)
