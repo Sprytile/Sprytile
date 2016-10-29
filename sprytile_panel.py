@@ -48,9 +48,17 @@ class SprytilePanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         obj = context.object
-        layout.operator("tilepaint.modal_tool")
+
+        layout.operator("sprytile.modal_tool")
+
+        layout.label("Paint Mode")
+        layout.prop(context.scene, "sprytile_paintmode", expand=True)
+
+        layout.label("Normal Mode")
+        layout.prop(context.scene, "sprytile_normalmode", expand=True)
+
         layout.label("Select Material")
-        layout.template_list("MATERIAL_UL_matslots_example", "", bpy.data, "materials", obj, "active_material_index")
+        layout.template_list("MATERIAL_UL_matslots_example", "", bpy.data, "materials", obj, "sprytile_matid")
 
 def register():
     bpy.utils.register_module(__name__)

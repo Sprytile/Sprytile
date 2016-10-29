@@ -72,7 +72,7 @@ def ray_cast(context, event):
 class SprytileModalTool(bpy.types.Operator):
     """Modal object selection with a ray cast"""
     bl_idname = "sprytile.modal_tool"
-    bl_label = "Sprytile Tool"
+    bl_label = "Tile Paint"
 
     def modal(self, context, event):
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:

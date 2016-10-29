@@ -20,10 +20,10 @@ def setup_props():
     # Scene properties
     bpy.types.Scene.sprytile_normalmode = EnumProperty(
         items = [
-            ("X", "X", "X-Axis", 1),
-            ("Y", "Y", "Y-Axis", 2),
-            ("Z", "Z", "X-Axis", 3),
-            ("LAST_FACE", "Last Face", "Last Face Normal", 4)
+            ("X",           "X",    "World X-Axis",     1),
+            ("Y",           "Y",    "World Y-Axis",     2),
+            ("Z",           "Z",    "World X-Axis",     3),
+            ("LAST_NORMAL", "Last", "Last Used Normal", 4)
         ],
         name = "Normal Mode",
         description = "Normal to create in mesh in"
@@ -31,10 +31,8 @@ def setup_props():
 
     bpy.types.Scene.sprytile_paintmode = EnumProperty(
         items = [
-            ("CONTEXT",     "Context",      "", 1),
-            ("CREATE_ONLY", "Create",       "", 2),
-            ("DELETE_ONLY", "Delete",       "", 3),
-            ("SET_NORMAL",  "Set Normal",   "", 4)
+            ("PAINT",       "Paint",        "", 1),
+            ("SET_NORMAL",  "Set Normal",   "", 2)
         ],
         name = "Sprytile Paint Mode",
         description = "Sprytile Paint tool mode"
