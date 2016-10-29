@@ -1,8 +1,15 @@
 import bpy
+import bmesh
 from bpy_extras import view3d_utils
+from mathutils.bvhtree import BVHTree
 
-def ray_cast(context, event):
+def ray_cast(self, context, event):
     """Run this function on left mouse, execute the ray cast"""
+    if self.tree is None:
+        return
+    if context.object.type != 'MESH':
+        return
+
     # get the context arguments
     scene = context.scene
     region = context.region
@@ -15,22 +22,6 @@ def ray_cast(context, event):
 
     ray_target = ray_origin + view_vector
 
-    def visible_objects_and_duplis():
-        """Loop over (object, matrix) pairs (mesh only)"""
-
-        for obj in context.visible_objects:
-            if obj.type == 'MESH':
-                yield (obj, obj.matrix_world.copy())
-
-            if obj.dupli_type != 'NONE':
-                obj.dupli_list_create(scene)
-                for dob in obj.dupli_list:
-                    obj_dupli = dob.object
-                    if obj_dupli.type == 'MESH':
-                        yield (obj_dupli, dob.matrix.copy())
-
-            obj.dupli_list_clear()
-
     def obj_ray_cast(obj, matrix):
         """Wrapper for ray casting that moves the ray into object space"""
 
@@ -40,34 +31,20 @@ def ray_cast(context, event):
         ray_target_obj = matrix_inv * ray_target
         ray_direction_obj = ray_target_obj - ray_origin_obj
 
-        # cast the ray
-        success, location, normal, face_index = obj.ray_cast(ray_origin_obj, ray_direction_obj)
+        location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj)
 
-        if success:
-            return location, normal, face_index
+        if location is None:
+            return None, None, None, None
         else:
-            return None, None, None
+            return location, normal, face_index, distance
 
-    # cast rays and find the closest object
-    best_length_squared = -1.0
-    best_obj = None
+    obj = context.object
+    matrix = obj.matrix_world.copy()
 
-    for obj, matrix in visible_objects_and_duplis():
-        if obj.type == 'MESH':
-            hit, normal, face_index = obj_ray_cast(obj, matrix)
-            if hit is not None:
-                hit_world = matrix * hit
-                scene.cursor_location = hit_world
-                length_squared = (hit_world - ray_origin).length_squared
-                if best_obj is None or length_squared < best_length_squared:
-                    best_length_squared = length_squared
-                    best_obj = obj
-
-    # now we have the object under the mouse cursor,
-    # we could do lots of stuff but for the example just select.
-    if best_obj is not None:
-        best_obj.select = True
-        context.scene.objects.active = best_obj
+    location, normal, face_index, distance = obj_ray_cast(obj, matrix)
+    if face_index is not None:
+        hit_world = matrix * location
+        scene.cursor_location = hit_world
 
 class SprytileModalTool(bpy.types.Operator):
     """Modal object selection with a ray cast"""
@@ -75,13 +52,18 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Tile Paint"
 
     def modal(self, context, event):
+        print(event.type)
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
-            ray_cast(context, event)
+            self.left_down = event.value == 'PRESS'
+            ray_cast(self, context, event)
             return {'RUNNING_MODAL'}
+        elif event.type == 'MOUSEMOVE' and self.left_down:
+            ray_cast(self, context, event)
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            self.tree = None
             return {'CANCELLED'}
 
         return {'RUNNING_MODAL'}
@@ -89,6 +71,15 @@ class SprytileModalTool(bpy.types.Operator):
     def invoke(self, context, event):
         if context.space_data.type == 'VIEW_3D':
             context.window_manager.modal_handler_add(self)
+
+            obj = context.object
+            if obj.hide or obj.type != 'MESH':
+                self.report({'WARNING'}, "Active object must be a visible mesh")
+                return {'CANCELLED'}
+
+            self.left_down = False
+            self.tree = BVHTree.FromObject(context.object, context.scene)
+
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
