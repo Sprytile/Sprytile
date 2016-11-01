@@ -1,5 +1,6 @@
 import bpy
 import bmesh
+import math
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
 from mathutils.geometry import intersect_line_plane
@@ -72,16 +73,61 @@ def build_face(self, context, event):
     ray_target = ray_origin + view_vector
 
     plane_normal = scene.sprytile_normal_data
+    up_vector = scene.sprytile_upvector_data
+    # When calculating up vector for normal data,
+    # dot compare with other X/Y/Z normals, whichever closer
     if scene.sprytile_normalmode == 'X':
         plane_normal = Vector((1.0, 0.0, 0.0))
+        up_vector = Vector((0.0, 0.0, 1.0))
     elif scene.sprytile_normalmode == 'Y':
         plane_normal = Vector((0.0, 1.0, 0.0))
+        up_vector = Vector((0.0, 0.0, 1.0))
     elif scene.sprytile_normalmode == 'Z':
         plane_normal = Vector((0.0, 0.0, 1.0))
+        up_vector = Vector((0.0, 1.0, 0.0))
+
+    plane_normal.normalize()
+    up_vector.normalize()
 
     plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_target, scene.cursor_location, plane_normal)
+    # Intersected with the normal plane...
     if plane_pos is not None:
-        print(plane_pos)
+        world_pixels = scene.sprytile_world_pixels
+        target_mat = bpy.data.materials[context.object.sprytile_matid]
+        grid_x = target_mat.sprytile_mat_grid_x
+        grid_y = target_mat.sprytile_mat_grid_y
+
+        face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
+                                                        plane_normal, up_vector,
+                                                        world_pixels, grid_x, grid_y)
+
+        bm = bmesh.from_edit_mesh(context.object.data)
+        print(bm.verts)
+        bm.faces.new((
+            bm.verts.new(face_position),
+            bm.verts.new(face_position + y_vector),
+            bm.verts.new(face_position + x_vector + y_vector),
+            bm.verts.new(face_position + x_vector)
+        ))
+        bmesh.update_edit_mesh(context.object.data)
+
+def get_grid_pos(position, grid_center, normal, up_vector, world_pixels, grid_x, grid_y):
+    print("Input position:", position)
+    right_vector = normal.cross(up_vector)
+
+    position_vector = position - grid_center
+    x_magnitude = position_vector.dot(right_vector)
+    y_magnitude = position_vector.dot(up_vector)
+
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+
+    x_snap = round(x_magnitude / x_unit)
+    y_snap = round(y_magnitude / y_unit)
+
+    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
+    print("Output position", grid_pos)
+    return grid_pos, x_unit * right_vector, y_unit * up_vector
 
 class SprytileModalTool(bpy.types.Operator):
     """Modal object selection with a ray cast"""
