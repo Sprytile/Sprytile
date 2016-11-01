@@ -45,6 +45,11 @@ def setup_props():
         description = "Last saved painting normal used by Sprytile",
         default = (0.0, 0.0, 1.0)
     )
+    bpy.types.Scene.sprytile_upvector_data = FloatVectorProperty(
+        name = "Sprytile Last Paint Up Vector",
+        description = "Last saved painting up vector used by Srpytile",
+        default = (0.0, 1.0, 0.0)
+    )
     bpy.types.Scene.sprytile_world_pixels = IntProperty(
         name = "World Pixel Density",
         description = "How many pixels are displayed in one world unit",
@@ -77,6 +82,7 @@ def teardown_props():
     del bpy.types.Scene.sprytile_normalmode
     del bpy.types.Scene.sprytile_paintmode
     del bpy.types.Scene.sprytile_normal_data
+    del bpy.types.Scene.sprytile_upvector_data
     del bpy.types.Scene.sprytile_world_pixels
 
     del bpy.types.Object.sprytile_matid
