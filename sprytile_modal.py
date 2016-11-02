@@ -89,7 +89,7 @@ def build_face(self, context, event):
     plane_normal.normalize()
     up_vector.normalize()
 
-    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_target, scene.cursor_location, plane_normal)
+    plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
     # Intersected with the normal plane...
     if plane_pos is not None:
         world_pixels = scene.sprytile_world_pixels
@@ -100,9 +100,11 @@ def build_face(self, context, event):
         face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
                                                         plane_normal, up_vector,
                                                         world_pixels, grid_x, grid_y)
+        print("x_vector: ", x_vector, " y_vector: ", y_vector)
+        # Convert world space position to object space
+        face_position = context.object.matrix_world.copy().inverted() * face_position;
 
         bm = bmesh.from_edit_mesh(context.object.data)
-        print(bm.verts)
         bm.faces.new((
             bm.verts.new(face_position),
             bm.verts.new(face_position + y_vector),
@@ -111,23 +113,40 @@ def build_face(self, context, event):
         ))
         bmesh.update_edit_mesh(context.object.data)
 
+        # Update the collision BVHTree with new data
+        self.tree = BVHTree.FromBMesh(bm)
+        # Save the last normal and up vector
+        scene.sprytile_normal_data = plane_normal
+        scene.sprytile_upvector_data = up_vector
+        print("Build face")
+
+
 def get_grid_pos(position, grid_center, normal, up_vector, world_pixels, grid_x, grid_y):
-    print("Input position:", position)
     right_vector = normal.cross(up_vector)
 
     position_vector = position - grid_center
+    pos_vector_normalized = position.normalized()
+
+    if right_vector.dot(pos_vector_normalized) < 0:
+        right_vector *= -1
+    if up_vector.dot(pos_vector_normalized) < 0:
+        up_vector *= -1
+
     x_magnitude = position_vector.dot(right_vector)
     y_magnitude = position_vector.dot(up_vector)
 
     x_unit = grid_x / world_pixels
     y_unit = grid_y / world_pixels
 
-    x_snap = round(x_magnitude / x_unit)
-    y_snap = round(y_magnitude / y_unit)
+    x_snap = math.floor(x_magnitude / x_unit)
+    y_snap = math.floor(y_magnitude / y_unit)
+
+    right_vector *= x_unit
+    up_vector *= y_unit
 
     grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
-    print("Output position", grid_pos)
-    return grid_pos, x_unit * right_vector, y_unit * up_vector
+
+    return grid_pos, right_vector, up_vector
 
 class SprytileModalTool(bpy.types.Operator):
     """Modal object selection with a ray cast"""
@@ -139,11 +158,15 @@ class SprytileModalTool(bpy.types.Operator):
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
+            print("Left mouse")
             self.left_down = event.value == 'PRESS'
-            ray_cast(self, context, event)
+            if self.left_down:
+                ray_cast(self, context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE' and self.left_down:
+            print("Mouse move")
             ray_cast(self, context, event)
+            return {'RUNNING_MODAL'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.tree = None
             return {'CANCELLED'}
