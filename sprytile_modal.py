@@ -17,7 +17,12 @@ def ray_cast(self, context, event):
     scene = context.scene
     region = context.region
     rv3d = context.region_data
-    coord = event.mouse_region_x, event.mouse_region_y
+    coord = Vector((event.mouse_region_x, event.mouse_region_y))
+
+    if coord.x < 0 or coord.y < 0:
+        return False
+    if coord.x > region.width or coord.y > region.height:
+        return False
 
     # get the ray from the viewport and mouse
     view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
@@ -92,25 +97,41 @@ def build_face(self, context, event):
     plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
     # Intersected with the normal plane...
     if plane_pos is not None:
+        right_vector = up_vector.cross(plane_normal)
+
         world_pixels = scene.sprytile_world_pixels
         target_mat = bpy.data.materials[context.object.sprytile_matid]
         grid_x = target_mat.sprytile_mat_grid_x
         grid_y = target_mat.sprytile_mat_grid_y
 
         face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
-                                                        plane_normal, up_vector,
+                                                        right_vector.copy(), up_vector.copy(),
                                                         world_pixels, grid_x, grid_y)
-        print("x_vector: ", x_vector, " y_vector: ", y_vector)
+        print("pos: ", face_position, "\nx_vector: ", x_vector, "\ny_vector: ", y_vector)
+        print("right/x: ", right_vector, "\nup/y: ", up_vector)
         # Convert world space position to object space
         face_position = context.object.matrix_world.copy().inverted() * face_position;
 
+        x_dot = right_vector.dot(x_vector.normalized())
+        y_dot = up_vector.dot(y_vector.normalized())
+        x_positive = x_dot > 0
+        y_positive = y_dot > 0
+        print("X dot:", x_dot, "\nY dot", y_dot)
+
         bm = bmesh.from_edit_mesh(context.object.data)
-        bm.faces.new((
-            bm.verts.new(face_position),
-            bm.verts.new(face_position + y_vector),
-            bm.verts.new(face_position + x_vector + y_vector),
-            bm.verts.new(face_position + x_vector)
-        ))
+
+        vtx1 = bm.verts.new(face_position)
+        vtx2 = bm.verts.new(face_position + y_vector)
+        vtx3 = bm.verts.new(face_position + x_vector + y_vector)
+        vtx4 = bm.verts.new(face_position + x_vector)
+
+        # Quadrant II, IV
+        face = (vtx1, vtx2, vtx3, vtx4)
+        # Quadrant I, III
+        if x_positive == y_positive:
+            face = (vtx1, vtx4, vtx3, vtx2)
+
+        bm.faces.new(face)
         bmesh.update_edit_mesh(context.object.data)
 
         # Update the collision BVHTree with new data
@@ -121,8 +142,7 @@ def build_face(self, context, event):
         print("Build face")
 
 
-def get_grid_pos(position, grid_center, normal, up_vector, world_pixels, grid_x, grid_y):
-    right_vector = normal.cross(up_vector)
+def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
 
     position_vector = position - grid_center
     pos_vector_normalized = position.normalized()
@@ -158,13 +178,12 @@ class SprytileModalTool(bpy.types.Operator):
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
-            print("Left mouse")
             self.left_down = event.value == 'PRESS'
             if self.left_down:
-                ray_cast(self, context, event)
+                if ray_cast(self, context, event) is False:
+                    return {'CANCELLED'}
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE' and self.left_down:
-            print("Mouse move")
             ray_cast(self, context, event)
             return {'RUNNING_MODAL'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
