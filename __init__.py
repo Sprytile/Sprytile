@@ -8,10 +8,11 @@ bl_info = {
 
 if "bpy" in locals():
     import imp
+    imp.reload(sprytile_gui)
     imp.reload(sprytile_modal)
     imp.reload(sprytile_panel)
 else:
-    from . import sprytile_modal, sprytile_panel
+    from . import sprytile_gui, sprytile_modal, sprytile_panel
 
 import bpy
 from bpy.props import EnumProperty, IntProperty, FloatVectorProperty

@@ -1,14 +1,17 @@
+import bgl
 import bpy
 import bmesh
 import math
+from . import sprytile_gui
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
 from mathutils.geometry import intersect_line_plane
 from mathutils.bvhtree import BVHTree
 
 def ray_cast(self, context, event):
-    """Run this function on left mouse, execute the ray cast"""
-    if self.tree is None:
+    # Don't do anything if nothing to raycast on
+    # or the GL GUI is using the mouse
+    if self.tree is None or self.gui_use_mouse is True:
         return
     if context.object.type != 'MESH':
         return
@@ -141,7 +144,6 @@ def build_face(self, context, event):
         scene.sprytile_upvector_data = up_vector
         print("Build face")
 
-
 def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
 
     position_vector = position - grid_center
@@ -168,46 +170,65 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 
     return grid_pos, right_vector, up_vector
 
+def draw_callback_px(self, context):
+    print("Draw callback")
+
 class SprytileModalTool(bpy.types.Operator):
-    """Modal object selection with a ray cast"""
+    """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
     bl_label = "Tile Paint"
 
     def modal(self, context, event):
+        context.area.tag_redraw()
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS'
             if self.left_down:
+                self.gui_event = event
                 if ray_cast(self, context, event) is False:
-                    return {'CANCELLED'}
+                    self.exit_modal()
+                    return {'FINISHED'}
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE' and self.left_down:
+            self.gui_event = event
             ray_cast(self, context, event)
             return {'RUNNING_MODAL'}
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            self.tree = None
+            self.exit_modal()
             return {'CANCELLED'}
 
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
         if context.space_data.type == 'VIEW_3D':
-            context.window_manager.modal_handler_add(self)
-
             obj = context.object
             if obj.hide or obj.type != 'MESH':
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
 
+            # Set up for raycasting with a BVHTree
             self.left_down = False
             self.tree = BVHTree.FromObject(context.object, context.scene)
 
+            # Set up GL draw callbacks, communication between modal and GUI
+            self.gui_event = None
+            self.gui_use_mouse = False
+            gui_args = (self, context)
+            self.glHandle = bpy.types.SpaceView3D.draw_handler_add(sprytile_gui.draw_gui, gui_args, 'WINDOW', 'POST_PIXEL')
+            
+            context.window_manager.modal_handler_add(self)
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
             return {'CANCELLED'}
+
+    def exit_modal(self):
+        self.tree = None
+        self.gui_event = None
+        self.gui_use_mouse = False
+        bpy.types.SpaceView3D.draw_handler_remove(self.glHandle, 'WINDOW')
 
 def register():
     bpy.utils.register_module(__name__)
