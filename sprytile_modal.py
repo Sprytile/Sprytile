@@ -184,18 +184,19 @@ class SprytileModalTool(bpy.types.Operator):
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
+            self.gui_event = event
             self.left_down = event.value == 'PRESS'
             if self.left_down:
-                self.gui_event = event
                 if ray_cast(self, context, event) is False:
-                    self.exit_modal()
-                    return {'FINISHED'}
+                    print("Passing left click through")
+                    return {'PASS_THROUGH'}
             return {'RUNNING_MODAL'}
-        elif event.type == 'MOUSEMOVE' and self.left_down:
+        elif event.type == 'MOUSEMOVE':
             self.gui_event = event
-            ray_cast(self, context, event)
-            return {'RUNNING_MODAL'}
-        elif event.type in {'RIGHTMOUSE', 'ESC'}:
+            if self.left_down:
+                ray_cast(self, context, event)
+                return {'RUNNING_MODAL'}
+        elif event.type in {'RIGHTMOUSE', 'ESC'} and self.gui_use_mouse is False:
             self.exit_modal()
             return {'CANCELLED'}
 
@@ -217,7 +218,7 @@ class SprytileModalTool(bpy.types.Operator):
             self.gui_use_mouse = False
             gui_args = (self, context)
             self.glHandle = bpy.types.SpaceView3D.draw_handler_add(sprytile_gui.draw_gui, gui_args, 'WINDOW', 'POST_PIXEL')
-            
+
             context.window_manager.modal_handler_add(self)
             return {'RUNNING_MODAL'}
         else:
