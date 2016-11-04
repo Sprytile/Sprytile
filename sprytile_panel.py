@@ -52,7 +52,11 @@ class SprytilePanel(bpy.types.Panel):
         layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
 
         layout.prop(context.scene, "sprytile_paintmode", expand=True)
-        layout.prop(context.scene, "sprytile_normalmode", expand=True)
+
+        layout.label("Face Normal")
+        row = layout.row(align=True)
+        row.prop(context.scene, "sprytile_normalmode", expand=True)
+        row.prop(context.scene, "sprytile_locknormal", toggle=True)
 
         layout.prop(context.scene, "sprytile_world_pixels")
 

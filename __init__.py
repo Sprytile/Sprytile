@@ -15,7 +15,15 @@ else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel
 
 import bpy
-from bpy.props import EnumProperty, IntProperty, FloatVectorProperty
+from bpy.props import EnumProperty, IntProperty, FloatVectorProperty, BoolProperty
+
+def set_normal(self, value):
+    if self["sprytile_locknormal"] is 1:
+        return
+    self["sprytile_normalmode"] = value
+
+def get_normal(self):
+    return self["sprytile_normalmode"]
 
 def setup_props():
     # Scene properties
@@ -23,12 +31,17 @@ def setup_props():
         items = [
             ("X",           "X",    "World X-Axis",     1),
             ("Y",           "Y",    "World Y-Axis",     2),
-            ("Z",           "Z",    "World X-Axis",     3),
-            ("LAST_NORMAL", "Last", "Last Used Normal", 4)
+            ("Z",           "Z",    "World X-Axis",     3)
         ],
         name = "Normal Mode",
         description = "Normal to create the mesh on",
-        default = 'Z'
+        default = 'Z',
+        set = set_normal,
+        get = get_normal
+    )
+    bpy.types.Scene.sprytile_locknormal = BoolProperty(
+        name = "Lock",
+        description = "Lock normal used to create meshes"
     )
 
     bpy.types.Scene.sprytile_paintmode = EnumProperty(
@@ -81,6 +94,7 @@ def setup_props():
 
 def teardown_props():
     del bpy.types.Scene.sprytile_normalmode
+    del bpy.types.Scene.sprytile_locknormal
     del bpy.types.Scene.sprytile_paintmode
     del bpy.types.Scene.sprytile_normal_data
     del bpy.types.Scene.sprytile_upvector_data

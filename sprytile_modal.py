@@ -96,12 +96,11 @@ def build_face(self, context, event):
 
     plane_normal.normalize()
     up_vector.normalize()
+    right_vector = up_vector.cross(plane_normal)
 
     plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
     # Intersected with the normal plane...
     if plane_pos is not None:
-        right_vector = up_vector.cross(plane_normal)
-
         world_pixels = scene.sprytile_world_pixels
         target_mat = bpy.data.materials[context.object.sprytile_matid]
         grid_x = target_mat.sprytile_mat_grid_x
