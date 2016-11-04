@@ -80,10 +80,14 @@ def build_face(self, context, event):
 
     ray_target = ray_origin + view_vector
 
+    # Repurpose view vector, now get it from center of screen
+    # To get view camera forward vector
+    coord = int(region.width/2), int(region.height/2)
+    view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+
     plane_normal = scene.sprytile_normal_data
     up_vector = scene.sprytile_upvector_data
-    # When calculating up vector for normal data,
-    # dot compare with other X/Y/Z normals, whichever closer
+
     if scene.sprytile_normalmode == 'X':
         plane_normal = Vector((1.0, 0.0, 0.0))
         up_vector = Vector((0.0, 0.0, 1.0))
@@ -96,6 +100,9 @@ def build_face(self, context, event):
 
     plane_normal.normalize()
     up_vector.normalize()
+
+    if plane_normal.dot(view_vector) > 0:
+        plane_normal *= -1
     right_vector = up_vector.cross(plane_normal)
 
     plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
@@ -169,18 +176,38 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 
     return grid_pos, right_vector, up_vector
 
-def draw_callback_px(self, context):
-    print("Draw callback")
-
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
     bl_label = "Tile Paint"
 
+    def find_scene_view(self, context):
+        # Find the nearest world axis to the view axis
+        scene = context.scene
+        region = context.region
+        rv3d = context.region_data
+        coord = int(region.width/2), int(region.height/2)
+
+        # get the ray from the viewport and mouse
+        view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        if scene.sprytile_locknormal is False:
+            x_dot = 1 - abs(view_vector.dot( Vector((1.0, 0.0, 0.0)) ))
+            y_dot = 1 - abs(view_vector.dot( Vector((0.0, 1.0, 0.0)) ))
+            z_dot = 1 - abs(view_vector.dot( Vector((0.0, 0.0, 1.0)) ))
+            dot_array = [x_dot, y_dot, z_dot]
+            closest = min(dot_array)
+            if closest is dot_array[0]:
+                scene.sprytile_normalmode = 'X'
+            elif closest is dot_array[1]:
+                scene.sprytile_normalmode = 'Y'
+            else:
+                scene.sprytile_normalmode = 'Z'
+
     def modal(self, context, event):
         context.area.tag_redraw()
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
+            self.find_scene_view(context)
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
             self.gui_event = event
@@ -195,6 +222,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 ray_cast(self, context, event)
                 return {'RUNNING_MODAL'}
+            self.find_scene_view(context)
         elif event.type in {'RIGHTMOUSE', 'ESC'} and self.gui_use_mouse is False:
             self.exit_modal()
             return {'CANCELLED'}

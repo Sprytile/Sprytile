@@ -18,7 +18,7 @@ import bpy
 from bpy.props import EnumProperty, IntProperty, FloatVectorProperty, BoolProperty
 
 def set_normal(self, value):
-    if self["sprytile_locknormal"] is 1:
+    if self.sprytile_locknormal is True:
         return
     self["sprytile_normalmode"] = value
 
@@ -41,7 +41,8 @@ def setup_props():
     )
     bpy.types.Scene.sprytile_locknormal = BoolProperty(
         name = "Lock",
-        description = "Lock normal used to create meshes"
+        description = "Lock normal used to create meshes",
+        default = False
     )
 
     bpy.types.Scene.sprytile_paintmode = EnumProperty(
