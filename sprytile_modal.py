@@ -131,6 +131,8 @@ class SprytileModalTool(bpy.types.Operator):
         plane_normal.normalize()
         up_vector.normalize()
 
+        # If view is facing same way as target normal
+        # flip the target normal around so facing towards view
         if plane_normal.dot(view_vector) > 0:
             plane_normal *= -1
         right_vector = up_vector.cross(plane_normal)
@@ -192,6 +194,9 @@ class SprytileModalTool(bpy.types.Operator):
 
     def modal(self, context, event):
         context.area.tag_redraw()
+        if event.type == 'TIMER':
+            self.find_view_axis(context)
+            return {'PASS_THROUGH'}
 
         region = context.region
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
@@ -204,7 +209,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
-            self.find_view_axis(context)
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
             self.gui_event = event
@@ -243,9 +247,10 @@ class SprytileModalTool(bpy.types.Operator):
             self.gui_use_mouse = False
             gui_args = (self, context)
             self.glHandle = bpy.types.SpaceView3D.draw_handler_add(sprytile_gui.draw_gui, gui_args, 'WINDOW', 'POST_PIXEL')
+            # Set up timer callback
+            self.view_axis_timer = context.window_manager.event_timer_add(0.1, context.window)
 
             context.window_manager.modal_handler_add(self)
-            context.window.cursor_set('PAINT_BRUSH')
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
@@ -256,6 +261,7 @@ class SprytileModalTool(bpy.types.Operator):
         self.gui_event = None
         self.gui_use_mouse = False
         context.window.cursor_set('DEFAULT')
+        context.window_manager.event_timer_remove(self.view_axis_timer)
         bpy.types.SpaceView3D.draw_handler_remove(self.glHandle, 'WINDOW')
 
 def register():
