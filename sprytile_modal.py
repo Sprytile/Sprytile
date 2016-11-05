@@ -85,16 +85,16 @@ def build_face(self, context, event):
     coord = int(region.width/2), int(region.height/2)
     view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
 
-    plane_normal = scene.sprytile_normal_data
-    up_vector = scene.sprytile_upvector_data
+    plane_normal = scene.sprytile_data.paint_normal_vector
+    up_vector = scene.sprytile_data.paint_up_vector
 
-    if scene.sprytile_normalmode == 'X':
+    if scene.sprytile_data.normal_mode == 'X':
         plane_normal = Vector((1.0, 0.0, 0.0))
         up_vector = Vector((0.0, 0.0, 1.0))
-    elif scene.sprytile_normalmode == 'Y':
+    elif scene.sprytile_data.normal_mode == 'Y':
         plane_normal = Vector((0.0, 1.0, 0.0))
         up_vector = Vector((0.0, 0.0, 1.0))
-    elif scene.sprytile_normalmode == 'Z':
+    elif scene.sprytile_data.normal_mode == 'Z':
         plane_normal = Vector((0.0, 0.0, 1.0))
         up_vector = Vector((0.0, 1.0, 0.0))
 
@@ -108,7 +108,7 @@ def build_face(self, context, event):
     plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
     # Intersected with the normal plane...
     if plane_pos is not None:
-        world_pixels = scene.sprytile_world_pixels
+        world_pixels = scene.sprytile_data.world_pixels
         target_mat = bpy.data.materials[context.object.sprytile_matid]
         grid_x = target_mat.sprytile_mat_grid_x
         grid_y = target_mat.sprytile_mat_grid_y
@@ -146,8 +146,8 @@ def build_face(self, context, event):
         # Update the collision BVHTree with new data
         self.tree = BVHTree.FromBMesh(bm)
         # Save the last normal and up vector
-        scene.sprytile_normal_data = plane_normal
-        scene.sprytile_upvector_data = up_vector
+        scene.sprytile_data.paint_normal_vector = plane_normal
+        scene.sprytile_data.paint_up_vector = up_vector
         print("Build face")
 
 def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
@@ -190,18 +190,18 @@ class SprytileModalTool(bpy.types.Operator):
 
         # get the ray from the viewport and mouse
         view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
-        if scene.sprytile_locknormal is False:
+        if scene.sprytile_data.lock_normal is False:
             x_dot = 1 - abs(view_vector.dot( Vector((1.0, 0.0, 0.0)) ))
             y_dot = 1 - abs(view_vector.dot( Vector((0.0, 1.0, 0.0)) ))
             z_dot = 1 - abs(view_vector.dot( Vector((0.0, 0.0, 1.0)) ))
             dot_array = [x_dot, y_dot, z_dot]
             closest = min(dot_array)
             if closest is dot_array[0]:
-                scene.sprytile_normalmode = 'X'
+                scene.sprytile_data.normal_mode = 'X'
             elif closest is dot_array[1]:
-                scene.sprytile_normalmode = 'Y'
+                scene.sprytile_data.normal_mode = 'Y'
             else:
-                scene.sprytile_normalmode = 'Z'
+                scene.sprytile_data.normal_mode = 'Z'
 
     def modal(self, context, event):
         context.area.tag_redraw()
