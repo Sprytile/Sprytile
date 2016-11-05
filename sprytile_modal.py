@@ -104,6 +104,7 @@ class SprytileModalTool(bpy.types.Operator):
         location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj)
         if face_index is None:
             return None, None, None, None
+        location = matrix * location
         return location, normal, face_index, distance
 
     def execute_paint(self, context, ray_origin, ray_target):
