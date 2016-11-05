@@ -7,3 +7,7 @@ https://blenderartists.org/forum/showthread.php?223152-Opengl-in-Blender-2-6
 http://blender.stackexchange.com/questions/30444/create-an-interface-which-is-similar-to-the-material-list-box
 
 https://www.blender.org/api/blender_python_api_2_70_5/bpy.types.UIList.html
+
+https://www.blender.org/api/blender_python_api_2_76_1/gpu.offscreen.html
+
+Try to make the tile selection draw to an offscreen buffer
