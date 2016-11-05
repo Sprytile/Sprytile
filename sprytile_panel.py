@@ -9,11 +9,8 @@ class SprytileValidateGridList(bpy.types.Operator):
     def poll(cls,context):
         return True
 
-    def execute(self, context):
-        """
-        """
+    def validate_grids(self, context):
         grids = context.scene.sprytile_grids
-        grids.clear()
         mats_valid = []
         print("Material count: %d" % len(bpy.data.materials))
         # Loop through available materials, checking if grids has
@@ -47,9 +44,13 @@ class SprytileValidateGridList(bpy.types.Operator):
 
         print(context.scene.sprytile_grids)
 
+    def execute(self, context):
+        self.validate_grids(context)
         return self.invoke(context, None)
 
     def invoke(self, context, event):
+        if event is not None:
+            self.validate_grids(context)
         return {'FINISHED'}
 
 class SprytileMaterialGridList(bpy.types.UIList):
