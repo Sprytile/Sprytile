@@ -177,41 +177,6 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 
     return grid_pos, right_vector, up_vector
 
-class SprytileGetViewAxis(bpy.types.Operator):
-    bl_idname = "sprytile.get_view_axis"
-    bl_label = "Sprytile Get View Axis"
-
-    @classmethod
-    def poll(cls,context):
-        return True
-
-    def execute(self, context):
-        # Find the nearest world axis to the view axis
-        scene = context.scene
-        region = context.region
-        rv3d = context.region_data
-        coord = int(region.width/2), int(region.height/2)
-
-        # get the ray from the viewport and mouse
-        view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
-        if scene.sprytile_data.lock_normal is False:
-            x_dot = 1 - abs(view_vector.dot( Vector((1.0, 0.0, 0.0)) ))
-            y_dot = 1 - abs(view_vector.dot( Vector((0.0, 1.0, 0.0)) ))
-            z_dot = 1 - abs(view_vector.dot( Vector((0.0, 0.0, 1.0)) ))
-            dot_array = [x_dot, y_dot, z_dot]
-            closest = min(dot_array)
-            if closest is dot_array[0]:
-                scene.sprytile_data.normal_mode = 'X'
-            elif closest is dot_array[1]:
-                scene.sprytile_data.normal_mode = 'Y'
-            else:
-                scene.sprytile_data.normal_mode = 'Z'
-
-        return self.invoke(context, None)
-
-    def invoke(self, context, event):
-        return {'FINISHED'}
-
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
