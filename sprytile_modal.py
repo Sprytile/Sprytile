@@ -49,20 +49,57 @@ class SprytileModalTool(bpy.types.Operator):
         rv3d = context.region_data
 
         # Get the view ray from center of screen
-        coord = int(region.width/2), int(region.height/2)
+        coord = Vector( (int(region.width/2), int(region.height/2)) )
         view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
 
-        x_dot = 1 - abs(view_vector.dot( Vector((1.0, 0.0, 0.0)) ))
-        y_dot = 1 - abs(view_vector.dot( Vector((0.0, 1.0, 0.0)) ))
-        z_dot = 1 - abs(view_vector.dot( Vector((0.0, 0.0, 1.0)) ))
-        dot_array = [x_dot, y_dot, z_dot]
-        closest = min(dot_array)
-        if closest is dot_array[0]:
+        # Get the up vector. The default scene view camera is pointed
+        # downward, with up on Y axis. Apply view rotation to get current up
+        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+        # print("view up", view_up_vector)
+        # print("Original forward", rv3d.view_rotation.inverted() * view_vector)
+
+        plane_normal = self.snap_vector_to_axis(view_vector, mirrored=True)
+        up_vector = self.snap_vector_to_axis(view_up_vector)
+
+        scene.sprytile_data.paint_normal_vector = plane_normal
+        scene.sprytile_data.paint_up_vector = up_vector
+
+        if abs(plane_normal.x) > 0:
             scene.sprytile_data.normal_mode = 'X'
-        elif closest is dot_array[1]:
+        elif abs(plane_normal.y) > 0:
             scene.sprytile_data.normal_mode = 'Y'
         else:
             scene.sprytile_data.normal_mode = 'Z'
+
+    def snap_vector_to_axis(self, vector, mirrored = False):
+        """Snaps a vector to the closest world axis"""
+        norm_vector = vector.normalized()
+
+        x = Vector((1.0, 0.0, 0.0))
+        y = Vector((0.0, 1.0, 0.0))
+        z = Vector((0.0, 0.0, 1.0))
+
+        x_dot = 1 - abs(norm_vector.dot(x))
+        y_dot = 1 - abs(norm_vector.dot(y))
+        z_dot = 1 - abs(norm_vector.dot(z))
+        dot_array = [x_dot, y_dot, z_dot]
+        closest = min(dot_array)
+
+        snapped_vector = x
+        if closest is dot_array[0]:
+            snapped_vector = x
+        elif closest is dot_array[1]:
+            snapped_vector = y
+        else:
+            snapped_vector = z
+
+        vector_dot = norm_vector.dot(snapped_vector)
+        if mirrored is False and vector_dot < 0:
+            snapped_vector *= -1
+        elif mirrored is True and vector_dot > 0:
+            snapped_vector *= -1
+
+        return snapped_vector
 
     def execute_tool(self, context, event):
         """Run the paint tool"""
