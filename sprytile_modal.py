@@ -5,7 +5,7 @@ import math
 from . import sprytile_gui
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
-from mathutils.geometry import intersect_line_plane
+from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
 
 def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
@@ -151,84 +151,84 @@ class SprytileModalTool(bpy.types.Operator):
             print("Hitting face index ", face_index)
 
     def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_target):
-        # Repurpose view vector, now get it from center of screen
-        # To get view camera forward vector
+        # Get view vector from center of the screen
         coord = int(region.width/2), int(region.height/2)
         view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
 
-        if scene.sprytile_data.normal_mode == 'X':
-            plane_normal = Vector((1.0, 0.0, 0.0))
-            up_vector = Vector((0.0, 0.0, 1.0))
-        elif scene.sprytile_data.normal_mode == 'Y':
-            plane_normal = Vector((0.0, 1.0, 0.0))
-            up_vector = Vector((0.0, 0.0, 1.0))
-        elif scene.sprytile_data.normal_mode == 'Z':
-            plane_normal = Vector((0.0, 0.0, 1.0))
-            up_vector = Vector((0.0, 1.0, 0.0))
+        data_normal = scene.sprytile_data.paint_normal_vector
+        data_up_vector = scene.sprytile_data.paint_up_vector
+
+        plane_normal = Vector((data_normal[0], data_normal[1], data_normal[2]))
+        up_vector = Vector((data_up_vector[0], data_up_vector[1], data_up_vector[2]))
 
         plane_normal.normalize()
         up_vector.normalize()
-
-        # If view is facing same way as target normal
-        # flip the target normal around so facing towards view
-        if plane_normal.dot(view_vector) > 0:
-            plane_normal *= -1
         right_vector = up_vector.cross(plane_normal)
 
         location, normal, face_index, distance = self.object_raycast(context.object, ray_origin, ray_target)
+        # If raycast on the mesh, check that the hit face isn't facing
+        # the same way as the plane_normal and it not coplanar to target plane
         if face_index is not None:
             check_dot = plane_normal.dot(normal)
             check_dot -= 1
-            if check_dot < 0.05 and check_dot > -0.05:
+            check_dot = abs(check_dot) < 0.05
+
+            check_coplanar = distance_point_to_plane(location, scene.cursor_location, plane_normal)
+            check_coplanar = abs(check_coplanar) < 0.05
+
+            if check_dot and check_coplanar:
                 return
         print("Execute build")
 
         plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
-        # Intersected with the normal plane...
-        if plane_pos is not None:
-            world_pixels = scene.sprytile_data.world_pixels
-            target_grid = scene.sprytile_grids[context.object.sprytile_gridid]
-            target_mat = bpy.data.materials[target_grid.mat_id]
-            grid_x = target_grid.grid[0]
-            grid_y = target_grid.grid[1]
+        # Didn't hit the plane exit
+        if plane_pos is None:
+            return
 
-            face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
-                                                            right_vector.copy(), up_vector.copy(),
-                                                            world_pixels, grid_x, grid_y)
-            # print("pos: ", face_position, "\nx_vector: ", x_vector, "\ny_vector: ", y_vector)
-            # print("right/x: ", right_vector, "\nup/y: ", up_vector)
-            # Convert world space position to object space
-            face_position = context.object.matrix_world.copy().inverted() * face_position;
+        # print("Up vector", up_vector)
+        # print("Right vector", right_vector)
 
-            x_dot = right_vector.dot(x_vector.normalized())
-            y_dot = up_vector.dot(y_vector.normalized())
-            x_positive = x_dot > 0
-            y_positive = y_dot > 0
-            # print("X dot:", x_dot, "\nY dot", y_dot)
+        world_pixels = scene.sprytile_data.world_pixels
+        target_grid = scene.sprytile_grids[context.object.sprytile_gridid]
+        target_mat = bpy.data.materials[target_grid.mat_id]
+        grid_x = target_grid.grid[0]
+        grid_y = target_grid.grid[1]
 
-            bm = bmesh.from_edit_mesh(context.object.data)
+        face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
+                                                        right_vector.copy(), up_vector.copy(),
+                                                        world_pixels, grid_x, grid_y)
+        # Convert world space position to object space
+        face_position = context.object.matrix_world.copy().inverted() * face_position;
 
-            vtx1 = bm.verts.new(face_position)
-            vtx2 = bm.verts.new(face_position + y_vector)
-            vtx3 = bm.verts.new(face_position + x_vector + y_vector)
-            vtx4 = bm.verts.new(face_position + x_vector)
+        x_dot = right_vector.dot(x_vector.normalized())
+        y_dot = up_vector.dot(y_vector.normalized())
+        x_positive = x_dot > 0
+        y_positive = y_dot > 0
+        # print("X dot:", x_dot, "\nY dot", y_dot)
 
-            # Quadrant II, IV
-            face = (vtx1, vtx2, vtx3, vtx4)
-            # Quadrant I, III
-            if x_positive == y_positive:
-                face = (vtx1, vtx4, vtx3, vtx2)
+        bm = bmesh.from_edit_mesh(context.object.data)
 
-            bm.faces.new(face)
-            bm.normal_update()
-            bmesh.update_edit_mesh(context.object.data)
+        vtx1 = bm.verts.new(face_position)
+        vtx2 = bm.verts.new(face_position + y_vector)
+        vtx3 = bm.verts.new(face_position + x_vector + y_vector)
+        vtx4 = bm.verts.new(face_position + x_vector)
 
-            # Update the collision BVHTree with new data
-            self.tree = BVHTree.FromBMesh(bm)
-            # Save the last normal and up vector
-            scene.sprytile_data.paint_normal_vector = plane_normal
-            scene.sprytile_data.paint_up_vector = up_vector
-            print("Build face")
+        # Quadrant II, IV
+        face_order = (vtx1, vtx2, vtx3, vtx4)
+        # Quadrant I, III
+        if x_positive == y_positive:
+            face_order = (vtx1, vtx4, vtx3, vtx2)
+
+        face = bm.faces.new(face_order)
+        bm.normal_update()
+        bmesh.update_edit_mesh(context.object.data)
+
+        # Update the collision BVHTree with new data
+        self.tree = BVHTree.FromBMesh(bm)
+        # Save the last normal and up vector
+        scene.sprytile_data.paint_normal_vector = plane_normal
+        scene.sprytile_data.paint_up_vector = up_vector
+        print("Build face")
 
     def modal(self, context, event):
         context.area.tag_redraw()
