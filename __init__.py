@@ -29,9 +29,9 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     normal_mode = EnumProperty(
         items = [
-            ("X",           "X",    "World X-Axis",     1),
-            ("Y",           "Y",    "World Y-Axis",     2),
-            ("Z",           "Z",    "World X-Axis",     3)
+            ("X", "X", "World X-Axis", 1),
+            ("Y", "Y", "World Y-Axis", 2),
+            ("Z", "Z", "World X-Axis", 3)
         ],
         name = "Normal Mode",
         description = "Normal to create the mesh on",
@@ -80,6 +80,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
+    mat_id = IntProperty(
+        name = "Material Index",
+        description = "Index of the material this grid references",
+        default = -1
+    )
+    is_main = BoolProperty(
+        name = "Main grid flag",
+        default = False
+    )
     grid_x = IntProperty(
         name = "Width",
         description = "Texture grid width, in pixels",
@@ -97,7 +106,7 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         default = 32
     )
     offset = IntVectorProperty(
-        name = "Grid Offset",
+        name = "Offset",
         description = "Offset of the grid",
         subtype = 'TRANSLATION',
         size = 2,
@@ -113,36 +122,18 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
 
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
+    bpy.types.Scene.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)
 
     # Object properties
-    bpy.types.Object.sprytile_matid = IntProperty(
-        name = "Material ID",
-        description = "Material index used for object"
-    )
-
-    bpy.types.Material.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)
-    bpy.types.Material.sprytile_mat_grid_x = IntProperty(
-        name = "Width",
-        description = "Texture grid width, in pixels",
-        min = 8,
-        max = 2048,
-        default = 32
-    )
-    bpy.types.Material.sprytile_mat_grid_y = IntProperty(
-        name = "Height",
-        description = "Texture grid height, in pixels",
-        min = 8,
-        max = 2048,
-        default = 32
+    bpy.types.Object.sprytile_gridid = IntProperty(
+        name = "Grid ID",
+        description = "Grid index used for object"
     )
 
 def teardown_props():
     del bpy.types.Scene.sprytile_data
-    del bpy.types.Material.sprytile_grids
-    
-    del bpy.types.Object.sprytile_matid
-    del bpy.types.Material.sprytile_mat_grid_x
-    del bpy.types.Material.sprytile_mat_grid_y
+    del bpy.types.Scene.sprytile_grids
+    del bpy.types.Object.sprytile_gridid
 
 def register():
     bpy.utils.register_module(__name__)

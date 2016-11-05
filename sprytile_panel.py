@@ -1,33 +1,66 @@
 import bpy
 from bpy.types import Panel, UIList
 
-class MATERIAL_UL_matslots_example(bpy.types.UIList):
-    # The draw_item function is called for each item of the collection that is visible in the list.
-    #   data is the RNA object containing the collection,
-    #   item is the current drawn item of the collection,
-    #   icon is the "computed" icon for the item (as an integer, because some objects like materials or textures
-    #   have custom icons ID, which are not available as enum items).
-    #   active_data is the RNA object containing the active property for the collection (i.e. integer pointing to the
-    #   active item of the collection).
-    #   active_propname is the name of the active property (use 'getattr(active_data, active_propname)').
-    #   index is index of the current item in the collection.
-    #   flt_flag is the result of the filtering process for this item.
-    #   Note: as index and flt_flag are optional arguments, you do not have to use/declare them here if you don't
-    #         need them.
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
-        ob = data
-        ma = item
-        # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            # You should always start your row layout by a label (icon + text), or a non-embossed text field,
-            # this will also make the row easily selectable in the list! The later also enables ctrl-click rename.
-            # We use icon_value of label, as our given icon is an integer value, not an enum ID.
-            # Note "data" names should never be translated!
-            if ma:
-                layout.prop(ma, "name", text="", emboss=False, icon_value=icon)
-            else:
-                layout.label(text="", translate=False, icon_value=icon)
-        # 'GRID' layout type should be as compact as possible (typically a single icon!).
+class SprytileValidateGridList(bpy.types.Operator):
+    bl_idname = "sprytile.validate_grids"
+    bl_label = "Sprytile Validate Grids"
+
+    @classmethod
+    def poll(cls,context):
+        return True
+
+    def execute(self, context):
+        """
+        """
+        grids = context.scene.sprytile_grids
+        grids.clear()
+        mats_valid = []
+        print("Material count: %d" % len(bpy.data.materials))
+        # Loop through available materials, checking if grids has
+        # at least one entry with the id
+        for mat_id, mat in enumerate(bpy.data.materials):
+            is_mat_valid = False
+            for grid in grids:
+                if grid.mat_id == mat_id:
+                    is_mat_valid = True
+                    break
+            mats_valid.append(is_mat_valid)
+
+        # Check the mats valid list and add a new grid for any invalid setting
+        for mat_id, mat_valid in enumerate(mats_valid):
+            if mat_valid is True:
+                continue
+            grid_setting = grids.add()
+            grid_setting.mat_id = mat_id
+            grid_setting.is_main = True
+
+        # Remove any grids with invalid material ids
+        invalid_id = []
+        mat_size = len(bpy.data.materials)
+        for idx, grid in enumerate(grids):
+            if grid.mat_id >= mat_size:
+                invalid_id.append(idx)
+        for idx in invalid_id.reverse():
+            grids.remove(idx)
+
+        print(context.scene.sprytile_grids)
+
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        return {'FINISHED'}
+
+class SprytileMaterialGridList(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        """
+        """
+        if item.mat_id >= len(bpy.data.materials):
+            layout.label("Invalid Material")
+        elif self.layout_type in {'DEFAULT', 'COMPACT'}:
+            material = bpy.data.materials[item.mat_id]
+            split = layout.split(0.6)
+            split.prop(material, "name", text="", emboss=False, icon_value=(846 + item.mat_id))
+            split.label("%dx%d" % (item.grid_x, item.grid_y))
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
@@ -47,6 +80,7 @@ class SprytilePanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        scene = context.scene
         obj = context.object
 
         layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
@@ -61,14 +95,35 @@ class SprytilePanel(bpy.types.Panel):
         layout.prop(context.scene.sprytile_data, "world_pixels")
 
         layout.label("Select Material", icon='MATERIAL_DATA')
-        layout.template_list("MATERIAL_UL_matslots_example", "", bpy.data, "materials", obj, "sprytile_matid")
+        layout.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=3)
 
-        selected_mat = bpy.data.materials[obj.sprytile_matid]
+        if obj.sprytile_gridid in {None, -1}:
+            return
 
-        layout.label("Material Grid Size", icon='GRID')
+        selected_grid = scene.sprytile_grids[obj.sprytile_gridid]
+
+        layout.label("Grid Settings", icon='GRID')
         row = layout.row(align=True)
-        row.prop(selected_mat, "sprytile_mat_grid_x")
-        row.prop(selected_mat, "sprytile_mat_grid_y")
+        row.prop(selected_grid, "grid_x")
+        row.prop(selected_grid, "grid_y")
+
+        layout.prop(selected_grid, "offset")
+
+class SprytileWorkflowPanel(bpy.types.Panel):
+    bl_label = "Sprytile Workflow"
+    bl_idname = "sprytile.panel_workflow"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Sprytile"
+
+    @classmethod
+    def poll(self, context):
+        if context.object and context.object.type == 'MESH':
+            return context.object.mode == 'EDIT'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("sprytile.validate_grids")
 
 def register():
     bpy.utils.register_module(__name__)
