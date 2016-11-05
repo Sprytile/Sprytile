@@ -3,7 +3,7 @@ from bpy.types import Panel, UIList
 
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
-    bl_label = "Sprytile Validate Grids"
+    bl_label = "Validate Material Grids"
 
     @classmethod
     def poll(cls,context):
@@ -63,7 +63,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
             material = bpy.data.materials[item.mat_id]
             split = layout.split(0.6)
             split.prop(material, "name", text="", emboss=False)
-            split.label("%dx%d" % (item.grid_x, item.grid_y))
+            split.label("%dx%d" % (item.grid[0], item.grid[1]))
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
@@ -106,14 +106,12 @@ class SprytilePanel(bpy.types.Panel):
         selected_grid = scene.sprytile_grids[obj.sprytile_gridid]
 
         layout.label("Grid Settings", icon='GRID')
-        row = layout.row(align=True)
-        row.prop(selected_grid, "grid_x")
-        row.prop(selected_grid, "grid_y")
 
+        layout.prop(selected_grid, "grid")
         layout.prop(selected_grid, "offset")
 
 class SprytileWorkflowPanel(bpy.types.Panel):
-    bl_label = "Sprytile Workflow"
+    bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"

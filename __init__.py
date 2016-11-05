@@ -105,6 +105,14 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         max = 2048,
         default = 32
     )
+    grid = IntVectorProperty(
+        name = "Size",
+        description = "Grid size, in pixels",
+        min = 8,
+        size = 2,
+        subtype = 'XYZ',
+        default = (32, 32)
+    )
     offset = IntVectorProperty(
         name = "Offset",
         description = "Offset of the grid",
