@@ -111,14 +111,6 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         default = 0.0
     )
 
-def set_normal(self, value):
-    if self.sprytile_locknormal is True:
-        return
-    self["sprytile_normalmode"] = value
-
-def get_normal(self):
-    return self["sprytile_normalmode"]
-
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
 
