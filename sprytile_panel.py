@@ -40,7 +40,9 @@ class SprytileValidateGridList(bpy.types.Operator):
         for idx, grid in enumerate(grids):
             if grid.mat_id >= mat_size:
                 invalid_id.append(idx)
-        for idx in invalid_id.reverse():
+                print("Remove index ", idx)
+        invalid_id.reverse()
+        for idx in invalid_id:
             grids.remove(idx)
 
         print(context.scene.sprytile_grids)
@@ -59,7 +61,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
         elif self.layout_type in {'DEFAULT', 'COMPACT'}:
             material = bpy.data.materials[item.mat_id]
             split = layout.split(0.6)
-            split.prop(material, "name", text="", emboss=False, icon_value=(846 + item.mat_id))
+            split.prop(material, "name", text="", emboss=False)
             split.label("%dx%d" % (item.grid_x, item.grid_y))
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'

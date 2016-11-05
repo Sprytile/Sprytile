@@ -182,7 +182,7 @@ class SprytileModalTool(bpy.types.Operator):
     bl_idname = "sprytile.modal_tool"
     bl_label = "Tile Paint"
 
-    def find_scene_view(self, context):
+    def find_scene_axis(self, context):
         # Find the nearest world axis to the view axis
         scene = context.scene
         region = context.region
@@ -208,22 +208,19 @@ class SprytileModalTool(bpy.types.Operator):
         context.area.tag_redraw()
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
-            self.find_scene_view(context)
+            self.find_scene_axis(context)
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
             self.gui_event = event
             self.left_down = event.value == 'PRESS'
             if self.left_down:
-                if ray_cast(self, context, event) is False:
-                    print("Passing left click through")
-                    return {'PASS_THROUGH'}
+                ray_cast(self, context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
             self.gui_event = event
             if self.left_down:
                 ray_cast(self, context, event)
                 return {'RUNNING_MODAL'}
-            self.find_scene_view(context)
         elif event.type in {'RIGHTMOUSE', 'ESC'} and self.gui_use_mouse is False:
             self.exit_modal()
             return {'CANCELLED'}

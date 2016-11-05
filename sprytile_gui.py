@@ -13,7 +13,8 @@ def draw_gui(self, context):
 
     region = context.region
     object = context.object
-    target_mat = bpy.data.materials[object.sprytile_matid]
+    target_grid = context.scene.sprytile_grids[object.sprytile_gridid]
+    target_mat = bpy.data.materials[target_grid.mat_id]
     # look through the texture slots of the material
     # to find the first with a texture/image
     target_img = None
