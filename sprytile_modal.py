@@ -161,6 +161,38 @@ class SprytileModalTool(bpy.types.Operator):
                                                         world_pixels, grid_x, grid_y)
         return grid_position, x_vector, y_vector, plane_pos
 
+    def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector):
+        """Build a face at the given position"""
+        # Convert world space position to object space
+        face_position = context.object.matrix_world.copy().inverted() * position;
+
+        x_dot = right_vector.dot(x_vector.normalized())
+        y_dot = up_vector.dot(y_vector.normalized())
+        x_positive = x_dot > 0
+        y_positive = y_dot > 0
+        # print("X dot:", x_dot, "\nY dot", y_dot)
+
+        bm = bmesh.from_edit_mesh(context.object.data)
+
+        vtx1 = bm.verts.new(face_position)
+        vtx2 = bm.verts.new(face_position + y_vector)
+        vtx3 = bm.verts.new(face_position + x_vector + y_vector)
+        vtx4 = bm.verts.new(face_position + x_vector)
+
+        # Quadrant II, IV
+        face_order = (vtx1, vtx2, vtx3, vtx4)
+        # Quadrant I, III
+        if x_positive == y_positive:
+            face_order = (vtx1, vtx4, vtx3, vtx2)
+
+        face = bm.faces.new(face_order)
+        face.normal_update()
+        bmesh.update_edit_mesh(context.object.data, True, True)
+
+        # Update the collision BVHTree with new data
+        self.tree = BVHTree.FromBMesh(bm)
+        return face
+
     def get_current_grid_vectors(self, scene):
         """Returns the current grid X/Y/Z vectors from data"""
         data_normal = scene.sprytile_data.paint_normal_vector
@@ -209,39 +241,14 @@ class SprytileModalTool(bpy.types.Operator):
             return
 
         print("Execute build")
-        # store plane_cursor
+        # store plane_cursor, for deciding where to move actual cursor
+        # if auto cursor mode is on
 
-        # Convert world space position to object space
-        face_position = context.object.matrix_world.copy().inverted() * face_position;
-
-        x_dot = right_vector.dot(x_vector.normalized())
-        y_dot = up_vector.dot(y_vector.normalized())
-        x_positive = x_dot > 0
-        y_positive = y_dot > 0
-        # print("X dot:", x_dot, "\nY dot", y_dot)
-
-        bm = bmesh.from_edit_mesh(context.object.data)
-
-        vtx1 = bm.verts.new(face_position)
-        vtx2 = bm.verts.new(face_position + y_vector)
-        vtx3 = bm.verts.new(face_position + x_vector + y_vector)
-        vtx4 = bm.verts.new(face_position + x_vector)
-
-        # Quadrant II, IV
-        face_order = (vtx1, vtx2, vtx3, vtx4)
-        # Quadrant I, III
-        if x_positive == y_positive:
-            face_order = (vtx1, vtx4, vtx3, vtx2)
-
-        bm.faces.new(face_order)
-        bmesh.update_edit_mesh(context.object.data, True, True)
-
-        # Update the collision BVHTree with new data
-        self.tree = BVHTree.FromBMesh(bm)
-        # Save the last normal and up vector
-        scene.sprytile_data.paint_normal_vector = plane_normal
-        scene.sprytile_data.paint_up_vector = up_vector
+        self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
         print("Build face")
+
+    def get_grid_raycast(self, x, y):
+        """Get the raycast position for a given grid position"""
 
     def cursor_snap(self, context, event):
         if self.tree is None or self.gui_use_mouse is True:
