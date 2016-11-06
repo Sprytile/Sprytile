@@ -79,6 +79,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default = (0.0, 1.0, 0.0)
     )
 
+    cursor_snap = EnumProperty(
+        items = [
+            ('VERTEX', "Vertex", "Snap cursor to nearest vertex", 1),
+            ('GRID', "Grid", "Snap cursor to grid", 2)
+        ],
+        name = "Cursor snap mode",
+        description = "Sprytile cursor snap mode"
+    )
+
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = IntProperty(
         name = "Material Index",

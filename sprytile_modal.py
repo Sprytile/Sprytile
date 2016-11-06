@@ -116,87 +116,101 @@ class SprytileModalTool(bpy.types.Operator):
         coord = event.mouse_region_x, event.mouse_region_y
 
         # get the ray from the viewport and mouse
-        view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
-
-        ray_target = ray_origin + view_vector
 
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
         if paint_mode == 'PAINT':
-            self.execute_paint(context, ray_origin, ray_target)
+            self.execute_paint(context, ray_origin, ray_vector)
         # if build mode, ray cast on plane and build face
         elif paint_mode == 'MAKE_FACE':
-            self.execute_build(context, event, scene, region, rv3d, ray_origin, ray_target)
+            self.execute_build(context, event, scene, region, rv3d, ray_origin, ray_vector)
         # set normal mode...
 
-    def object_raycast(self, obj, ray_origin, ray_target):
+    def raycast_object(self, obj, ray_origin, ray_direction):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
         ray_origin_obj = matrix_inv * ray_origin
-        ray_target_obj = matrix_inv * ray_target
+        ray_target_obj = matrix_inv * (ray_origin + ray_direction)
         ray_direction_obj = ray_target_obj - ray_origin_obj
 
         location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj)
         if face_index is None:
             return None, None, None, None
+        # Translate location back to world space
         location = matrix * location
         return location, normal, face_index, distance
 
-    def execute_paint(self, context, ray_origin, ray_target):
-        location, normal, face_index, distance = self.object_raycast(context.object, ray_origin, ray_target)
+    def raycast_grid(self, scene, grid_id, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+        """Finds the grid position"""
+
+        plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+        # Didn't hit the plane exit
+        if plane_pos is None:
+            return None, None, None, None
+
+        world_pixels = scene.sprytile_data.world_pixels
+        target_grid = scene.sprytile_grids[grid_id]
+        grid_x = target_grid.grid[0]
+        grid_y = target_grid.grid[1]
+
+        grid_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
+                                                        right_vector.copy(), up_vector.copy(),
+                                                        world_pixels, grid_x, grid_y)
+        return grid_position, x_vector, y_vector, plane_pos
+
+    def get_current_grid_vectors(self, scene):
+        """Returns the current grid X/Y/Z vectors from data"""
+        data_normal = scene.sprytile_data.paint_normal_vector
+        data_up_vector = scene.sprytile_data.paint_up_vector
+
+        normal_vector = Vector((data_normal[0], data_normal[1], data_normal[2]))
+        up_vector = Vector((data_up_vector[0], data_up_vector[1], data_up_vector[2]))
+
+        normal_vector.normalize()
+        up_vector.normalize()
+        right_vector = up_vector.cross(normal_vector)
+
+        return up_vector, right_vector, normal_vector
+
+    def execute_paint(self, context, ray_origin, ray_vector):
+        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
         if face_index is not None:
             # Change the uv of the given face
             print("Hitting face index ", face_index)
 
-    def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_target):
-        # Get view vector from center of the screen
-        coord = int(region.width/2), int(region.height/2)
-        view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+    def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_vector):
 
-        data_normal = scene.sprytile_data.paint_normal_vector
-        data_up_vector = scene.sprytile_data.paint_up_vector
-
-        plane_normal = Vector((data_normal[0], data_normal[1], data_normal[2]))
-        up_vector = Vector((data_up_vector[0], data_up_vector[1], data_up_vector[2]))
-
-        plane_normal.normalize()
-        up_vector.normalize()
-        right_vector = up_vector.cross(plane_normal)
-
-        location, normal, face_index, distance = self.object_raycast(context.object, ray_origin, ray_target)
+        up_vector, right_vector, plane_normal = self.get_current_grid_vectors(scene)
+        hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(context.object, ray_origin, ray_vector)
         # If raycast on the mesh, check that the hit face isn't facing
-        # the same way as the plane_normal and it not coplanar to target plane
+        # the same way as the plane_normal and not coplanar to target plane
         if face_index is not None:
-            check_dot = plane_normal.dot(normal)
+            check_dot = plane_normal.dot(hit_normal)
             check_dot -= 1
-            check_dot = abs(check_dot) < 0.05
+            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-            check_coplanar = distance_point_to_plane(location, scene.cursor_location, plane_normal)
+            # print("Hit face")
+            # print("Dot:", check_dot, " Coplanar", check_coplanar)
+
             check_coplanar = abs(check_coplanar) < 0.05
-
+            check_dot = abs(check_dot) < 0.05
             if check_dot and check_coplanar:
+                # Change UV of this face instead
                 return
-        print("Execute build")
 
-        plane_pos = intersect_line_plane(ray_origin, ray_target, scene.cursor_location, plane_normal)
-        # Didn't hit the plane exit
-        if plane_pos is None:
+        face_position, x_vector, y_vector, plane_cursor = self.raycast_grid(
+                                        scene, context.object.sprytile_gridid,
+                                        up_vector, right_vector, plane_normal,
+                                        ray_origin, ray_vector)
+        if face_position is None:
             return
 
-        # print("Up vector", up_vector)
-        # print("Right vector", right_vector)
+        print("Execute build")
+        # store plane_cursor
 
-        world_pixels = scene.sprytile_data.world_pixels
-        target_grid = scene.sprytile_grids[context.object.sprytile_gridid]
-        target_mat = bpy.data.materials[target_grid.mat_id]
-        grid_x = target_grid.grid[0]
-        grid_y = target_grid.grid[1]
-
-        face_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
-                                                        right_vector.copy(), up_vector.copy(),
-                                                        world_pixels, grid_x, grid_y)
         # Convert world space position to object space
         face_position = context.object.matrix_world.copy().inverted() * face_position;
 
@@ -219,9 +233,8 @@ class SprytileModalTool(bpy.types.Operator):
         if x_positive == y_positive:
             face_order = (vtx1, vtx4, vtx3, vtx2)
 
-        face = bm.faces.new(face_order)
-        bm.normal_update()
-        bmesh.update_edit_mesh(context.object.data)
+        bm.faces.new(face_order)
+        bmesh.update_edit_mesh(context.object.data, True, True)
 
         # Update the collision BVHTree with new data
         self.tree = BVHTree.FromBMesh(bm)
@@ -229,6 +242,63 @@ class SprytileModalTool(bpy.types.Operator):
         scene.sprytile_data.paint_normal_vector = plane_normal
         scene.sprytile_data.paint_up_vector = up_vector
         print("Build face")
+
+    def cursor_snap(self, context, event):
+        if self.tree is None or self.gui_use_mouse is True:
+            return
+
+        # get the context arguments
+        scene = context.scene
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+
+        # get the ray from the viewport and mouse
+        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+        up_vector, right_vector, plane_normal = self.get_current_grid_vectors(scene)
+
+        # Snap cursor, depending on setting
+        if scene.sprytile_data.cursor_snap == 'GRID':
+            location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+            if location is None:
+                return
+            world_pixels = scene.sprytile_data.world_pixels
+            target_grid = scene.sprytile_grids[context.object.sprytile_gridid]
+            grid_x = target_grid.grid[0]
+            grid_y = target_grid.grid[1]
+
+            grid_position, x_vector, y_vector = get_grid_pos(location, scene.cursor_location,
+                                                            right_vector.copy(), up_vector.copy(),
+                                                            world_pixels, grid_x, grid_y)
+            scene.cursor_location = grid_position
+
+        elif scene.sprytile_data.cursor_snap == 'VERTEX':
+            location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+            if location is None:
+                return
+            # Location in world space, convert to object space
+            matrix = context.object.matrix_world.copy()
+            matrix_inv = matrix.inverted()
+            location, normal, face_index, dist = self.tree.find_nearest(matrix_inv * location)
+            if location is None:
+                return
+
+            # Found the nearest face, go to BMesh to find the nearest vertex
+            bm = bmesh.from_edit_mesh(context.object.data)
+            face = bm.faces[face_index]
+            closest_vtx = -1
+            closest_dist = float('inf')
+            # positions are in object space
+            for vtx_idx, vertex in enumerate(face.verts):
+                test_dist = (location - vertex.co).magnitude
+                if test_dist < closest_dist:
+                    closest_vtx = vtx_idx
+                    closest_dist = test_dist
+            # convert back to world space
+            if closest_vtx != -1:
+                scene.cursor_location = matrix * face.verts[closest_vtx].co
 
     def modal(self, context, event):
         context.area.tag_redraw()
@@ -260,9 +330,13 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-        # elif event.type == 'S':
-        #     # Cursor snap
-        #     print("Cursor snap")
+            if self.want_snap:
+                self.cursor_snap(context, event)
+        elif event.type == 'S':
+            self.want_snap = event.value == 'PRESS'
+            # Cursor snap, passing the last gui_event,
+            # would contain the mouse position
+            # self.cursor_snap(context, self.gui_event)
         elif event.type in {'RIGHTMOUSE', 'ESC'} and self.gui_use_mouse is False:
             self.exit_modal(context)
             return {'CANCELLED'}
@@ -278,6 +352,7 @@ class SprytileModalTool(bpy.types.Operator):
 
             # Set up for raycasting with a BVHTree
             self.left_down = False
+            self.want_snap = False
             self.tree = BVHTree.FromObject(context.object, context.scene)
 
             # Set up GL draw callbacks, communication between modal and GUI
