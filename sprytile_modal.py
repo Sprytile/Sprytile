@@ -353,7 +353,7 @@ class SprytileModalTool(bpy.types.Operator):
             # Set up for raycasting with a BVHTree
             self.left_down = False
             self.want_snap = False
-            self.tree = BVHTree.FromObject(context.object, context.scene)
+            self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
 
             # Set up GL draw callbacks, communication between modal and GUI
             self.gui_event = None
@@ -376,6 +376,7 @@ class SprytileModalTool(bpy.types.Operator):
         context.window.cursor_set('DEFAULT')
         context.window_manager.event_timer_remove(self.view_axis_timer)
         bpy.types.SpaceView3D.draw_handler_remove(self.glHandle, 'WINDOW')
+        bmesh.update_edit_mesh(context.object.data, True, True)
 
 def register():
     bpy.utils.register_module(__name__)
