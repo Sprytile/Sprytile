@@ -98,22 +98,6 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         name = "Main grid flag",
         default = False
     )
-    grid_x = IntProperty(
-        name = "Width",
-        description = "Texture grid width, in pixels",
-        subtype = 'PIXEL',
-        min = 8,
-        max = 2048,
-        default = 32
-    )
-    grid_y = IntProperty(
-        name = "Height",
-        description = "Texture grid height, in pixels",
-        subtype = 'PIXEL',
-        min = 8,
-        max = 2048,
-        default = 32
-    )
     grid = IntVectorProperty(
         name = "Size",
         description = "Grid size, in pixels",
@@ -135,6 +119,11 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         subtype = 'ANGLE',
         unit = 'ROTATION',
         default = 0.0
+    )
+    tile_selection = IntVectorProperty(
+        name = "Tile Selection",
+        size = 4,
+        default = (0, 0, 1, 1)
     )
 
 def setup_props():

@@ -170,7 +170,6 @@ class SprytileModalTool(bpy.types.Operator):
         y_dot = up_vector.dot(y_vector.normalized())
         x_positive = x_dot > 0
         y_positive = y_dot > 0
-        # print("X dot:", x_dot, "\nY dot", y_dot)
 
         bm = bmesh.from_edit_mesh(context.object.data)
 
@@ -193,6 +192,33 @@ class SprytileModalTool(bpy.types.Operator):
         self.tree = BVHTree.FromBMesh(bm)
         return face
 
+    def uv_map_face(self, context, up_vector, right_vector, tile_xy, face_index, mesh=None):
+        """UV map the given face"""
+        grid_id = context.object.sprytile_gridid
+        target_grid = context.scene.sprytile_grids[grid_id]
+
+        # Generate a transform matrix from the grid settings
+
+        if mesh is None:
+            mesh = bmesh.from_edit_mesh(context.object.data)
+
+        uv_layer = mesh.loops.layers.uv.verify()
+        mesh.faces.layers.tex.verify()
+
+        face = mesh.faces[face_index]
+        vert_origin = face.calc_center_median()
+        for loop in face.loops:
+            vert = loop.vert
+            vert_pos = vert.co - vert_origin
+            print("Loop Vert: (%f,%f,%f)" % vert_pos[:])
+            loop_uv = loop[uv_layer].uv
+            print("Loop UV: %f, %f" % loop_uv[:])
+            # Project the vert position onto UV space
+            # using up and right vectors
+            # and then apply the grid transform matrix
+
+        return face, target_grid
+
     def get_current_grid_vectors(self, scene):
         """Returns the current grid X/Y/Z vectors from data"""
         data_normal = scene.sprytile_data.paint_normal_vector
@@ -208,10 +234,13 @@ class SprytileModalTool(bpy.types.Operator):
         return up_vector, right_vector, normal_vector
 
     def execute_paint(self, context, ray_origin, ray_vector):
+        up_vector, right_vector, plane_normal = self.get_current_grid_vectors(context.scene)
         location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
         if face_index is not None:
             # Change the uv of the given face
             print("Hitting face index ", face_index)
+            face, grid = self.uv_map_face(context, up_vector, right_vector, None, face_index)
+            face.material_index = grid.mat_id
 
     def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_vector):
 
