@@ -62,7 +62,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
         elif self.layout_type in {'DEFAULT', 'COMPACT'}:
             material = bpy.data.materials[item.mat_id]
             split = layout.split(0.6)
-            split.prop(material, "name", text="", emboss=False)
+            split.prop(material, "name", text="", emboss=False, icon_value=layout.icon(material))
             split.label("%dx%d" % (item.grid[0], item.grid[1]))
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
