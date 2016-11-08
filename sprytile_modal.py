@@ -37,7 +37,7 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
-    bl_label = "Tile Paint"
+    bl_label = "Sprytile Paint"
 
     def find_view_axis(self, context):
         # Find the nearest world axis to the view axis
@@ -105,7 +105,7 @@ class SprytileModalTool(bpy.types.Operator):
         """Run the paint tool"""
         # Don't do anything if nothing to raycast on
         # or the GL GUI is using the mouse
-        if self.tree is None or self.gui_use_mouse is True:
+        if self.tree is None or context.scene.sprytile_data.gui_use_mouse is True:
             return
 
         print("Execute tool")
@@ -296,13 +296,14 @@ class SprytileModalTool(bpy.types.Operator):
             check_dot -= 1
             check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-            # print("Hit face")
-            # print("Dot:", check_dot, " Coplanar", check_coplanar)
+            print("Hit face")
+            print("Dot:", check_dot, " Coplanar", check_coplanar)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
             if check_dot and check_coplanar:
                 # Change UV of this face instead
+                self.uv_map_face(context, up_vector, right_vector, None, face_index)
                 return
 
         face_position, x_vector, y_vector, plane_cursor = self.raycast_grid(
@@ -324,7 +325,7 @@ class SprytileModalTool(bpy.types.Operator):
         """Get the raycast position for a given grid position"""
 
     def cursor_snap(self, context, event):
-        if self.tree is None or self.gui_use_mouse is True:
+        if self.tree is None or context.scene.sprytile_data.gui_use_mouse is True:
             return
 
         # get the context arguments
@@ -414,10 +415,9 @@ class SprytileModalTool(bpy.types.Operator):
                 self.cursor_snap(context, event)
         elif event.type == 'S':
             self.want_snap = event.value == 'PRESS'
-            # Cursor snap, passing the last gui_event,
-            # would contain the mouse position
-            # self.cursor_snap(context, self.gui_event)
-        elif event.type in {'RIGHTMOUSE', 'ESC'} and self.gui_use_mouse is False:
+        elif event.type == 'C' and event.value == 'PRESS':
+            bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
+        elif event.type in {'RIGHTMOUSE', 'ESC'} and context.scene.sprytile_data.gui_use_mouse is False:
             self.exit_modal(context)
             return {'CANCELLED'}
 
@@ -437,25 +437,23 @@ class SprytileModalTool(bpy.types.Operator):
 
             # Set up GL draw callbacks, communication between modal and GUI
             self.gui_event = None
-            self.gui_use_mouse = False
-            gui_args = (self, context)
-            self.glHandle = bpy.types.SpaceView3D.draw_handler_add(sprytile_gui.draw_gui, gui_args, 'WINDOW', 'POST_PIXEL')
             # Set up timer callback
             self.view_axis_timer = context.window_manager.event_timer_add(0.1, context.window)
 
             context.window_manager.modal_handler_add(self)
+            context.scene.sprytile_data.is_running = True
+            bpy.ops.sprytile.gui_win('INVOKE_DEFAULT')
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
             return {'CANCELLED'}
 
     def exit_modal(self, context):
+        context.scene.sprytile_data.is_running = False
         self.tree = None
         self.gui_event = None
-        self.gui_use_mouse = False
         context.window.cursor_set('DEFAULT')
         context.window_manager.event_timer_remove(self.view_axis_timer)
-        bpy.types.SpaceView3D.draw_handler_remove(self.glHandle, 'WINDOW')
         bmesh.update_edit_mesh(context.object.data, True, True)
 
 def register():

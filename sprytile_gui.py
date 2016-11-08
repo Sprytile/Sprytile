@@ -4,6 +4,35 @@ import blf
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
 
+class SprytileGui(bpy.types.Operator):
+    bl_idname = "sprytile.gui_win"
+    bl_label = "Sprytile GUI"
+
+    def modal(self, context, event):
+        if context.scene.sprytile_data.is_running is False:
+            self.exit_modal(context)
+            return {'CANCELLED'}
+        self.gui_event = event
+        context.area.tag_redraw()
+        return {'PASS_THROUGH'}
+
+    def invoke(self, context, event):
+        if context.space_data.type == 'VIEW_3D':
+            if context.scene.sprytile_data.is_running is False:
+                return {'CANCELLED'}
+
+            gui_args = (self, context)
+            self.gl_handle = bpy.types.SpaceView3D.draw_handler_add(draw_gui, gui_args, 'WINDOW', 'POST_PIXEL')
+            context.window_manager.modal_handler_add(self)
+            return {'RUNNING_MODAL'}
+        else:
+            return {'CANCELLED'}
+
+    def exit_modal(self, context):
+        if self.gl_handle is not None:
+            bpy.types.SpaceView3D.draw_handler_remove(self.gl_handle, 'WINDOW')
+        self.gl_handle = None
+
 def draw_gui(self, context):
     """Draw the tile selection GUI for Sprytile"""
     # Draw the GL based UI here.
@@ -40,7 +69,7 @@ def draw_gui(self, context):
     if event is not None and event.type in {'MOUSEMOVE'}:
         mouse_within_x = event.mouse_region_x >= min.x and event.mouse_region_x <= max.x
         mouse_within_y = event.mouse_region_y >= min.y and event.mouse_region_y <= max.y
-        self.gui_use_mouse = mouse_within_x and mouse_within_y
+        context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
 
     target_img.gl_load(0, bgl.GL_NEAREST, bgl.GL_NEAREST)
     bgl.glBindTexture(bgl.GL_TEXTURE_2D, target_img.bindcode[0])

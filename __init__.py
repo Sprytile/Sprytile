@@ -82,12 +82,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     cursor_snap = EnumProperty(
         items = [
-            ('VERTEX', "Vertex", "Snap cursor to nearest vertex", 1),
-            ('GRID', "Grid", "Snap cursor to grid", 2)
+            ('VERTEX', "Vertex", "Snap cursor to nearest vertex", "SNAP_GRID", 1),
+            ('GRID', "Grid", "Snap cursor to grid", "SNAP_VERTEX", 2)
         ],
         name = "Cursor snap mode",
         description = "Sprytile cursor snap mode"
     )
+
+    is_running = BoolProperty(name="Sprytile Modal Is Running")
+    gui_use_mouse = BoolProperty(name="Sprytile GUI using mouse")
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = StringProperty(
