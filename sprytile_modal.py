@@ -186,11 +186,13 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = bm.faces.new(face_order)
         face.normal_update()
+        bm.faces.index_update()
+        bm.faces.ensure_lookup_table()
         bmesh.update_edit_mesh(context.object.data, True, True)
 
         # Update the collision BVHTree with new data
         self.tree = BVHTree.FromBMesh(bm)
-        return face
+        return face.index
 
     def uv_map_face(self, context, up_vector, right_vector, tile_xy, face_index, mesh=None):
         """UV map the given face"""
@@ -233,7 +235,6 @@ class SprytileModalTool(bpy.types.Operator):
         pixel_uv_y = 1.0 / target_img.size[1]
         uv_unit_x = pixel_uv_x * target_grid.grid[0]
         uv_unit_y = pixel_uv_y * target_grid.grid[1]
-        print("UV unit: (%f,%f)" % (uv_unit_x, uv_unit_y))
 
         face = mesh.faces[face_index]
         vert_origin = face.calc_center_median()
@@ -245,7 +246,7 @@ class SprytileModalTool(bpy.types.Operator):
             vert_xy.x /= world_convert.x
             vert_xy.y /= world_convert.y
             vert_xy += Vector((0.5, 0.5))
-            print("Loop Vert: (%f,%f)" % vert_xy[:])
+            
             # loop_uv = loop[uv_layer].uv
             # print("Loop UV: %f, %f" % loop_uv[:])
             vert_xy.x *= uv_unit_x
@@ -313,7 +314,8 @@ class SprytileModalTool(bpy.types.Operator):
         # store plane_cursor, for deciding where to move actual cursor
         # if auto cursor mode is on
 
-        self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
+        face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
+        self.uv_map_face(context, up_vector, right_vector, None, face_index)
         print("Build face")
 
     def get_grid_raycast(self, x, y):
