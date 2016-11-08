@@ -246,7 +246,7 @@ class SprytileModalTool(bpy.types.Operator):
             vert_xy.x /= world_convert.x
             vert_xy.y /= world_convert.y
             vert_xy += Vector((0.5, 0.5))
-            
+
             # loop_uv = loop[uv_layer].uv
             # print("Loop UV: %f, %f" % loop_uv[:])
             vert_xy.x *= uv_unit_x
@@ -281,7 +281,9 @@ class SprytileModalTool(bpy.types.Operator):
             mesh = bmesh.from_edit_mesh(context.object.data)
             print("Hitting face index ", face_index)
             face_index, grid = self.uv_map_face(context, up_vector, right_vector, mesh, face_index)
-            mesh.faces[face_index].material_index = grid.mat_id
+            mat_id = bpy.data.materials.find(grid.mat_id)
+            if mat_id > -1:
+                mesh.faces[face_index].material_index =  mat_id
 
     def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_vector):
 

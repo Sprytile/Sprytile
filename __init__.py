@@ -11,8 +11,9 @@ if "bpy" in locals():
     imp.reload(sprytile_gui)
     imp.reload(sprytile_modal)
     imp.reload(sprytile_panel)
+    imp.reload(sprytile_utils)
 else:
-    from . import sprytile_gui, sprytile_modal, sprytile_panel
+    from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
 
 import bpy
 from bpy.props import *
@@ -89,10 +90,10 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
-    mat_id = IntProperty(
-        name = "Material Index",
-        description = "Index of the material this grid references",
-        default = -1
+    mat_id = StringProperty(
+        name = "Material Id",
+        description = "Name of the material this grid references",
+        default = ""
     )
     is_main = BoolProperty(
         name = "Main grid flag",
@@ -125,6 +126,9 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         size = 4,
         default = (0, 0, 1, 1)
     )
+
+class SprytileFaceData(bpy.types.PropertyGroup):
+    """Data stored during face creation"""
 
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)

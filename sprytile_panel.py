@@ -1,63 +1,13 @@
 import bpy
 from bpy.types import Panel, UIList
 
-class SprytileValidateGridList(bpy.types.Operator):
-    bl_idname = "sprytile.validate_grids"
-    bl_label = "Validate Material Grids"
-
-    @classmethod
-    def poll(cls,context):
-        return True
-
-    def validate_grids(self, context):
-        grids = context.scene.sprytile_grids
-        mats_valid = []
-        print("Material count: %d" % len(bpy.data.materials))
-        # Loop through available materials, checking if grids has
-        # at least one entry with the id
-        for mat_id, mat in enumerate(bpy.data.materials):
-            is_mat_valid = False
-            for grid in grids:
-                if grid.mat_id == mat_id:
-                    is_mat_valid = True
-                    break
-            mats_valid.append(is_mat_valid)
-
-        # Check the mats valid list and add a new grid for any invalid setting
-        for mat_id, mat_valid in enumerate(mats_valid):
-            if mat_valid is True:
-                continue
-            grid_setting = grids.add()
-            grid_setting.mat_id = mat_id
-            grid_setting.is_main = True
-
-        # Remove any grids with invalid material ids
-        invalid_id = []
-        mat_size = len(bpy.data.materials)
-        for idx, grid in enumerate(grids):
-            if grid.mat_id >= mat_size:
-                invalid_id.append(idx)
-                print("Remove index ", idx)
-        invalid_id.reverse()
-        for idx in invalid_id:
-            grids.remove(idx)
-
-        print(context.scene.sprytile_grids)
-
-    def execute(self, context):
-        self.validate_grids(context)
-        return self.invoke(context, None)
-
-    def invoke(self, context, event):
-        if event is not None:
-            self.validate_grids(context)
-        return {'FINISHED'}
-
 class SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         """
         """
-        if item.mat_id >= len(bpy.data.materials):
+        if isinstance(item.mat_id, str) is False:
+            layout.label("Invalid Material")
+        elif bpy.data.materials.find(item.mat_id) == -1:
             layout.label("Invalid Material")
         elif self.layout_type in {'DEFAULT', 'COMPACT'}:
             material = bpy.data.materials[item.mat_id]
@@ -100,7 +50,7 @@ class SprytilePanel(bpy.types.Panel):
         layout.label("Select Material", icon='MATERIAL_DATA')
         layout.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=3)
 
-        if obj.sprytile_gridid in {None, -1}:
+        if len(scene.sprytile_grids) == 0:
             return
 
         selected_grid = scene.sprytile_grids[obj.sprytile_gridid]
@@ -109,24 +59,6 @@ class SprytilePanel(bpy.types.Panel):
 
         layout.prop(selected_grid, "grid")
         layout.prop(selected_grid, "offset")
-
-class SprytileWorkflowPanel(bpy.types.Panel):
-    bl_label = "Workflow"
-    bl_idname = "sprytile.panel_workflow"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
-    bl_category = "Sprytile"
-
-    @classmethod
-    def poll(self, context):
-        if context.object and context.object.type == 'MESH':
-            return context.object.mode == 'EDIT'
-
-    def draw(self, context):
-        layout = self.layout
-        layout.operator("sprytile.validate_grids")
-        layout.label("Cursor Snap")
-        layout.prop(context.scene.sprytile_data, "cursor_snap", expand=True)
 
 def register():
     bpy.utils.register_module(__name__)
