@@ -207,25 +207,49 @@ class SprytileModalTool(bpy.types.Operator):
             mesh = bmesh.from_edit_mesh(object.data)
 
         world_units = data.world_pixels
-        world_x_units = target_grid.grid[0] / world_units
-        world_y_units = target_grid.grid[1] / world_units
-        world_right = right_vector# * world_x_units
-        world_up = up_vector# * world_y_units
-
+        world_convert = Vector((target_grid.grid[0] / world_units,
+                                target_grid.grid[1] / world_units))
         uv_layer = mesh.loops.layers.uv.verify()
         mesh.faces.layers.tex.verify()
+
+        # Get the image used by material, to calculate UV size
+        material = bpy.data.materials[target_grid.mat_id]
+        # look through the texture slots of the material
+        # to find the first with a texture/image
+        target_img = None
+        for texture_slot in material.texture_slots:
+            if texture_slot is None:
+                continue
+            if texture_slot.texture is None:
+                continue
+            if texture_slot.texture.image is None:
+                continue
+            # Cannot use the texture slot image reference directly
+            # Have to get it through bpy.data.images to be able to use with BGL
+            target_img = bpy.data.images.get(texture_slot.texture.image.name)
+            break
+
+        pixel_uv_x = 1.0 / target_img.size[0]
+        pixel_uv_y = 1.0 / target_img.size[1]
+        uv_unit_x = pixel_uv_x * target_grid.grid[0]
+        uv_unit_y = pixel_uv_y * target_grid.grid[1]
+        print("UV unit: (%f,%f)" % (uv_unit_x, uv_unit_y))
 
         face = mesh.faces[face_index]
         vert_origin = face.calc_center_median()
         for loop in face.loops:
             vert = loop.vert
             vert_pos = vert.co - vert_origin
-            vert_xy = (world_right.dot(vert_pos), world_up.dot(vert_pos))
+            vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos))
             vert_xy = Vector(vert_xy)
+            vert_xy.x /= world_convert.x
+            vert_xy.y /= world_convert.y
             vert_xy += Vector((0.5, 0.5))
             print("Loop Vert: (%f,%f)" % vert_xy[:])
             # loop_uv = loop[uv_layer].uv
             # print("Loop UV: %f, %f" % loop_uv[:])
+            vert_xy.x *= uv_unit_x
+            vert_xy.y *= uv_unit_y
             loop[uv_layer].uv = vert_xy
             # Project the vert position onto UV space
             # using up and right vectors
