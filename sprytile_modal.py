@@ -194,13 +194,23 @@ class SprytileModalTool(bpy.types.Operator):
 
     def uv_map_face(self, context, up_vector, right_vector, tile_xy, face_index, mesh=None):
         """UV map the given face"""
-        grid_id = context.object.sprytile_gridid
-        target_grid = context.scene.sprytile_grids[grid_id]
+        scene = context.scene
+        object = context.object
+        data = scene.sprytile_data
+
+        grid_id = object.sprytile_gridid
+        target_grid = scene.sprytile_grids[grid_id]
 
         # Generate a transform matrix from the grid settings
 
         if mesh is None:
-            mesh = bmesh.from_edit_mesh(context.object.data)
+            mesh = bmesh.from_edit_mesh(object.data)
+
+        world_units = data.world_pixels
+        world_x_units = target_grid.grid[0] / world_units
+        world_y_units = target_grid.grid[1] / world_units
+        world_right = right_vector# * world_x_units
+        world_up = up_vector# * world_y_units
 
         uv_layer = mesh.loops.layers.uv.verify()
         mesh.faces.layers.tex.verify()
@@ -210,14 +220,19 @@ class SprytileModalTool(bpy.types.Operator):
         for loop in face.loops:
             vert = loop.vert
             vert_pos = vert.co - vert_origin
-            print("Loop Vert: (%f,%f,%f)" % vert_pos[:])
-            loop_uv = loop[uv_layer].uv
-            print("Loop UV: %f, %f" % loop_uv[:])
+            vert_xy = (world_right.dot(vert_pos), world_up.dot(vert_pos))
+            vert_xy = Vector(vert_xy)
+            vert_xy += Vector((0.5, 0.5))
+            print("Loop Vert: (%f,%f)" % vert_xy[:])
+            # loop_uv = loop[uv_layer].uv
+            # print("Loop UV: %f, %f" % loop_uv[:])
+            loop[uv_layer].uv = vert_xy
             # Project the vert position onto UV space
             # using up and right vectors
             # and then apply the grid transform matrix
-
-        return face, target_grid
+        bmesh.update_edit_mesh(object.data)
+        mesh.faces.index_update()
+        return face.index, target_grid
 
     def get_current_grid_vectors(self, scene):
         """Returns the current grid X/Y/Z vectors from data"""
@@ -238,9 +253,10 @@ class SprytileModalTool(bpy.types.Operator):
         location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
         if face_index is not None:
             # Change the uv of the given face
+            mesh = bmesh.from_edit_mesh(context.object.data)
             print("Hitting face index ", face_index)
-            face, grid = self.uv_map_face(context, up_vector, right_vector, None, face_index)
-            face.material_index = grid.mat_id
+            face_index, grid = self.uv_map_face(context, up_vector, right_vector, mesh, face_index)
+            mesh.faces[face_index].material_index = grid.mat_id
 
     def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_vector):
 
