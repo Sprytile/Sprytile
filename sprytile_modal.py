@@ -214,6 +214,9 @@ class SprytileModalTool(bpy.types.Operator):
         uv_layer = mesh.loops.layers.uv.verify()
         mesh.faces.layers.tex.verify()
 
+        if face_index >= len(mesh.faces):
+            return
+
         # Get the image used by material, to calculate UV size
         material = bpy.data.materials[target_grid.mat_id]
         # look through the texture slots of the material
@@ -395,19 +398,27 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         context.window.cursor_set('PAINT_BRUSH')
+        # print("%s - %s" % (event.type, event.value))
+        if event.type in {'LEFT_CTRL', 'RIGHT_CTRL', 'Z'}:
+            self.key_trap[event.type] = event.value == 'PRESS'
+
+        if (self.key_trap.get('LEFT_CTRL') or self.key_trap.get('RIGHT_CTRL')) and self.key_trap.get('Z'):
+            print("Pass undo through")
+            return {'PASS_THROUGH'}
 
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
-            self.gui_event = event
             self.left_down = event.value == 'PRESS'
             if self.left_down:
+                self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
                 self.execute_tool(context, event)
+            else:
+                bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
             # Update the event for the gui system
-            self.gui_event = event
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
@@ -430,13 +441,12 @@ class SprytileModalTool(bpy.types.Operator):
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
 
+            self.key_trap = {}
             # Set up for raycasting with a BVHTree
             self.left_down = False
             self.want_snap = False
             self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
 
-            # Set up GL draw callbacks, communication between modal and GUI
-            self.gui_event = None
             # Set up timer callback
             self.view_axis_timer = context.window_manager.event_timer_add(0.1, context.window)
 
@@ -451,7 +461,7 @@ class SprytileModalTool(bpy.types.Operator):
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
         self.tree = None
-        self.gui_event = None
+        self.key_trap = {}
         context.window.cursor_set('DEFAULT')
         context.window_manager.event_timer_remove(self.view_axis_timer)
         bmesh.update_edit_mesh(context.object.data, True, True)
