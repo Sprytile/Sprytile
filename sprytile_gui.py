@@ -32,6 +32,7 @@ class SprytileGui(bpy.types.Operator):
         if self.gl_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(self.gl_handle, 'WINDOW')
         self.gl_handle = None
+        context.area.tag_redraw()
 
 def draw_gui(self, context):
     """Draw the tile selection GUI for Sprytile"""
