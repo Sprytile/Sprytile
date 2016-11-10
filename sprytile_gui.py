@@ -1,6 +1,7 @@
 import bpy
 import bgl
 import blf
+from math import floor
 from bgl import *
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
@@ -144,13 +145,38 @@ class SprytileGui(bpy.types.Operator):
         region = context.region
         object = context.object
 
-        min = Vector((region.width - 200, 5))
-        max = Vector((region.width - 5, 200))
+        tilegrid = context.scene.sprytile_grids[object.sprytile_gridid]
 
-        if event is not None and event.type in {'MOUSEMOVE'}:
+        texture = SprytileGui.texture_grid
+        tex_size = Vector((texture.size[0], texture.size[1]))
+
+        display_size = 200
+        display_pad = 5
+        min = Vector((region.width - (display_size + display_pad), display_pad))
+        max = Vector((region.width - display_pad, (display_size + display_pad)))
+
+        if event is None:
+            return min, max
+
+        if event.type in {'MOUSEMOVE'}:
             mouse_within_x = event.mouse_region_x >= min.x and event.mouse_region_x <= max.x
             mouse_within_y = event.mouse_region_y >= min.y and event.mouse_region_y <= max.y
             context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
+
+        if context.scene.sprytile_data.gui_use_mouse is False:
+            return min, max
+
+        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            click_pos = Vector((event.mouse_region_x - min.x, event.mouse_region_y - min.y))
+            ratio_pos = Vector((click_pos.x / display_size, click_pos.y / display_size))
+            tex_pos = Vector((ratio_pos.x * tex_size.x, ratio_pos.y * tex_size.y))
+            # Inverse matrix tex_pos
+            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
+            grid_pos.x = floor(grid_pos.x)
+            grid_pos.y = floor(grid_pos.y)
+            tilegrid.tile_selection[0] = grid_pos.x
+            tilegrid.tile_selection[1] = grid_pos.y
+            print("%d, %d" % grid_pos[:])
 
         return min, max
 

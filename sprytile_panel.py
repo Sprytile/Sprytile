@@ -39,15 +39,10 @@ class SprytilePanel(bpy.types.Panel):
         layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
 
         layout.prop(context.scene.sprytile_data, "paint_mode", expand=True)
-
-        layout.label("Face Normal")
         row = layout.row(align=True)
         row.prop(context.scene.sprytile_data, "normal_mode", expand=True)
         row.prop(context.scene.sprytile_data, "lock_normal", toggle=True)
 
-        layout.prop(context.scene.sprytile_data, "world_pixels")
-
-        layout.label("Select Material", icon='MATERIAL_DATA')
         layout.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=3)
 
         if len(scene.sprytile_grids) == 0:

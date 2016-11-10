@@ -1,5 +1,9 @@
 import bpy
+from mathutils import Matrix, Vector
 from bpy.types import Panel
+
+def GetGridMatrix(srpytile_grid):
+    """Returns the transform matrix of a sprytile grid"""
 
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
@@ -66,8 +70,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.validate_grids")
-        # row = layout.row(align=True)
-        # layout.label("Cursor Snap")
+        layout.prop(context.scene.sprytile_data, "world_pixels")
         layout.prop(context.scene.sprytile_data, "cursor_snap", expand=True)
 
 def register():

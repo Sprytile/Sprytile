@@ -239,25 +239,27 @@ class SprytileModalTool(bpy.types.Operator):
         uv_unit_x = pixel_uv_x * target_grid.grid[0]
         uv_unit_y = pixel_uv_y * target_grid.grid[1]
 
+        # Build the transltion matrix
+        uv_matrix = Matrix.Translation((uv_unit_x * tile_xy[0], uv_unit_y * tile_xy[1], 0))
+
         face = mesh.faces[face_index]
         vert_origin = face.calc_center_median()
         for loop in face.loops:
+            # Project the vert position onto UV space
+            # using up and right vectors
             vert = loop.vert
             vert_pos = vert.co - vert_origin
-            vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos))
+            vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
             vert_xy = Vector(vert_xy)
             vert_xy.x /= world_convert.x
             vert_xy.y /= world_convert.y
-            vert_xy += Vector((0.5, 0.5))
-
-            # loop_uv = loop[uv_layer].uv
+            vert_xy += Vector((0.5, 0.5, 0))
+            # and then apply the grid transform matrix
             # print("Loop UV: %f, %f" % loop_uv[:])
             vert_xy.x *= uv_unit_x
             vert_xy.y *= uv_unit_y
-            loop[uv_layer].uv = vert_xy
-            # Project the vert position onto UV space
-            # using up and right vectors
-            # and then apply the grid transform matrix
+            vert_xy = uv_matrix * vert_xy
+            loop[uv_layer].uv = vert_xy.xy
         bmesh.update_edit_mesh(object.data)
         mesh.faces.index_update()
         return face.index, target_grid
@@ -283,15 +285,21 @@ class SprytileModalTool(bpy.types.Operator):
             # Change the uv of the given face
             mesh = bmesh.from_edit_mesh(context.object.data)
             print("Hitting face index ", face_index)
-            face_index, grid = self.uv_map_face(context, up_vector, right_vector, mesh, face_index)
+            grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
+            tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+            print("Paint tile %d, %d" % tile_xy[:])
+            face_index, grid = self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh)
             mat_id = bpy.data.materials.find(grid.mat_id)
             if mat_id > -1:
                 mesh.faces[face_index].material_index =  mat_id
 
     def execute_build(self, context, event, scene, region, rv3d, ray_origin, ray_vector):
+        grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
+        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         up_vector, right_vector, plane_normal = self.get_current_grid_vectors(scene)
         hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(context.object, ray_origin, ray_vector)
+
         # If raycast on the mesh, check that the hit face isn't facing
         # the same way as the plane_normal and not coplanar to target plane
         if face_index is not None:
@@ -306,7 +314,7 @@ class SprytileModalTool(bpy.types.Operator):
             check_dot = abs(check_dot) < 0.05
             if check_dot and check_coplanar:
                 # Change UV of this face instead
-                self.uv_map_face(context, up_vector, right_vector, None, face_index)
+                self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index)
                 return
 
         face_position, x_vector, y_vector, plane_cursor = self.raycast_grid(
@@ -321,7 +329,7 @@ class SprytileModalTool(bpy.types.Operator):
         # if auto cursor mode is on
 
         face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
-        self.uv_map_face(context, up_vector, right_vector, None, face_index)
+        self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index)
         print("Build face")
 
     def get_grid_raycast(self, x, y):
