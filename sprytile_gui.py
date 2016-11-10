@@ -1,6 +1,7 @@
 import bpy
 import bgl
 import blf
+from bgl import *
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
 
@@ -129,34 +130,12 @@ class SprytileGui(bpy.types.Operator):
     @staticmethod
     def draw_callback_handler(self, context):
         """Callback handler"""
-        self.draw_gui(self, context)
-        # self.draw_offscreen(context)
-        # self.draw_on_viewport(context)
-
-    @staticmethod
-    def draw_offscreen(self, context):
-        """Draw the GUI into the offscreen texture"""
-
-    @staticmethod
-    def draw_on_viewport(self, context):
-        """Draw the offscreen texture into the viewport"""
-
-    @staticmethod
-    def draw_gui(self, context):
-        """Draw the tile selection GUI for Sprytile"""
-        # Draw the GL based UI here.
-        # Return True if okay for mouse interface
-        # Fales if UI is using mouse input
+        # Handle UI interactions
         event = self.gui_event
 
         region = context.region
         object = context.object
 
-        target_img = SprytileGui.texture_grid
-        if target_img is None:
-            return
-
-        # Draw a quad
         min = Vector((region.width - 200, 5))
         max = Vector((region.width - 5, 200))
 
@@ -165,8 +144,46 @@ class SprytileGui(bpy.types.Operator):
             mouse_within_y = event.mouse_region_y >= min.y and event.mouse_region_y <= max.y
             context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
 
+        SprytileGui.draw_offscreen(self, context)
+        SprytileGui.draw_on_viewport(self, context, min, max)
+
+    @staticmethod
+    def draw_offscreen(self, context):
+        """Draw the GUI into the offscreen texture"""
+        offscreen = SprytileGui.offscreen
+        target_img = SprytileGui.texture_grid
+        size = Vector((target_img.size[0], target_img.size[1]))
+
+        offscreen.bind()
+        glDisable(GL_DEPTH_TEST)
+        glMatrixMode (GL_PROJECTION);
+        glLoadIdentity ();
+        gluOrtho2D(0, size.x, 0, size.y)
         target_img.gl_load(0, bgl.GL_NEAREST, bgl.GL_NEAREST)
-        bgl.glBindTexture(bgl.GL_TEXTURE_2D, target_img.bindcode[0])
+        glBindTexture(bgl.GL_TEXTURE_2D, target_img.bindcode[0])
+        glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
+        glEnable(bgl.GL_TEXTURE_2D)
+        glEnable(bgl.GL_BLEND)
+
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glBegin(bgl.GL_QUADS)
+
+        texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        verco = [(0, 0), (0, size.y), (size.x, size.y), (size.x, 0)]
+        # first draw the texture
+        for i in range(4):
+            glTexCoord2f(texco[i][0], texco[i][1])
+            glVertex2f(verco[i][0], verco[i][1])
+
+        # Then draw other UI elements
+
+        glEnd()
+        offscreen.unbind()
+
+    @staticmethod
+    def draw_on_viewport(self, context, min, max):
+        """Draw the offscreen texture into the viewport"""
+        bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
