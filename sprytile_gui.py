@@ -21,11 +21,10 @@ class SprytileGui(bpy.types.Operator):
             context.area.tag_redraw()
             return {'CANCELLED'}
 
-        # # Check if current_grid is different from current sprytile grid
-        # if context.object.sprytile_gridid != self.current_grid:
+        # Check if current_grid is different from current sprytile grid
+        # if context.object.sprytile_gridid != SprytileGui.current_grid:
         #     # Setup the offscreen texture for the new grid
-        #     setup_off_return = self.setup_offscreen(context):
-        #     # Setup failed, exit modal
+        #     setup_off_return = SprytileGui.setup_offscreen(self, context)
         #     if setup_off_return is not None:
         #         return setup_off_return
         #     # Skip redrawing on this frame
@@ -41,9 +40,9 @@ class SprytileGui(bpy.types.Operator):
                 return {'CANCELLED'}
 
             # # Try to setup offscreen
-            # setup_off_return = self.setup_offscreen(context):
-            # if setup_off_return is not None:
-            #     return setup_off_return
+            setup_off_return = SprytileGui.setup_offscreen(self, context)
+            if setup_off_return is not None:
+                return setup_off_return
 
             SprytileGui.handler_add(self, context)
             if context.area:
@@ -56,16 +55,11 @@ class SprytileGui(bpy.types.Operator):
     # ==================
     # Actual GUI drawing
     # ==================
-    current_grid = -1
-    offscreen = None
-    texture_offscreen = None
-    texture_grid = None
-
     @staticmethod
     def setup_offscreen(self, context):
-        self.offscreen = self.setup_gpu_offscreen(context)
-        if self.offscreen:
-            self.texture = self.offscreen.color_texture
+        SprytileGui.offscreen = SprytileGui.setup_gpu_offscreen(self, context)
+        if SprytileGui.offscreen:
+            SprytileGui.texture = SprytileGui.offscreen.color_texture
         else:
             self.report({'ERROR'}, "Error initializing offscreen buffer. More details in the console")
             return {'CANCELLED'}
@@ -103,24 +97,24 @@ class SprytileGui(bpy.types.Operator):
             break
         # Couldn't get the texture outta here
         if target_img is None:
-            self.clear_offscreen()
+            SprytileGui.clear_offscreen(self)
             return None
 
         import gpu
         try:
-            offscree = gpu.offscreen.new(target_img.size[0], target_img.size[1])
+            offscreen = gpu.offscreen.new(target_img.size[0], target_img.size[1])
         except Exception as e:
             print(e)
-            self.clear_offscreen()
+            SprytileGui.clear_offscreen(self)
             offscreen = None
 
-        self.texture_grid = target_img
-        self.current_grid = grid_id
+        SprytileGui.texture_grid = target_img
+        SprytileGui.current_grid = grid_id
         return offscreen
 
     @staticmethod
     def clear_offscreen(self):
-        self._draw_texture = None
+        SprytileGui.texture = None
 
     @staticmethod
     def handler_add(self, context):
@@ -157,23 +151,8 @@ class SprytileGui(bpy.types.Operator):
 
         region = context.region
         object = context.object
-        target_grid = context.scene.sprytile_grids[object.sprytile_gridid]
-        target_mat = bpy.data.materials[target_grid.mat_id]
-        # look through the texture slots of the material
-        # to find the first with a texture/image
-        target_img = None
-        for texture_slot in target_mat.texture_slots:
-            if texture_slot is None:
-                continue
-            if texture_slot.texture is None:
-                continue
-            if texture_slot.texture.image is None:
-                continue
-            # Cannot use the texture slot image reference directly
-            # Have to get it through bpy.data.images to be able to use with BGL
-            target_img = bpy.data.images.get(texture_slot.texture.image.name)
-            break
 
+        target_img = SprytileGui.texture_grid
         if target_img is None:
             return
 
