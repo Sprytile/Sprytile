@@ -55,7 +55,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         ],
         name = "Sprytile Paint Mode",
         description = "Paint mode",
-        default = 'PAINT'
+        default = 'MAKE_FACE'
     )
 
     world_pixels = IntProperty(

@@ -131,6 +131,14 @@ class SprytileGui(bpy.types.Operator):
     def draw_callback_handler(self, context):
         """Callback handler"""
         # Handle UI interactions
+        min, max = SprytileGui.handle_ui(self, context)
+
+        SprytileGui.draw_offscreen(self, context)
+        SprytileGui.draw_to_viewport(min, max)
+
+    @staticmethod
+    def handle_ui(self, context):
+
         event = self.gui_event
 
         region = context.region
@@ -144,8 +152,7 @@ class SprytileGui(bpy.types.Operator):
             mouse_within_y = event.mouse_region_y >= min.y and event.mouse_region_y <= max.y
             context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
 
-        SprytileGui.draw_offscreen(self, context)
-        SprytileGui.draw_on_viewport(self, context, min, max)
+        return min, max
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -181,7 +188,7 @@ class SprytileGui(bpy.types.Operator):
         offscreen.unbind()
 
     @staticmethod
-    def draw_on_viewport(self, context, min, max):
+    def draw_to_viewport(min, max):
         """Draw the offscreen texture into the viewport"""
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
@@ -191,17 +198,11 @@ class SprytileGui(bpy.types.Operator):
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBegin(bgl.GL_QUADS)
 
-        bgl.glTexCoord2f(0,0)
-        bgl.glVertex2f(min.x, min.y)
-
-        bgl.glTexCoord2f(0,1)
-        bgl.glVertex2f(min.x, max.y)
-
-        bgl.glTexCoord2f(1,1)
-        bgl.glVertex2f(max.x, max.y)
-
-        bgl.glTexCoord2f(1,0)
-        bgl.glVertex2f(max.x, min.y)
+        uv = [(0,0), (0,1), (1,1), (1,0)]
+        vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
+        for i in range(4):
+            glTexCoord2f(uv[i][0],uv[i][1])
+            glVertex2f(vtx[i][0],vtx[i][1])
 
         bgl.glEnd()
 
