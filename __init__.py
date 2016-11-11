@@ -89,6 +89,11 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description = "Sprytile cursor snap mode"
     )
 
+    cursor_flow = BoolProperty(
+        name="Cursor Flow",
+        description = "Cursor automatically follows mesh building",
+        default = False
+    )
     is_running = BoolProperty(name="Sprytile Modal Is Running")
     gui_use_mouse = BoolProperty(name="Sprytile GUI using mouse")
 
