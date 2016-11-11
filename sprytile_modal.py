@@ -428,8 +428,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Keys we're interested in
         key_dict = {
-            'LEFT_CTRL',
-            'RIGHT_CTRL',
             'Z',
             'Y'
         }
@@ -437,9 +435,8 @@ class SprytileModalTool(bpy.types.Operator):
             self.key_trap[event.type] = event.value == 'PRESS'
 
         # Check for undo commands, pass through the keystroke
-        has_ctrl = get_key('LEFT_CTRL') or get_key('RIGHT_CTRL')
         pass_undo_keys = get_key('Z') or get_key('Y')
-        if has_ctrl and pass_undo_keys:
+        if event.ctrl and pass_undo_keys:
             return {'PASS_THROUGH'}
 
         if event.type == 'S':
