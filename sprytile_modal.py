@@ -2,8 +2,8 @@ import bgl
 import bpy
 import bmesh
 import math
-from . import sprytile_gui
 from bpy_extras import view3d_utils
+from collections import deque
 from mathutils import Vector, Matrix
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
@@ -278,16 +278,20 @@ class SprytileModalTool(bpy.types.Operator):
 
         return up_vector, right_vector, normal_vector
 
+    def add_cursor_pos(self, cursor_pos):
+        if len(self.virtual_cursor) == 3:
+            self.virtual_cursor.popleft()
+        self.virtual_cursor.append(cursor_pos)
+
     def execute_paint(self, context, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = self.get_current_grid_vectors(context.scene)
         location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
         if face_index is not None:
             # Change the uv of the given face
+            self.add_cursor_pos(location)
             mesh = bmesh.from_edit_mesh(context.object.data)
-            print("Hitting face index ", face_index)
             grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
             tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-            print("Paint tile %d, %d" % tile_xy[:])
             face_index, grid = self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh)
             mat_id = bpy.data.materials.find(grid.mat_id)
             if mat_id > -1:
@@ -314,6 +318,7 @@ class SprytileModalTool(bpy.types.Operator):
             check_dot = abs(check_dot) < 0.05
             if check_dot and check_coplanar:
                 # Change UV of this face instead
+                self.add_cursor_pos(hit_loc)
                 self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index)
                 return
 
@@ -327,7 +332,8 @@ class SprytileModalTool(bpy.types.Operator):
         print("Execute build")
         # store plane_cursor, for deciding where to move actual cursor
         # if auto cursor mode is on
-
+        self.add_cursor_pos(plane_cursor)
+        # Build face and UV map it
         face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
         self.uv_map_face(context, up_vector, right_vector, tile_xy, face_index)
         print("Build face")
@@ -478,7 +484,7 @@ class SprytileModalTool(bpy.types.Operator):
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
 
-            self.virtual_cursor = []
+            self.virtual_cursor = deque([])
             self.key_trap = {}
             # Set up for raycasting with a BVHTree
             self.left_down = False
