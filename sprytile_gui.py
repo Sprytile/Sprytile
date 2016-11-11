@@ -24,15 +24,16 @@ class SprytileGui(bpy.types.Operator):
             return {'CANCELLED'}
 
         # Check if current_grid is different from current sprytile grid
-        # if context.object.sprytile_gridid != SprytileGui.current_grid:
-        #     # Setup the offscreen texture for the new grid
-        #     setup_off_return = SprytileGui.setup_offscreen(self, context)
-        #     if setup_off_return is not None:
-        #         return setup_off_return
-        #     # Skip redrawing on this frame
-        #     return {'PASS_THROUGH'}
+        if context.object.sprytile_gridid != SprytileGui.current_grid:
+            # Setup the offscreen texture for the new grid
+            setup_off_return = SprytileGui.setup_offscreen(self, context)
+            if setup_off_return is not None:
+                return setup_off_return
+            # Skip redrawing on this frame
+            return {'PASS_THROUGH'}
 
-        self.gui_event = event
+        self.handle_ui(context, event)
+
         context.area.tag_redraw()
         return {'PASS_THROUGH'}
 
@@ -41,10 +42,12 @@ class SprytileGui(bpy.types.Operator):
             if context.scene.sprytile_data.is_running is False:
                 return {'CANCELLED'}
 
-            # # Try to setup offscreen
+            # Try to setup offscreen
             setup_off_return = SprytileGui.setup_offscreen(self, context)
             if setup_off_return is not None:
                 return setup_off_return
+
+            self.handle_ui(context, event)
 
             SprytileGui.handler_add(self, context)
             if context.area:
@@ -53,6 +56,57 @@ class SprytileGui(bpy.types.Operator):
             return {'RUNNING_MODAL'}
         else:
             return {'CANCELLED'}
+
+    def handle_ui(self, context, event):
+        if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
+            self.mouse_pt = Vector((event.mouse_region_x, event.mouse_region_y))
+
+        mouse_pt = self.mouse_pt
+
+        region = context.region
+        object = context.object
+
+        tilegrid = context.scene.sprytile_grids[object.sprytile_gridid]
+
+        texture = SprytileGui.texture_grid
+        tex_size = Vector((texture.size[0], texture.size[1]))
+
+        display_size = 200
+        display_pad = 5
+        min = Vector((region.width - (display_size + display_pad), display_pad))
+        max = Vector((region.width - display_pad, (display_size + display_pad)))
+
+        self.gui_min = min
+        self.gui_max = max
+
+        reject_region = context.space_data.type != 'VIEW_3D' or region.type != 'WINDOW'
+        if event is None or reject_region:
+            return
+
+        if event.type in {'MOUSEMOVE'}:
+            mouse_within_x = mouse_pt.x >= min.x and mouse_pt.x <= max.x
+            mouse_within_y = mouse_pt.y >= min.y and mouse_pt.y <= max.y
+            context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
+
+        if context.scene.sprytile_data.gui_use_mouse is False:
+            # print("Rejecting on event", event.type)
+            return
+
+        # if event.type == 'SELECTMOUSE':
+        #     print('Select Mouse', event.value)
+        if event.type == 'LEFTMOUSE':
+            print("Left mouse", event.value)
+        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            click_pos = Vector((mouse_pt.x - min.x, mouse_pt.y - min.y))
+            ratio_pos = Vector((click_pos.x / display_size, click_pos.y / display_size))
+            tex_pos = Vector((ratio_pos.x * tex_size.x, ratio_pos.y * tex_size.y))
+            # Inverse matrix tex_pos
+            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
+            grid_pos.x = floor(grid_pos.x)
+            grid_pos.y = floor(grid_pos.y)
+            tilegrid.tile_selection[0] = grid_pos.x
+            tilegrid.tile_selection[1] = grid_pos.y
+            print("%d, %d" % grid_pos[:])
 
     # ==================
     # Actual GUI drawing
@@ -131,54 +185,10 @@ class SprytileGui(bpy.types.Operator):
     @staticmethod
     def draw_callback_handler(self, context):
         """Callback handler"""
-        # Handle UI interactions
-        min, max = SprytileGui.handle_ui(self, context)
-
         SprytileGui.draw_offscreen(self, context)
+        min = self.gui_min
+        max = self.gui_max
         SprytileGui.draw_to_viewport(min, max)
-
-    @staticmethod
-    def handle_ui(self, context):
-
-        event = self.gui_event
-
-        region = context.region
-        object = context.object
-
-        tilegrid = context.scene.sprytile_grids[object.sprytile_gridid]
-
-        texture = SprytileGui.texture_grid
-        tex_size = Vector((texture.size[0], texture.size[1]))
-
-        display_size = 200
-        display_pad = 5
-        min = Vector((region.width - (display_size + display_pad), display_pad))
-        max = Vector((region.width - display_pad, (display_size + display_pad)))
-
-        if event is None:
-            return min, max
-
-        if event.type in {'MOUSEMOVE'}:
-            mouse_within_x = event.mouse_region_x >= min.x and event.mouse_region_x <= max.x
-            mouse_within_y = event.mouse_region_y >= min.y and event.mouse_region_y <= max.y
-            context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
-
-        if context.scene.sprytile_data.gui_use_mouse is False:
-            return min, max
-
-        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-            click_pos = Vector((event.mouse_region_x - min.x, event.mouse_region_y - min.y))
-            ratio_pos = Vector((click_pos.x / display_size, click_pos.y / display_size))
-            tex_pos = Vector((ratio_pos.x * tex_size.x, ratio_pos.y * tex_size.y))
-            # Inverse matrix tex_pos
-            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
-            grid_pos.x = floor(grid_pos.x)
-            grid_pos.y = floor(grid_pos.y)
-            tilegrid.tile_selection[0] = grid_pos.x
-            tilegrid.tile_selection[1] = grid_pos.y
-            print("%d, %d" % grid_pos[:])
-
-        return min, max
 
     @staticmethod
     def draw_offscreen(self, context):
