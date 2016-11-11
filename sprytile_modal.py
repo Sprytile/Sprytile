@@ -220,7 +220,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         if face_index >= len(mesh.faces):
             return
-        
+
         target_img = sprytile_utils.get_grid_texture(target_grid)
         if target_img is None:
             return
@@ -302,8 +302,8 @@ class SprytileModalTool(bpy.types.Operator):
             check_dot -= 1
             check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-            print("Hit face")
-            print("Dot:", check_dot, " Coplanar", check_coplanar)
+            # print("Hit face")
+            # print("Dot:", check_dot, " Coplanar", check_coplanar)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
