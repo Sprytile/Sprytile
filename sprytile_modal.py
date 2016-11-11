@@ -40,7 +40,6 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Sprytile Paint"
 
     def find_view_axis(self, context):
-        # Find the nearest world axis to the view axis
         scene = context.scene
         if scene.sprytile_data.lock_normal is True:
             return
@@ -60,6 +59,10 @@ class SprytileModalTool(bpy.types.Operator):
 
         plane_normal = self.snap_vector_to_axis(view_vector, mirrored=True)
         up_vector = self.snap_vector_to_axis(view_up_vector)
+
+        # calculated vectors are not perpendicular, don't set data
+        if plane_normal.dot(up_vector) != 0.0:
+            return
 
         scene.sprytile_data.paint_normal_vector = plane_normal
         scene.sprytile_data.paint_up_vector = up_vector
@@ -430,7 +433,7 @@ class SprytileModalTool(bpy.types.Operator):
         def get_key(key_code):
             if key_code not in self.key_trap:
                 self.key_trap[key_code] = False
-                return self.key_trap[key_code]
+            return self.key_trap[key_code]
 
         # Keys we're interested in
         key_dict = {
