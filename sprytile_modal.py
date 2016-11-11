@@ -392,6 +392,63 @@ class SprytileModalTool(bpy.types.Operator):
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
+    def handle_mouse(self, context, event):
+        """"""
+        if 'MOUSE' not in event.type:
+            return None
+
+        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            # allow navigation
+            return {'PASS_THROUGH'}
+        elif event.type == 'LEFTMOUSE':
+            self.left_down = event.value == 'PRESS'
+            if self.left_down:
+                self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
+                self.execute_tool(context, event)
+            else: # Mouse up, send undo
+                bpy.ops.ed.undo_push()
+            return {'RUNNING_MODAL'}
+        elif event.type == 'MOUSEMOVE':
+            # Update the event for the gui system
+            if self.left_down:
+                self.execute_tool(context, event)
+                return {'RUNNING_MODAL'}
+            if self.want_snap:
+                self.cursor_snap(context, event)
+        elif event.type in {'RIGHTMOUSE', 'ESC'} and context.scene.sprytile_data.gui_use_mouse is False:
+            self.exit_modal(context)
+            return {'CANCELLED'}
+
+    def handle_keys(self, context, event):
+        """"""
+        def get_key(key_code):
+            if key_code not in self.key_trap:
+                self.key_trap[key_code] = False
+                return self.key_trap[key_code]
+
+        # Keys we're interested in
+        key_dict = {
+            'LEFT_CTRL',
+            'RIGHT_CTRL',
+            'Z',
+            'Y'
+        }
+        if event.type in key_dict:
+            self.key_trap[event.type] = event.value == 'PRESS'
+
+        # Check for undo commands, pass through the keystroke
+        has_ctrl = get_key('LEFT_CTRL') or get_key('RIGHT_CTRL')
+        pass_undo_keys = get_key('Z') or get_key('Y')
+        if has_ctrl and pass_undo_keys:
+            return {'PASS_THROUGH'}
+
+        if event.type == 'S':
+            self.want_snap = event.value == 'PRESS'
+        elif event.type == 'C' and event.value == 'PRESS':
+            bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
+
+        return None
+
     def modal(self, context, event):
         context.area.tag_redraw()
         if event.type == 'TIMER':
@@ -406,39 +463,14 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         context.window.cursor_set('PAINT_BRUSH')
-        # print("%s - %s" % (event.type, event.value))
-        if event.type in {'LEFT_CTRL', 'RIGHT_CTRL', 'Z'}:
-            self.key_trap[event.type] = event.value == 'PRESS'
 
-        if (self.key_trap.get('LEFT_CTRL') or self.key_trap.get('RIGHT_CTRL')) and self.key_trap.get('Z'):
-            print("Pass undo through")
-            return {'PASS_THROUGH'}
+        key_return = self.handle_keys(context, event)
+        if key_return is not None:
+            return key_return
 
-        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            # allow navigation
-            return {'PASS_THROUGH'}
-        elif event.type == 'LEFTMOUSE':
-            self.left_down = event.value == 'PRESS'
-            if self.left_down:
-                self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
-                self.execute_tool(context, event)
-            else:
-                bpy.ops.ed.undo_push()
-            return {'RUNNING_MODAL'}
-        elif event.type == 'MOUSEMOVE':
-            # Update the event for the gui system
-            if self.left_down:
-                self.execute_tool(context, event)
-                return {'RUNNING_MODAL'}
-            if self.want_snap:
-                self.cursor_snap(context, event)
-        elif event.type == 'S':
-            self.want_snap = event.value == 'PRESS'
-        elif event.type == 'C' and event.value == 'PRESS':
-            bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
-        elif event.type in {'RIGHTMOUSE', 'ESC'} and context.scene.sprytile_data.gui_use_mouse is False:
-            self.exit_modal(context)
-            return {'CANCELLED'}
+        mouse_return = self.handle_mouse(context, event)
+        if mouse_return is not None:
+            return mouse_return
 
         return {'RUNNING_MODAL'}
 
@@ -449,6 +481,7 @@ class SprytileModalTool(bpy.types.Operator):
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
 
+            self.virtual_cursor = []
             self.key_trap = {}
             # Set up for raycasting with a BVHTree
             self.left_down = False

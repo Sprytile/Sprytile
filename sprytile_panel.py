@@ -43,7 +43,7 @@ class SprytilePanel(bpy.types.Panel):
         row.prop(context.scene.sprytile_data, "normal_mode", expand=True)
         row.prop(context.scene.sprytile_data, "lock_normal", toggle=True)
 
-        layout.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=3)
+        layout.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=2)
 
         if len(scene.sprytile_grids) == 0:
             return

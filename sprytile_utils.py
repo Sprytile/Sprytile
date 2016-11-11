@@ -70,8 +70,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.validate_grids")
-        layout.prop(context.scene.sprytile_data, "world_pixels")
         layout.prop(context.scene.sprytile_data, "cursor_snap", expand=True)
+        layout.prop(context.scene.sprytile_data, "world_pixels")
 
 def register():
     bpy.utils.register_module(__name__)
