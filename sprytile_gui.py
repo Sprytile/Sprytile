@@ -5,6 +5,7 @@ from math import floor
 from bgl import *
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
+from . import sprytile_utils
 
 class SprytileGui(bpy.types.Operator):
     bl_idname = "sprytile.gui_win"
@@ -131,26 +132,7 @@ class SprytileGui(bpy.types.Operator):
 
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = scene.sprytile_grids[grid_id]
-        mat_idx = bpy.data.materials.find(tilegrid.mat_id)
-        # Material wasn't found, abandon setup
-        if mat_idx < 0:
-            self.clear_offscreen()
-            return None
-        # look through the texture slots of the material
-        # to find the first with a texture/image
-        material = bpy.data.materials[mat_idx]
-        target_img = None
-        for texture_slot in material.texture_slots:
-            if texture_slot is None:
-                continue
-            if texture_slot.texture is None:
-                continue
-            if texture_slot.texture.image is None:
-                continue
-            # Cannot use the texture slot image reference directly
-            # Have to get it through bpy.data.images to be able to use with BGL
-            target_img = bpy.data.images.get(texture_slot.texture.image.name)
-            break
+        target_img = sprytile_utils.get_grid_texture(tilegrid)
         # Couldn't get the texture outta here
         if target_img is None:
             SprytileGui.clear_offscreen(self)

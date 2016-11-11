@@ -7,6 +7,7 @@ from collections import deque
 from mathutils import Vector, Matrix
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
+from . import sprytile_utils
 
 def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
 
@@ -219,23 +220,10 @@ class SprytileModalTool(bpy.types.Operator):
 
         if face_index >= len(mesh.faces):
             return
-
-        # Get the image used by material, to calculate UV size
-        material = bpy.data.materials[target_grid.mat_id]
-        # look through the texture slots of the material
-        # to find the first with a texture/image
-        target_img = None
-        for texture_slot in material.texture_slots:
-            if texture_slot is None:
-                continue
-            if texture_slot.texture is None:
-                continue
-            if texture_slot.texture.image is None:
-                continue
-            # Cannot use the texture slot image reference directly
-            # Have to get it through bpy.data.images to be able to use with BGL
-            target_img = bpy.data.images.get(texture_slot.texture.image.name)
-            break
+        
+        target_img = sprytile_utils.get_grid_texture(target_grid)
+        if target_img is None:
+            return
 
         pixel_uv_x = 1.0 / target_img.size[0]
         pixel_uv_y = 1.0 / target_img.size[1]

@@ -5,6 +5,25 @@ from bpy.types import Panel
 def GetGridMatrix(srpytile_grid):
     """Returns the transform matrix of a sprytile grid"""
 
+def get_grid_texture(sprytile_grid):
+    mat_idx = bpy.data.materials.find(sprytile_grid.mat_id)
+    if mat_idx == -1:
+        return None
+    material = bpy.data.materials[mat_idx]
+    target_img = None
+    for texture_slot in material.texture_slots:
+        if texture_slot is None:
+            continue
+        if texture_slot.texture is None:
+            continue
+        if texture_slot.texture.image is None:
+            continue
+        # Cannot use the texture slot image reference directly
+        # Have to get it through bpy.data.images to be able to use with BGL
+        target_img = bpy.data.images.get(texture_slot.texture.image.name)
+        break
+    return target_img
+
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
     bl_label = "Validate Material Grids"
