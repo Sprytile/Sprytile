@@ -2,7 +2,7 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
-    "location": "View3D > UI panel > Add meshes",
+    "location": "View3D > UI panel > Sprytile",
     "category": "Paint"
     }
 

@@ -24,6 +24,85 @@ def get_grid_texture(sprytile_grid):
         break
     return target_img
 
+class SprytileGridAdd(bpy.types.Operator):
+    bl_idname = "sprytile.grid_add"
+    bl_label = "Add New Grid"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        if event is not None:
+            self.add_new_grid(context)
+        return {'FINISHED'}
+
+    def add_new_grid(self, context):
+        grid_array = context.scene.sprytile_grids
+        if len(grid_array) < 1:
+            return
+        grid_idx = context.object.sprytile_gridid
+        selected_grid = grid_array[grid_idx]
+
+        new_idx = len(grid_array)
+        new_grid = grid_array.add()
+        new_grid.mat_id = selected_grid.mat_id
+        new_grid.is_main = False
+
+        grid_array.move(new_idx, grid_idx + 1)
+
+class SprytileGridRemove(bpy.types.Operator):
+    bl_idname = "sprytile.grid_remove"
+    bl_label = "Remove Grid"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.delete_grid(context)
+        return {'FINISHED'}
+
+    def delete_grid(self, context):
+        grid_array = context.scene.sprytile_grids
+        if len(grid_array) <= 1:
+            return
+        grid_idx = context.object.sprytile_gridid
+
+        del_grid = grid_array[grid_idx]
+        del_mat_id = del_grid.mat_id
+
+        # Check the grid array has
+        has_main = False
+        grid_count = 0
+        for idx, grid in enumerate(grid_array.values()):
+            if grid.mat_id != del_mat_id:
+                continue
+            if idx == grid_idx:
+                continue
+            grid_count += 1
+            if grid.is_main:
+                has_main = True
+
+        # No grid will be left referencing the material
+        # Don't allow deletion
+        if grid_count < 1:
+            return
+
+        grid_array.remove(grid_idx)
+        context.object.sprytile_gridid -= 1
+        # A main grid is left, exit
+        if has_main == True:
+            return
+        # Mark the first grid that references material as main
+        for grid in grid_array:
+            if grid.mat_id != del_mat_id:
+                continue
+            grid.is_main = True
+            break
+
+class SprytileNewMaterial(bpy.types.Operator):
+    bl_idname = "sprytile.add_new_material"
+    bl_label = "Create New Material"
+
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
     bl_label = "Validate Material Grids"
@@ -31,6 +110,13 @@ class SprytileValidateGridList(bpy.types.Operator):
     @classmethod
     def poll(cls,context):
         return True
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.validate_grids(context)
+        return {'FINISHED'}
 
     def validate_grids(self, context):
         grids = context.scene.sprytile_grids
@@ -65,14 +151,8 @@ class SprytileValidateGridList(bpy.types.Operator):
                 grid_setting.mat_id = mat.name
                 grid_setting.is_main = True
 
-    def execute(self, context):
-        self.validate_grids(context)
-        return self.invoke(context, None)
-
-    def invoke(self, context, event):
-        if event is not None:
-            self.validate_grids(context)
-        return {'FINISHED'}
+        # Loop through grids again, making sure each material
+        # has one main material
 
 class SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
@@ -88,7 +168,6 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("sprytile.validate_grids")
 
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
