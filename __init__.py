@@ -28,6 +28,8 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         self["normal_mode"] = value
 
     def get_normal(self):
+        if "normal_mode" not in self.keys():
+            self["normal_mode"] = 3
         return self["normal_mode"]
 
     normal_mode = EnumProperty(
