@@ -69,9 +69,7 @@ class SprytileGui(bpy.types.Operator):
         obj = context.object
 
         tilegrid = context.scene.sprytile_grids[obj.sprytile_gridid]
-
-        texture = SprytileGui.texture_grid
-        tex_size = Vector((texture.size[0], texture.size[1]))
+        tex_size = SprytileGui.tex_size
 
         display_size = 256
         display_pad = 5
@@ -104,7 +102,7 @@ class SprytileGui(bpy.types.Operator):
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
             ratio_pos = Vector((click_pos.x / display_size, click_pos.y / display_size))
-            tex_pos = Vector((ratio_pos.x * tex_size.x, ratio_pos.y * tex_size.y))
+            tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1]))
             # Inverse matrix tex_pos
             grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
             grid_pos.x = floor(grid_pos.x)
@@ -139,21 +137,22 @@ class SprytileGui(bpy.types.Operator):
 
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = scene.sprytile_grids[grid_id]
+        tex_size = 128, 128
         target_img = sprytile_utils.get_grid_texture(tilegrid)
         # Couldn't get the texture outta here
-        if target_img is None:
-            SprytileGui.clear_offscreen(self)
-            return None
+        if target_img is not None:
+            tex_size = target_img.size[0], target_img.size[1]
 
         import gpu
         try:
-            offscreen = gpu.offscreen.new(target_img.size[0], target_img.size[1])
+            offscreen = gpu.offscreen.new(tex_size[0], tex_size[1])
         except Exception as e:
             print(e)
             SprytileGui.clear_offscreen(self)
             offscreen = None
 
         SprytileGui.texture_grid = target_img
+        SprytileGui.tex_size = tex_size
         SprytileGui.current_grid = grid_id
         SprytileGui.loaded_grid = tilegrid
         return offscreen
@@ -185,24 +184,27 @@ class SprytileGui(bpy.types.Operator):
         """Draw the GUI into the offscreen texture"""
         offscreen = SprytileGui.offscreen
         target_img = SprytileGui.texture_grid
-        size = Vector((target_img.size[0], target_img.size[1]))
+        tex_size = SprytileGui.tex_size
 
         offscreen.bind()
+        glClear(GL_COLOR_BUFFER_BIT)
         glDisable(GL_DEPTH_TEST)
-        glDisable(GL_LIGHTING)
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        gluOrtho2D(0, size.x, 0, size.y)
-        target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
-        glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glEnable(GL_TEXTURE_2D)
         glEnable(GL_BLEND)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluOrtho2D(0, tex_size[0], 0, tex_size[1])
 
         glColor4f(1.0, 1.0, 1.0, 1.0)
+        if target_img is not None:
+            target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
+            glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+            glEnable(GL_TEXTURE_2D)
+        else:
+            glColor4f(0.0, 0.0, 0.0, 0.5)
 
         texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        verco = [(0, 0), (0, size.y), (size.x, size.y), (size.x, 0)]
+        verco = [(0, 0), (0, tex_size[1]), (tex_size[0], tex_size[1]), (tex_size[0], 0)]
         glBegin(bgl.GL_QUADS)
         # first draw the texture
         for i in range(4):
@@ -211,6 +213,7 @@ class SprytileGui(bpy.types.Operator):
         glEnd()
 
         # Translate the gl context by grid matrix
+        glColor4f(1.0, 1.0, 1.0, 1.0)
         glDisable(GL_TEXTURE_2D)
         glLineWidth(2)
 
@@ -227,6 +230,7 @@ class SprytileGui(bpy.types.Operator):
             glVertex2f(sel_vtx[0][0], sel_vtx[0][1])
             glEnd()
 
+        # Draw box for currently selected tile(s)
         grid_size = SprytileGui.loaded_grid.grid
         curr_sel = SprytileGui.loaded_grid.tile_selection
         curr_sel_min = (grid_size[0] * curr_sel[0]), (grid_size[1] * curr_sel[1])
@@ -236,6 +240,7 @@ class SprytileGui(bpy.types.Operator):
         ]
         draw_selection(curr_sel_min, curr_sel_max)
 
+        # Inside gui, draw box for tile under mouse
         if context.scene.sprytile_data.gui_use_mouse is True:
             glColor4f(1.0, 0.0, 0.0, 1.0)
             glLineWidth(1)
