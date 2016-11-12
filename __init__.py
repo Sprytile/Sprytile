@@ -137,7 +137,7 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     grid = IntVectorProperty(
         name="Size",
         description="Grid size, in pixels",
-        min=8,
+        min=2,
         size=2,
         subtype='XYZ',
         default=(32, 32)
