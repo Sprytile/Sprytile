@@ -204,24 +204,38 @@ class SprytileModalTool(bpy.types.Operator):
         if cursor_len == 0:
             self.virtual_cursor.append(cursor_pos)
             return
+
         last_pos = self.virtual_cursor[cursor_len-1]
-        if (last_pos - cursor_pos).magnitude < 0.1:
+        last_vector = cursor_pos - last_pos
+        if last_vector.magnitude < 0.1:
             return
+
+        # If last vector goes in different direction
+        # from current virtual cursor vector, reset cursor
+        cursor_vector = self.get_virtual_cursor_vector()
+        if cursor_vector.dot(last_vector) < 0:
+            self.virtual_cursor.clear()
+
         self.virtual_cursor.append(cursor_pos)
+
+    def get_virtual_cursor_vector(self):
+        cursor_direction = Vector((0.0, 0.0, 0.0))
+        cursor_len = len(self.virtual_cursor)
+        if cursor_len <= 1:
+            return cursor_direction
+        for idx in range(cursor_len - 1):
+            segment = self.virtual_cursor[idx + 1] - self.virtual_cursor[idx]
+            cursor_direction += segment
+        cursor_direction /= cursor_len
+        return cursor_direction
 
     def flow_cursor(self, context, face_index, virtual_cursor):
         """Move the cursor along the given face, using virtual_cursor direction"""
         cursor_len = len(self.virtual_cursor)
-        if cursor_len == 1:
+        if cursor_len <= 1:
             return
 
-        cursor_direction = Vector((0.0, 0.0, 0.0))
-        for idx in range(cursor_len - 1):
-            segment = self.virtual_cursor[idx+1] - self.virtual_cursor[idx]
-            cursor_direction += segment
-        cursor_direction /= cursor_len
-        if cursor_direction.magnitude < 0.1:
-            return
+        cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
         face = self.bmesh.faces[face_index]
@@ -229,15 +243,16 @@ class SprytileModalTool(bpy.types.Operator):
         closest_idx = -1
         closest_pos = Vector((0.0, 0.0, 0.0))
         for idx, vert in enumerate(face.verts):
-            vert_vector = vert.co - virtual_cursor
+            vert_world_pos = context.object.matrix_world * vert.co
+            vert_vector = vert_world_pos - virtual_cursor
             vert_vector.normalize()
             vert_dot = abs(1.0 - vert_vector.dot(cursor_direction))
             if vert_dot < max_dot:
                 closest_idx = idx
-                closest_pos = vert.co
+                closest_pos = vert_world_pos
 
         if closest_idx != -1:
-            context.scene.cursor_location = context.object.matrix_world * closest_pos
+            context.scene.cursor_location = closest_pos
 
     def raycast_object(self, obj, ray_origin, ray_direction):
         matrix = obj.matrix_world.copy()
