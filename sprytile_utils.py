@@ -122,6 +122,7 @@ class SprytileNewMaterial(bpy.types.Operator):
         set_idx = len(obj.data.materials)
         obj.data.materials.append(mat)
         obj.active_material_index = set_idx
+
         bpy.ops.sprytile.validate_grids()
         return {'FINISHED'}
 
@@ -143,6 +144,7 @@ class SprytileValidateGridList(bpy.types.Operator):
 
     @staticmethod
     def validate_grids(context):
+        curr_sel = context.object.sprytile_gridid
         grids = context.scene.sprytile_grids
         mat_list = bpy.data.materials
         remove_idx = []
@@ -175,6 +177,10 @@ class SprytileValidateGridList(bpy.types.Operator):
                 grid_setting = grids.add()
                 grid_setting.mat_id = mat.name
                 grid_setting.is_main = True
+
+        grids_count = len(grids)
+        if curr_sel >= grids_count:
+            context.object.sprytile_gridid = grids_count-1
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
