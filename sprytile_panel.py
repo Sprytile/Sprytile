@@ -71,13 +71,29 @@ class SprytilePanel(bpy.types.Panel):
 
         selected_grid = scene.sprytile_grids[obj.sprytile_gridid]
 
-        layout.label("Grid Settings", icon='GRID')
+        # layout.label("Tile Grid Settings", icon='GRID')
 
-        layout.prop(selected_grid, "grid")
+        layout.prop(selected_grid, "grid", text="Grid Size")
+
+        row = layout.row(align=True)
+        row.prop(selected_grid, "uv_flip_x", toggle=True)
+        row.prop(selected_grid, "uv_flip_y", toggle=True)
+
+        show_icon = "TRIA_RIGHT"
+        if selected_grid.show_extra:
+            show_icon = "TRIA_DOWN"
+        layout.prop(selected_grid, "show_extra", icon=show_icon, emboss=False)
+
+        if not selected_grid.show_extra:
+            return
+
         layout.prop(selected_grid, "offset")
+        layout.prop(selected_grid, "rotate")
+
 
 def register():
     bpy.utils.register_module(__name__)
+
 
 def unregister():
     bpy.utils.unregister_module(__name__)

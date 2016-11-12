@@ -139,6 +139,18 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         size=4,
         default=(0, 0, 1, 1)
     )
+    uv_flip_x = BoolProperty(
+        name="Flip X",
+        default=False
+    )
+    uv_flip_y = BoolProperty(
+        name="Flip Y",
+        default=False
+    )
+    show_extra = BoolProperty(
+        name="Extra UV Grid Settings",
+        default=False
+    )
 
 
 class SprytileFaceData(bpy.types.PropertyGroup):
