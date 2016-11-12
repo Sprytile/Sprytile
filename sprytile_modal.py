@@ -3,7 +3,7 @@ import bmesh
 import math
 from bpy_extras import view3d_utils
 from collections import deque
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
 from . import sprytile_utils
@@ -352,37 +352,37 @@ class SprytileModalTool(bpy.types.Operator):
         if face_position is None:
             return
 
-        # print("Execute build")
-        # store plane_cursor, for deciding where to move actual cursor
-        # if auto cursor mode is on
+        # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
         self.add_virtual_cursor(plane_cursor)
         # Build face and UV map it
         face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
         if scene.sprytile_data.cursor_flow:
             self.flow_cursor(context, face_index, plane_cursor)
-        # print("Build face")
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector):
         """Build a face at the given position"""
-        # Convert world space position to object space
-        face_position = context.object.matrix_world.copy().inverted() * position
-
         x_dot = right_vector.dot(x_vector.normalized())
         y_dot = up_vector.dot(y_vector.normalized())
         x_positive = x_dot > 0
         y_positive = y_dot > 0
 
-        vtx1 = self.bmesh.verts.new(face_position)
-        vtx2 = self.bmesh.verts.new(face_position + y_vector)
-        vtx3 = self.bmesh.verts.new(face_position + x_vector + y_vector)
-        vtx4 = self.bmesh.verts.new(face_position + x_vector)
+        # These are in world positions
+        vtx1 = self.bmesh.verts.new(position)
+        vtx2 = self.bmesh.verts.new(position + y_vector)
+        vtx3 = self.bmesh.verts.new(position + x_vector + y_vector)
+        vtx4 = self.bmesh.verts.new(position + x_vector)
 
         # Quadrant II, IV
         face_order = (vtx1, vtx2, vtx3, vtx4)
         # Quadrant I, III
         if x_positive == y_positive:
             face_order = (vtx1, vtx4, vtx3, vtx2)
+
+        # Convert world space position to object space
+        world_inv = context.object.matrix_world.copy().inverted()
+        for vtx in face_order:
+            vtx.co = world_inv * vtx.co
 
         face = self.bmesh.faces.new(face_order)
         face.normal_update()
