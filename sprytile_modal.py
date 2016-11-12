@@ -9,32 +9,6 @@ from mathutils.bvhtree import BVHTree
 from . import sprytile_utils
 
 
-def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
-    position_vector = position - grid_center
-    pos_vector_normalized = position.normalized()
-
-    if right_vector.dot(pos_vector_normalized) < 0:
-        right_vector *= -1
-    if up_vector.dot(pos_vector_normalized) < 0:
-        up_vector *= -1
-
-    x_magnitude = position_vector.dot(right_vector)
-    y_magnitude = position_vector.dot(up_vector)
-
-    x_unit = grid_x / world_pixels
-    y_unit = grid_y / world_pixels
-
-    x_snap = math.floor(x_magnitude / x_unit)
-    y_snap = math.floor(y_magnitude / y_unit)
-
-    right_vector *= x_unit
-    up_vector *= y_unit
-
-    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
-
-    return grid_pos, right_vector, up_vector
-
-
 def snap_vector_to_axis(vector, mirrored=False):
     """Snaps a vector to the closest world axis"""
     norm_vector = vector.normalized()
@@ -65,8 +39,35 @@ def snap_vector_to_axis(vector, mirrored=False):
     return snapped_vector
 
 
+def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
+    """Snaps a world position to the given grid settings"""
+    position_vector = position - grid_center
+    pos_vector_normalized = position.normalized()
+
+    if right_vector.dot(pos_vector_normalized) < 0:
+        right_vector *= -1
+    if up_vector.dot(pos_vector_normalized) < 0:
+        up_vector *= -1
+
+    x_magnitude = position_vector.dot(right_vector)
+    y_magnitude = position_vector.dot(up_vector)
+
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+
+    x_snap = math.floor(x_magnitude / x_unit)
+    y_snap = math.floor(y_magnitude / y_unit)
+
+    right_vector *= x_unit
+    up_vector *= y_unit
+
+    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
+
+    return grid_pos, right_vector, up_vector
+
+
 def raycast_grid(scene, grid_id, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
-    """Finds the grid position"""
+    """Raycast to a normal plane on the scene cursor, and return the grid snapped position"""
 
     plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
     # Didn't hit the plane exit
@@ -99,7 +100,7 @@ def get_current_grid_vectors(scene):
     return up_vector, right_vector, normal_vector
 
 
-def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh=None):
+def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     """UV map the given face"""
     scene = context.scene
     obj = context.object
@@ -109,8 +110,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh=None
     target_grid = scene.sprytile_grids[grid_id]
 
     # Generate a transform matrix from the grid settings
-    if mesh is None:
-        mesh = bmesh.from_edit_mesh(obj.data)
 
     world_units = data.world_pixels
     world_convert = Vector((target_grid.grid[0] / world_units,
@@ -212,9 +211,9 @@ class SprytileModalTool(bpy.types.Operator):
 
         # If last vector goes in different direction
         # from current virtual cursor vector, reset cursor
-        cursor_vector = self.get_virtual_cursor_vector()
-        if cursor_vector.dot(last_vector) < 0:
-            self.virtual_cursor.clear()
+        # cursor_vector = self.get_virtual_cursor_vector()
+        # if cursor_vector.dot(last_vector) < 0:
+        #     self.virtual_cursor.clear()
 
         self.virtual_cursor.append(cursor_pos)
 
