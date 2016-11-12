@@ -308,9 +308,9 @@ class SprytileModalTool(bpy.types.Operator):
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
-        mat_id = bpy.data.materials.find(grid.mat_id)
-        if mat_id > -1:
-            self.bmesh.faces[face_index].material_index = mat_id
+        mat_idx = context.object.material_slots.find(grid.mat_id)
+        if mat_idx > -1:
+            self.bmesh.faces[face_index].material_index = mat_idx
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
