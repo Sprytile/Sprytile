@@ -7,23 +7,26 @@ def get_grid_matrix(srpytile_grid):
     """Returns the transform matrix of a sprytile grid"""
 
 
-def get_grid_texture(sprytile_grid):
-    mat_idx = bpy.data.materials.find(sprytile_grid.mat_id)
+def get_grid_texture(obj, sprytile_grid):
+    mat_idx = obj.material_slots.find(sprytile_grid.mat_id)
     if mat_idx == -1:
         return None
-    material = bpy.data.materials[mat_idx]
+    material = obj.material_slots[mat_idx].material
+    if material is None:
+        return None
     target_img = None
     for texture_slot in material.texture_slots:
         if texture_slot is None:
             continue
         if texture_slot.texture is None:
             continue
-        if texture_slot.texture.image is None:
+        if texture_slot.texture.type == 'NONE':
             continue
-        # Cannot use the texture slot image reference directly
-        # Have to get it through bpy.data.images to be able to use with BGL
-        target_img = bpy.data.images.get(texture_slot.texture.image.name)
-        break
+        if texture_slot.texture.type == 'IMAGE':
+            # Cannot use the texture slot image reference directly
+            # Have to get it through bpy.data.images to be able to use with BGL
+            target_img = bpy.data.images.get(texture_slot.texture.image.name)
+            break
     return target_img
 
 
