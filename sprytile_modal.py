@@ -118,11 +118,11 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     mesh.faces.layers.tex.verify()
 
     if face_index >= len(mesh.faces):
-        return
+        return None, None
 
     target_img = sprytile_utils.get_grid_texture(target_grid)
     if target_img is None:
-        return
+        return None, None
 
     pixel_uv_x = 1.0 / target_img.size[0]
     pixel_uv_y = 1.0 / target_img.size[1]
@@ -149,10 +149,15 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         vert_xy.y *= uv_unit_y
         vert_xy = uv_matrix * vert_xy
         loop[uv_layer].uv = vert_xy.xy
+
+    # Apply the correct material to the face
+    mat_idx = context.object.material_slots.find(target_grid.mat_id)
+    if mat_idx > -1:
+        face.material_index = mat_idx
+
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
-
 
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
@@ -308,9 +313,6 @@ class SprytileModalTool(bpy.types.Operator):
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
-        mat_idx = context.object.material_slots.find(grid.mat_id)
-        if mat_idx > -1:
-            self.bmesh.faces[face_index].material_index = mat_idx
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
