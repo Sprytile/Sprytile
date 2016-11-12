@@ -12,7 +12,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
             split = layout.split(0.6)
             if item.is_main:
                 material = bpy.data.materials[item.mat_id]
-                grid_tex = sprytile_utils.get_grid_texture(item)
+                grid_tex = sprytile_utils.get_grid_texture(context.object, item)
                 if grid_tex is None:
                     grid_tex = material
                 split.prop(material, "name", text="", emboss=False, icon_value=layout.icon(grid_tex))

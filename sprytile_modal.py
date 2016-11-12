@@ -124,7 +124,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if face_index >= len(mesh.faces):
         return None, None
 
-    target_img = sprytile_utils.get_grid_texture(target_grid)
+    target_img = sprytile_utils.get_grid_texture(obj, target_grid)
     if target_img is None:
         return None, None
 
