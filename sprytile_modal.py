@@ -532,8 +532,9 @@ class SprytileModalTool(bpy.types.Operator):
         if 'MOUSE' not in event.type:
             return None
 
-        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            # allow navigation
+        gui_use_mouse = context.scene.sprytile_data.gui_use_mouse
+        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'} and not gui_use_mouse:
+            # allow navigation, if gui is not using the mouse
             return {'PASS_THROUGH'}
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS'
@@ -544,13 +545,12 @@ class SprytileModalTool(bpy.types.Operator):
                 bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
-            # Update the event for the gui system
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
             if self.want_snap:
                 self.cursor_snap(context, event)
-        elif event.type in {'RIGHTMOUSE', 'ESC'} and context.scene.sprytile_data.gui_use_mouse is False:
+        elif event.type in {'RIGHTMOUSE', 'ESC'} and not gui_use_mouse:
             self.exit_modal(context)
             return {'CANCELLED'}
 
