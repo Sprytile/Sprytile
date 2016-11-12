@@ -49,6 +49,7 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
 
+            self.display_scale = 1.0
             self.handle_ui(context, event)
 
             SprytileGui.handler_add(self, context)
@@ -71,10 +72,12 @@ class SprytileGui(bpy.types.Operator):
         tilegrid = context.scene.sprytile_grids[obj.sprytile_gridid]
         tex_size = SprytileGui.tex_size
 
-        display_size = 256
+        display_size = SprytileGui.display_size
+        display_size = round(display_size[0] * self.display_scale), round(display_size[1] * self.display_scale)
         display_pad = 5
-        gui_min = Vector((region.width - (display_size + display_pad), display_pad))
-        gui_max = Vector((region.width - display_pad, (display_size + display_pad)))
+
+        gui_min = Vector((region.width - (int(display_size[0]) + display_pad), display_pad))
+        gui_max = Vector((region.width - display_pad, (int(display_size[1]) + display_pad)))
 
         self.gui_min = gui_min
         self.gui_max = gui_max
@@ -99,9 +102,12 @@ class SprytileGui(bpy.types.Operator):
         if context.scene.sprytile_data.gui_use_mouse is False:
             return
 
+        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            self.display_scale += 0.2 if event.type == 'WHEELUPMOUSE' else -0.2
+
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
-            ratio_pos = Vector((click_pos.x / display_size, click_pos.y / display_size))
+            ratio_pos = Vector((click_pos.x / display_size[0], click_pos.y / display_size[1]))
             tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1]))
             # Inverse matrix tex_pos
             grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
@@ -153,6 +159,7 @@ class SprytileGui(bpy.types.Operator):
 
         SprytileGui.texture_grid = target_img
         SprytileGui.tex_size = tex_size
+        SprytileGui.display_size = tex_size
         SprytileGui.current_grid = grid_id
         SprytileGui.loaded_grid = tilegrid
         return offscreen
