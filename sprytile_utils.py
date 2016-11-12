@@ -52,6 +52,7 @@ class SprytileGridAdd(bpy.types.Operator):
         new_idx = len(grid_array)
         new_grid = grid_array.add()
         new_grid.mat_id = selected_grid.mat_id
+        new_grid.grid = selected_grid.grid
         new_grid.is_main = False
 
         grid_array.move(new_idx, grid_idx + 1)
