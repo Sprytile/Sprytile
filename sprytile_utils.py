@@ -203,6 +203,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "uv_flip_x", toggle=True)
         row.prop(data, "uv_flip_y", toggle=True)
 
+        layout.prop(data, "mesh_rotate")
+
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)

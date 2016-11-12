@@ -91,6 +91,17 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Flip Y",
         default=False
     )
+    mesh_rotate = FloatProperty(
+        name="Grid Rotation",
+        description="Rotation of mesh creation",
+        subtype='ANGLE',
+        unit='ROTATION',
+        step=9000,
+        precision=0,
+        min=-6.28319,
+        max=6.28319,
+        default=0.0
+    )
 
     cursor_snap = EnumProperty(
         items=[
