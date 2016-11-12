@@ -293,20 +293,24 @@ class SprytileModalTool(bpy.types.Operator):
         # if build mode, ray cast on plane and build face
         elif paint_mode == 'MAKE_FACE':
             self.execute_build(context, scene, ray_origin, ray_vector)
-            # set normal mode...
+        # set normal mode...
+        else:
+            self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
 
     def execute_paint(self, context, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(context.scene)
         hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
-        if face_index is not None:
-            self.add_virtual_cursor(hit_loc)
-            # Change the uv of the given face
-            grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
-            tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-            face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
-            mat_id = bpy.data.materials.find(grid.mat_id)
-            if mat_id > -1:
-                self.bmesh.faces[face_index].material_index = mat_id
+        if face_index is None:
+            return
+
+        self.add_virtual_cursor(hit_loc)
+        # Change the uv of the given face
+        grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
+        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+        face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+        mat_id = bpy.data.materials.find(grid.mat_id)
+        if mat_id > -1:
+            self.bmesh.faces[face_index].material_index = mat_id
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
@@ -385,6 +389,49 @@ class SprytileModalTool(bpy.types.Operator):
         # Update the collision BVHTree with new data
         self.tree = BVHTree.FromBMesh(self.bmesh)
         return face.index
+
+    def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
+        hit_loc, hit_normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        if hit_loc is None:
+            return
+
+        # Get the up vector. The default scene view camera is pointed
+        # downward, with up on Y axis. Apply view rotation to get current up
+        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+
+        # Find the edge of the hit face that most closely matches the view up vector
+        face = self.bmesh.faces[face_index]
+        closest_idx = -1
+        closest_dot = 2.0
+        edge_vectors = []
+        idx = -1
+        for edge in face.edges:
+            if edge.is_boundary is False:
+                continue
+            idx += 1
+            # Move vertices to world space
+            vtx1 = context.object.matrix_world * edge.verts[0].co
+            vtx2 = context.object.matrix_world * edge.verts[1].co
+            edge_vec = vtx1 - vtx2
+            edge_vec.normalize()
+            edge_vectors.append(edge_vec)
+            edge_dot = 1 - abs(edge_vec.dot(view_up_vector))
+            if edge_dot < closest_dot:
+                closest_dot = edge_dot
+                closest_idx = idx
+
+        if closest_idx == -1:
+            return
+
+        chosen_up = edge_vectors[closest_idx]
+        if chosen_up.dot(view_up_vector) < 0:
+            chosen_up *= -1
+
+        sprytile_data = context.scene.sprytile_data
+        sprytile_data.paint_normal_vector = hit_normal
+        sprytile_data.paint_up_vector = chosen_up
+        sprytile_data.lock_normal = True
+        sprytile_data.paint_mode = 'MAKE_FACE'
 
     def cursor_snap(self, context, event):
         if self.tree is None or context.scene.sprytile_data.gui_use_mouse is True:
