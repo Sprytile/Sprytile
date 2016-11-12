@@ -1,6 +1,8 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
+    "version": (0, 1, 0),
+    "blender": (2, 7, 0),
     "location": "View3D > UI panel > Sprytile",
     "category": "Paint"
 }
