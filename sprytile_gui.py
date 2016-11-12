@@ -66,9 +66,9 @@ class SprytileGui(bpy.types.Operator):
         mouse_pt = self.mouse_pt
 
         region = context.region
-        object = context.object
+        obj = context.object
 
-        tilegrid = context.scene.sprytile_grids[object.sprytile_gridid]
+        tilegrid = context.scene.sprytile_grids[obj.sprytile_gridid]
 
         texture = SprytileGui.texture_grid
         tex_size = Vector((texture.size[0], texture.size[1]))
@@ -86,9 +86,17 @@ class SprytileGui(bpy.types.Operator):
             return
 
         if event.type in {'MOUSEMOVE'}:
-            mouse_within_x = gui_min.x <= mouse_pt.x <= gui_max.x
-            mouse_within_y = gui_min.y <= mouse_pt.y <= gui_max.y
-            context.scene.sprytile_data.gui_use_mouse = mouse_within_x and mouse_within_y
+            mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
+            mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
+
+            context.scene.sprytile_data.gui_use_mouse = mouse_in_gui
+
+            if context.scene.sprytile_data.gui_use_mouse:
+                context.window.cursor_set('DEFAULT')
+            elif mouse_in_region:
+                context.window.cursor_set('PAINT_BRUSH')
+            else:
+                context.window.cursor_set('DEFAULT')
 
         if context.scene.sprytile_data.gui_use_mouse is False:
             return
@@ -103,10 +111,10 @@ class SprytileGui(bpy.types.Operator):
             grid_pos.y = floor(grid_pos.y)
             SprytileGui.cursor_grid_pos = grid_pos
 
-        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-            tilegrid.tile_selection[0] = grid_pos.x
-            tilegrid.tile_selection[1] = grid_pos.y
-            print("%d, %d" % grid_pos[:])
+            if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+                tilegrid.tile_selection[0] = grid_pos.x
+                tilegrid.tile_selection[1] = grid_pos.y
+                print("%d, %d" % grid_pos[:])
 
     # ==================
     # Actual GUI drawing
@@ -161,6 +169,7 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def handler_remove(self, context):
+        context.window.cursor_set('DEFAULT')
         if SprytileGui.draw_callback is not None:
             bpy.types.SpaceView3D.draw_handler_remove(SprytileGui.draw_callback, 'WINDOW')
         SprytileGui.draw_callback = None

@@ -505,10 +505,7 @@ class SprytileModalTool(bpy.types.Operator):
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         # Pass through if outside the region
         if coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height:
-            context.window.cursor_set('DEFAULT')
             return {'PASS_THROUGH'}
-
-        context.window.cursor_set('PAINT_BRUSH')
 
         key_return = self.handle_keys(context, event)
         if key_return is not None:
@@ -607,7 +604,6 @@ class SprytileModalTool(bpy.types.Operator):
         context.scene.sprytile_data.is_running = False
         self.tree = None
         self.key_trap = {}
-        context.window.cursor_set('DEFAULT')
         context.window_manager.event_timer_remove(self.view_axis_timer)
         bmesh.update_edit_mesh(context.object.data, True, True)
 
