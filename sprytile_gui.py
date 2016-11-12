@@ -138,7 +138,7 @@ class SprytileGui(bpy.types.Operator):
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = scene.sprytile_grids[grid_id]
         tex_size = 128, 128
-        target_img = sprytile_utils.get_grid_texture(tilegrid)
+        target_img = sprytile_utils.get_grid_texture(obj, tilegrid)
         # Couldn't get the texture outta here
         if target_img is not None:
             tex_size = target_img.size[0], target_img.size[1]
@@ -194,23 +194,26 @@ class SprytileGui(bpy.types.Operator):
         glLoadIdentity()
         gluOrtho2D(0, tex_size[0], 0, tex_size[1])
 
-        glColor4f(1.0, 1.0, 1.0, 1.0)
+        def draw_full_quad():
+            texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
+            verco = [(0, 0), (0, tex_size[1]), (tex_size[0], tex_size[1]), (tex_size[0], 0)]
+            glBegin(bgl.GL_QUADS)
+            # first draw the texture
+            for i in range(4):
+                glTexCoord2f(texco[i][0], texco[i][1])
+                glVertex2f(verco[i][0], verco[i][1])
+            glEnd()
+
+        glColor4f(0.0, 0.0, 0.0, 0.5)
+        draw_full_quad()
+
         if target_img is not None:
+            glColor4f(1.0, 1.0, 1.0, 1.0)
             target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
             glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glEnable(GL_TEXTURE_2D)
-        else:
-            glColor4f(0.0, 0.0, 0.0, 0.5)
-
-        texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        verco = [(0, 0), (0, tex_size[1]), (tex_size[0], tex_size[1]), (tex_size[0], 0)]
-        glBegin(bgl.GL_QUADS)
-        # first draw the texture
-        for i in range(4):
-            glTexCoord2f(texco[i][0], texco[i][1])
-            glVertex2f(verco[i][0], verco[i][1])
-        glEnd()
+            draw_full_quad()
 
         # Translate the gl context by grid matrix
         glColor4f(1.0, 1.0, 1.0, 1.0)
