@@ -109,6 +109,34 @@ class SprytileGridRemove(bpy.types.Operator):
             break
 
 
+class SprytileGridCycle(bpy.types.Operator):
+    bl_idname = "sprytile.grid_cycle"
+    bl_label = "Cycle grid settings"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.cycle_grid(context)
+        return {'FINISHED'}
+
+    @staticmethod
+    def cycle_grid(context):
+        obj = context.object
+        grids = context.scene.sprytile_grids
+        curr_grid_idx = obj.sprytile_gridid
+        curr_mat_id = grids[curr_grid_idx].mat_id
+        next_grid_idx = curr_grid_idx + 1
+        if next_grid_idx < len(grids):
+            if grids[next_grid_idx].mat_id == curr_mat_id:
+                obj.sprytile_gridid = next_grid_idx
+        else:
+            for grid_idx, check_grid in enumerate(grids):
+                if check_grid.mat_id == curr_mat_id:
+                    obj.sprytile_gridid = grid_idx
+                    break
+
+
 class SprytileNewMaterial(bpy.types.Operator):
     bl_idname = "sprytile.add_new_material"
     bl_label = "New Shadeless Material"

@@ -69,7 +69,8 @@ class SprytileGui(bpy.types.Operator):
         region = context.region
         obj = context.object
 
-        tilegrid = context.scene.sprytile_grids[obj.sprytile_gridid]
+        grids = context.scene.sprytile_grids
+        tilegrid = grids[obj.sprytile_gridid]
         tex_size = SprytileGui.tex_size
 
         display_size = SprytileGui.display_size
@@ -103,7 +104,15 @@ class SprytileGui(bpy.types.Operator):
             return
 
         if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            self.display_scale += 0.2 if event.type == 'WHEELUPMOUSE' else -0.2
+            new_scale = self.display_scale
+            new_scale += 0.2 if event.type == 'WHEELUPMOUSE' else -0.2
+            calc_size = [
+                (display_size[0] * new_scale),
+                (display_size[1] * new_scale)
+            ]
+            if calc_size[0] < 64 or calc_size[1] < 64:
+                new_scale = max(64.0 / display_size[0], 64.0 / display_size[1])
+            self.display_scale = new_scale
 
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
@@ -118,7 +127,10 @@ class SprytileGui(bpy.types.Operator):
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
                 tilegrid.tile_selection[0] = grid_pos.x
                 tilegrid.tile_selection[1] = grid_pos.y
-                print("%d, %d" % grid_pos[:])
+
+        # Cycle through grids on same material when right click
+        if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
+            bpy.ops.sprytile.grid_cycle()
 
     # ==================
     # Actual GUI drawing
