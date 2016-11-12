@@ -83,6 +83,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=(0.0, 1.0, 0.0)
     )
 
+    uv_flip_x = BoolProperty(
+        name="Flip X",
+        default=False
+    )
+    uv_flip_y = BoolProperty(
+        name="Flip Y",
+        default=False
+    )
+
     cursor_snap = EnumProperty(
         items=[
             ('VERTEX', "Vertex", "Snap cursor to nearest vertex", "SNAP_GRID", 1),
@@ -138,14 +147,6 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         name="Tile Selection",
         size=4,
         default=(0, 0, 1, 1)
-    )
-    uv_flip_x = BoolProperty(
-        name="Flip X",
-        default=False
-    )
-    uv_flip_y = BoolProperty(
-        name="Flip Y",
-        default=False
     )
     show_extra = BoolProperty(
         name="Extra UV Grid Settings",

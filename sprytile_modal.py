@@ -131,6 +131,9 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
 
     # Build the translation matrix
     uv_matrix = Matrix.Translation((uv_unit_x * tile_xy[0], uv_unit_y * tile_xy[1], 0))
+    flip_x = -1 if data.uv_flip_x else 1
+    flip_y = -1 if data.uv_flip_y else 1
+    flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
 
     face = mesh.faces[face_index]
     vert_origin = face.calc_center_median()
@@ -139,6 +142,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         # using up and right vectors
         vert = loop.vert
         vert_pos = vert.co - vert_origin
+        vert_pos = flip_matrix * vert_pos
         vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
         vert_xy = Vector(vert_xy)
         vert_xy.x /= world_convert.x

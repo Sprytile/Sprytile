@@ -197,16 +197,21 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        data = context.scene.sprytile_data
+
+        row = layout.row(align=True)
+        row.prop(data, "uv_flip_x", toggle=True)
+        row.prop(data, "uv_flip_y", toggle=True)
 
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
-        row.prop(context.scene.sprytile_data, "cursor_snap", expand=True)
+        row.prop(data, "cursor_snap", expand=True)
 
         row = layout.row(align=False)
         row.label("", icon="CURSOR")
-        row.prop(context.scene.sprytile_data, "cursor_flow", toggle=True)
+        row.prop(data, "cursor_flow", toggle=True)
 
-        layout.prop(context.scene.sprytile_data, "world_pixels")
+        layout.prop(data, "world_pixels")
 
 
 def register():
