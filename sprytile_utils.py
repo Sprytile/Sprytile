@@ -107,7 +107,23 @@ class SprytileGridRemove(bpy.types.Operator):
 
 class SprytileNewMaterial(bpy.types.Operator):
     bl_idname = "sprytile.add_new_material"
-    bl_label = "Create New Material"
+    bl_label = "New Shadeless Material"
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+
+    def invoke(self, context, event):
+        obj = context.object
+
+        mat = bpy.data.materials.new(name="Material")
+        mat.use_shadeless = True
+
+        set_idx = len(obj.data.materials)
+        obj.data.materials.append(mat)
+        obj.active_material_index = set_idx
+        bpy.ops.sprytile.validate_grids()
+        return {'FINISHED'}
 
 
 class SprytileValidateGridList(bpy.types.Operator):
