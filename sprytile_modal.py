@@ -285,7 +285,7 @@ class SprytileModalTool(bpy.types.Operator):
         """Run the paint tool"""
         # Don't do anything if nothing to raycast on
         # or the GL GUI is using the mouse
-        if self.tree is None or context.scene.sprytile_data.gui_use_mouse is True:
+        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
             return
 
         # print("Execute tool")
@@ -444,7 +444,7 @@ class SprytileModalTool(bpy.types.Operator):
         sprytile_data.paint_mode = 'MAKE_FACE'
 
     def cursor_snap(self, context, event):
-        if self.tree is None or context.scene.sprytile_data.gui_use_mouse is True:
+        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
             return
 
         # get the context arguments
@@ -532,7 +532,7 @@ class SprytileModalTool(bpy.types.Operator):
         if 'MOUSE' not in event.type:
             return None
 
-        gui_use_mouse = context.scene.sprytile_data.gui_use_mouse
+        gui_use_mouse = context.scene.sprytile_ui.use_mouse
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'} and not gui_use_mouse:
             # allow navigation, if gui is not using the mouse
             return {'PASS_THROUGH'}

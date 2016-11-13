@@ -121,7 +121,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
     is_running = BoolProperty(name="Sprytile Modal Is Running")
-    gui_use_mouse = BoolProperty(name="Sprytile GUI using mouse")
 
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
@@ -175,7 +174,8 @@ def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
     bpy.types.Scene.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)
 
-    # Object properties
+    bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.SprytileGuiData)
+
     bpy.types.Object.sprytile_gridid = IntProperty(
         name="Grid ID",
         description="Grid index used for object"
@@ -185,6 +185,7 @@ def setup_props():
 def teardown_props():
     del bpy.types.Scene.sprytile_data
     del bpy.types.Scene.sprytile_grids
+    del bpy.types.Scene.sprytile_ui
     del bpy.types.Object.sprytile_gridid
 
 

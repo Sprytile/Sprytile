@@ -3,9 +3,17 @@ import bgl
 import blf
 from math import floor
 from bgl import *
-from bpy_extras import view3d_utils
+from bpy.props import *
 from mathutils import Vector, Matrix
 from . import sprytile_utils
+
+
+class SprytileGuiData(bpy.types.PropertyGroup):
+    ui_zoom = FloatProperty(
+        name="Sprytile UI zoom",
+        default=1.0
+    )
+    use_mouse = BoolProperty(name="GUI use mouse")
 
 
 class SprytileGui(bpy.types.Operator):
@@ -49,7 +57,7 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
 
-            self.display_scale = 1.0
+            context.scene.sprytile_ui.ui_zoom = 1.0
             self.handle_ui(context, event)
 
             SprytileGui.handler_add(self, context)
@@ -73,8 +81,9 @@ class SprytileGui(bpy.types.Operator):
         tilegrid = grids[obj.sprytile_gridid]
         tex_size = SprytileGui.tex_size
 
+        display_scale = context.scene.sprytile_ui.ui_zoom
         display_size = SprytileGui.display_size
-        display_size = round(display_size[0] * self.display_scale), round(display_size[1] * self.display_scale)
+        display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
         display_pad = 5
 
         gui_min = Vector((region.width - (int(display_size[0]) + display_pad), display_pad))
@@ -91,20 +100,20 @@ class SprytileGui(bpy.types.Operator):
             mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
 
-            context.scene.sprytile_data.gui_use_mouse = mouse_in_gui
+            context.scene.sprytile_ui.use_mouse = mouse_in_gui
 
-            if context.scene.sprytile_data.gui_use_mouse:
+            if mouse_in_gui:
                 context.window.cursor_set('DEFAULT')
             elif mouse_in_region:
                 context.window.cursor_set('PAINT_BRUSH')
             else:
                 context.window.cursor_set('DEFAULT')
 
-        if context.scene.sprytile_data.gui_use_mouse is False:
+        if context.scene.sprytile_ui.use_mouse is False:
             return
 
         if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            new_scale = self.display_scale
+            new_scale = display_scale
             new_scale += 0.2 if event.type == 'WHEELUPMOUSE' else -0.2
             calc_size = [
                 (display_size[0] * new_scale),
@@ -112,7 +121,7 @@ class SprytileGui(bpy.types.Operator):
             ]
             if calc_size[0] < 64 or calc_size[1] < 64:
                 new_scale = max(64.0 / display_size[0], 64.0 / display_size[1])
-            self.display_scale = new_scale
+            context.scene.sprytile_ui.ui_zoom = new_scale
 
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
@@ -263,7 +272,7 @@ class SprytileGui(bpy.types.Operator):
         draw_selection(curr_sel_min, curr_sel_max)
 
         # Inside gui, draw box for tile under mouse
-        if context.scene.sprytile_data.gui_use_mouse is True:
+        if context.scene.sprytile_ui.use_mouse is True:
             glColor4f(1.0, 0.0, 0.0, 1.0)
             glLineWidth(1)
             cursor_pos = SprytileGui.cursor_grid_pos
