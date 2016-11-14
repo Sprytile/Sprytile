@@ -3,7 +3,9 @@ bl_info = {
     "author": "Jeiel Aranal",
     "version": (0, 1, 0),
     "blender": (2, 7, 0),
+    "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
+    "tracker_url": "https://github.com/ChemiKhazi/Sprytile/issues",
     "category": "Paint"
 }
 
@@ -193,8 +195,9 @@ addon_keymaps = []
 
 def setup_keymap():
     win_mgr = bpy.context.window_manager
-    km = win_mgr.keyconfigs.addon.keymaps.new(name='Mesh', space_type='EMPTY')
-    kmi = km.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
+    key_config = win_mgr.keyconfigs.addon
+    km = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
+    km.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
     addon_keymaps.append(km)
 
 

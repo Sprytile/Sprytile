@@ -86,7 +86,9 @@ def raycast_grid(scene, grid_id, up_vector, right_vector, plane_normal, ray_orig
 
 
 def get_current_grid_vectors(scene):
-    """Returns the current grid X/Y/Z vectors from scene data"""
+    """Returns the current grid X/Y/Z vectors from scene data
+    :rtype: up_vector, right_vector, normal_vector
+    """
     data_normal = scene.sprytile_data.paint_normal_vector
     data_up_vector = scene.sprytile_data.paint_up_vector
 
@@ -537,7 +539,10 @@ class SprytileModalTool(bpy.types.Operator):
                 self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
                 self.execute_tool(context, event)
             else:  # Mouse up, send undo
-                bpy.ops.ed.undo_push()
+                if self.no_undo:
+                    self.no_undo = False
+                else:
+                    bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
             if self.left_down:
@@ -545,9 +550,13 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
             if self.want_snap:
                 self.cursor_snap(context, event)
-        elif event.type in {'RIGHTMOUSE'} and not gui_use_mouse:
-            self.exit_modal(context)
-            return {'CANCELLED'}
+        elif event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
+            if self.no_cancel:
+                self.no_cancel = False
+                return None
+            if not gui_use_mouse:
+                self.exit_modal(context)
+                return {'CANCELLED'}
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
@@ -564,12 +573,44 @@ class SprytileModalTool(bpy.types.Operator):
                 self.refresh_mesh = True
                 return {'PASS_THROUGH'}
 
+        for key_intercept in self.intercept_keys:
+            key = key_intercept[0]
+            arg = key_intercept[1]
+            is_mapped_key = key.type == event.type and\
+                key.value == event.value and\
+                key.ctrl is event.ctrl and\
+                key.alt is event.alt and\
+                key.shift is event.shift
+
+            if not is_mapped_key:
+                continue
+            print("Special key is", arg)
+            if arg == 'move_sel':
+                up_vec, right_vec, norm_vec = get_current_grid_vectors(context.scene)
+                norm_vec = snap_vector_to_axis(norm_vec)
+                axis_constrain = [
+                    abs(norm_vec.x) > 0,
+                    abs(norm_vec.y) > 0,
+                    abs(norm_vec.z) > 0
+                ]
+                snap_value = 1 / context.scene.sprytile_data.world_pixels
+                bpy.ops.transform.translate(
+                    constraint_axis=axis_constrain,
+                    snap_point=[snap_value, snap_value, snap_value]
+                )
+                self.no_undo = True
+            if arg == 'sel_mesh':
+                self.no_cancel = True
+            return {'PASS_THROUGH'}
+
         if event.type == 'ESC':
             self.exit_modal(context)
             return {'CANCELLED'}
+        if event.type == 'X' and event.value == 'PRESS':
+            bpy.ops.mesh.delete()
         if event.type == 'S':
             self.want_snap = event.value == 'PRESS'
-        elif event.type == 'C' and event.value == 'PRESS':
+        elif event.type == 'W' and event.value == 'PRESS':
             bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
         return None
@@ -585,7 +626,8 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'CANCELLED'}
 
             self.virtual_cursor = deque([], 3)
-            # Set up for raycasting with a BVHTree
+            self.no_cancel = False
+            self.no_undo = False
             self.left_down = False
             self.want_snap = False
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
@@ -607,26 +649,55 @@ class SprytileModalTool(bpy.types.Operator):
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
         self.user_keys = []
+        self.intercept_keys = []
+
         user_keymaps = context.window_manager.keyconfigs.user.keymaps
-        keymap_wanted = {
-            'Screen': ['ed.undo', 'ed.redo'],
-            'Mesh': ['wm.call_menu'],
-            # '3D View': ['view3d.select_circle']
-        }
-        for keymap_name in keymap_wanted:
-            print('Trying to find keymap', keymap_name)
-            keymap = user_keymaps.find(keymap_name)
+
+        def get_keymap_entry(keymap_name, command):
+            keymap = user_keymaps[keymap_name]
             if keymap is None:
-                continue
-            print('Found keymap', keymap_name)
+                return False, None
             key_list = keymap.keymap_items
-            cmd_list = keymap_wanted[keymap_name]
+            cmd_idx = key_list.find(command)
+            if cmd_idx < 0:
+                return True, None
+            return True, key_list[cmd_idx]
+
+        # These keymaps are passed through blender
+        keymap_pass_through = {
+            'Screen': ['ed.undo', 'ed.redo'],
+            'Mesh': ['mesh.select_all'],
+            '3D View': ['view3d.select_circle', 'transform.rotate']
+        }
+        for keymap_id in keymap_pass_through:
+            cmd_list = keymap_pass_through[keymap_id]
             for cmd in cmd_list:
-                cmd_idx = key_list.find(cmd)
-                print('cmd %s is %d' % (cmd, cmd_idx))
-                if cmd_idx < 0:
+                has_map, cmd_entry = get_keymap_entry(keymap_id, cmd)
+                if not has_map:
+                    break
+                if cmd_entry is None:
                     continue
-                self.user_keys.append(key_list[cmd_idx])
+                self.user_keys.append(cmd_entry)
+
+        # These keymaps intercept existing shortcuts
+        # and repurpose them
+        keymap_intercept = {
+            '3D View': [
+                ('view3d.select_circle', 'sel_mesh'),
+                ('transform.translate', 'move_sel')
+            ]
+        }
+        for keymap_id in keymap_intercept:
+            cmd_list = keymap_intercept[keymap_id]
+            for cmd_data in cmd_list:
+                cmd = cmd_data[0]
+                arg = cmd_data[1]
+                has_map, cmd_entry = get_keymap_entry(keymap_id, cmd)
+                if not has_map:
+                    break
+                if cmd_entry is None:
+                    continue
+                self.intercept_keys.append((cmd_entry, arg))
 
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
