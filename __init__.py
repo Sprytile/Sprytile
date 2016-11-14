@@ -188,15 +188,36 @@ def teardown_props():
     del bpy.types.Scene.sprytile_ui
     del bpy.types.Object.sprytile_gridid
 
+addon_keymaps = []
+
+
+def setup_keymap():
+    wm = bpy.context.window_manager
+    km = wm.keyconfigs.addon.keymaps.new(name='Mesh', space_type='EMPTY')
+    kmi = km.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
+    addon_keymaps.append(km)
+    print("Setup Keymap")
+
+
+def teardown_keymap():
+    # handle the keymap
+    wm = bpy.context.window_manager
+    for km in addon_keymaps:
+        wm.keyconfigs.addon.keymaps.remove(km)
+    # clear the list
+    addon_keymaps.clear()
+
 
 def register():
     bpy.utils.register_module(__name__)
     setup_props()
+    setup_keymap()
 
 
 def unregister():
     bpy.utils.unregister_module(__name__)
     teardown_props()
+    teardown_keymap()
 
 
 if __name__ == "__main__":

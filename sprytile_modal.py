@@ -167,10 +167,12 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     mesh.faces.index_update()
     return face.index, target_grid
 
+
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
     bl_label = "Sprytile Paint"
+    bl_options = {'REGISTER'}
 
     def find_view_axis(self, context):
         scene = context.scene
@@ -501,7 +503,6 @@ class SprytileModalTool(bpy.types.Operator):
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
     def modal(self, context, event):
-        context.area.tag_redraw()
         if event.type == 'TIMER':
             self.find_view_axis(context)
             return {'PASS_THROUGH'}
@@ -550,7 +551,7 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
             if self.want_snap:
                 self.cursor_snap(context, event)
-        elif event.type in {'RIGHTMOUSE', 'ESC'} and not gui_use_mouse:
+        elif event.type in {'RIGHTMOUSE'} and not gui_use_mouse:
             self.exit_modal(context)
             return {'CANCELLED'}
 
@@ -576,12 +577,19 @@ class SprytileModalTool(bpy.types.Operator):
             self.refresh_mesh = True
             return {'PASS_THROUGH'}
 
+        if event.type == 'ESC':
+            self.exit_modal(context)
+            return {'CANCELLED'}
         if event.type == 'S':
             self.want_snap = event.value == 'PRESS'
         elif event.type == 'C' and event.value == 'PRESS':
             bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
         return None
+
+    def execute(self, context):
+        self.delay_ui = True
+        return self.invoke(context, None)
 
     def invoke(self, context, event):
         if context.space_data.type == 'VIEW_3D':
@@ -617,6 +625,8 @@ class SprytileModalTool(bpy.types.Operator):
         context.window_manager.event_timer_remove(self.view_axis_timer)
         bmesh.update_edit_mesh(context.object.data, True, True)
 
+
+addon_keymaps = []
 
 def register():
     bpy.utils.register_module(__name__)

@@ -20,6 +20,8 @@ class SprytileGui(bpy.types.Operator):
     bl_idname = "sprytile.gui_win"
     bl_label = "Sprytile GUI"
 
+    mouse_pt = None
+
     # ================
     # Modal functions
     # ================
@@ -96,7 +98,7 @@ class SprytileGui(bpy.types.Operator):
         if event is None or reject_region:
             return
 
-        if event.type in {'MOUSEMOVE'}:
+        if mouse_pt is not None and event.type in {'MOUSEMOVE'}:
             mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
 
@@ -123,7 +125,7 @@ class SprytileGui(bpy.types.Operator):
                 new_scale = max(64.0 / display_size[0], 64.0 / display_size[1])
             context.scene.sprytile_ui.ui_zoom = new_scale
 
-        if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
+        if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
             ratio_pos = Vector((click_pos.x / display_size[0], click_pos.y / display_size[1]))
             tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1]))
