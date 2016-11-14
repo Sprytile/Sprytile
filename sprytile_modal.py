@@ -224,12 +224,6 @@ class SprytileModalTool(bpy.types.Operator):
         if last_vector.magnitude < 0.1:
             return
 
-        # If last vector goes in different direction
-        # from current virtual cursor vector, reset cursor
-        # cursor_vector = self.get_virtual_cursor_vector()
-        # if cursor_vector.dot(last_vector) < 0:
-        #     self.virtual_cursor.clear()
-
         self.virtual_cursor.append(cursor_pos)
 
     def get_virtual_cursor_vector(self):
@@ -557,25 +551,18 @@ class SprytileModalTool(bpy.types.Operator):
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
-
-        def get_key(key_code):
-            if key_code not in self.key_trap:
-                self.key_trap[key_code] = False
-            return self.key_trap[key_code]
-
-        # Keys we're interested in
-        key_dict = {
-            'Z',
-            'Y'
-        }
-        if event.type in key_dict:
-            self.key_trap[event.type] = event.value == 'PRESS'
-
-        # Check for undo commands, pass through the keystroke
-        pass_undo_keys = get_key('Z') or get_key('Y')
-        if event.ctrl and pass_undo_keys:
-            self.refresh_mesh = True
-            return {'PASS_THROUGH'}
+        # Check if the event matches any of the keymap
+        # entries we're interested in. If it is, pass the event through
+        for keymap_item in self.user_keys:
+            is_mapped_key = keymap_item.type == event.type and\
+                            keymap_item.value == event.value and\
+                            keymap_item.ctrl is event.ctrl and\
+                            keymap_item.alt is event.alt and\
+                            keymap_item.shift is event.shift
+            if is_mapped_key:
+                # If intercepted undo/redo, will want to refresh mesh
+                self.refresh_mesh = True
+                return {'PASS_THROUGH'}
 
         if event.type == 'ESC':
             self.exit_modal(context)
@@ -588,7 +575,6 @@ class SprytileModalTool(bpy.types.Operator):
         return None
 
     def execute(self, context):
-        self.delay_ui = True
         return self.invoke(context, None)
 
     def invoke(self, context, event):
@@ -599,7 +585,6 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'CANCELLED'}
 
             self.virtual_cursor = deque([], 3)
-            self.key_trap = {}
             # Set up for raycasting with a BVHTree
             self.left_down = False
             self.want_snap = False
@@ -610,6 +595,7 @@ class SprytileModalTool(bpy.types.Operator):
             # Set up timer callback
             self.view_axis_timer = context.window_manager.event_timer_add(0.1, context.window)
 
+            self.setup_user_keys(context)
             context.window_manager.modal_handler_add(self)
             context.scene.sprytile_data.is_running = True
             bpy.ops.sprytile.gui_win('INVOKE_DEFAULT')
@@ -618,15 +604,36 @@ class SprytileModalTool(bpy.types.Operator):
             self.report({'WARNING'}, "Active space must be a View3d")
             return {'CANCELLED'}
 
+    def setup_user_keys(self, context):
+        """Find the keymaps to pass through to Blender"""
+        self.user_keys = []
+        user_keymaps = context.window_manager.keyconfigs.user.keymaps
+        keymap_wanted = {
+            'Screen': ['ed.undo', 'ed.redo'],
+            'Mesh': ['wm.call_menu'],
+            # '3D View': ['view3d.select_circle']
+        }
+        for keymap_name in keymap_wanted:
+            print('Trying to find keymap', keymap_name)
+            keymap = user_keymaps.find(keymap_name)
+            if keymap is None:
+                continue
+            print('Found keymap', keymap_name)
+            key_list = keymap.keymap_items
+            cmd_list = keymap_wanted[keymap_name]
+            for cmd in cmd_list:
+                cmd_idx = key_list.find(cmd)
+                print('cmd %s is %d' % (cmd, cmd_idx))
+                if cmd_idx < 0:
+                    continue
+                self.user_keys.append(key_list[cmd_idx])
+
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
         self.tree = None
-        self.key_trap = {}
         context.window_manager.event_timer_remove(self.view_axis_timer)
         bmesh.update_edit_mesh(context.object.data, True, True)
 
-
-addon_keymaps = []
 
 def register():
     bpy.utils.register_module(__name__)
