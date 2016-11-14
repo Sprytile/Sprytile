@@ -192,19 +192,16 @@ addon_keymaps = []
 
 
 def setup_keymap():
-    wm = bpy.context.window_manager
-    km = wm.keyconfigs.addon.keymaps.new(name='Mesh', space_type='EMPTY')
+    win_mgr = bpy.context.window_manager
+    km = win_mgr.keyconfigs.addon.keymaps.new(name='Mesh', space_type='EMPTY')
     kmi = km.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
     addon_keymaps.append(km)
-    print("Setup Keymap")
 
 
 def teardown_keymap():
-    # handle the keymap
-    wm = bpy.context.window_manager
-    for km in addon_keymaps:
-        wm.keyconfigs.addon.keymaps.remove(km)
-    # clear the list
+    win_mgr = bpy.context.window_manager
+    for keymap in addon_keymaps:
+        win_mgr.keyconfigs.addon.keymaps.remove(keymap)
     addon_keymaps.clear()
 
 
