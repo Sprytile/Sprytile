@@ -10,4 +10,16 @@ https://www.blender.org/api/blender_python_api_2_70_5/bpy.types.UIList.html
 
 https://www.blender.org/api/blender_python_api_2_76_1/gpu.offscreen.html
 
-Try to make the tile selection draw to an offscreen buffer
+Find the user's actual undo/redo keymapping by
+- go to the keyconfigs. wm.keyconfigs.user
+- Looking under the 'Screen' keymap
+- Finding 'ed.undo' and 'ed.redo'
+bpy.context.window_manager.keyconfigs.user.keymaps['Screen'].keymap_items.find('ed.undo')
+
+Screen keymap:
+ed.undo, ed.redo
+Mesh keymap:
+wm.call_menu
+
+Change the key handler in the modal to operate through KeyMapItem found by this way.
+If the event matches, pass the event through
