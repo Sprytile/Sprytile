@@ -14,6 +14,7 @@ class SprytileGuiData(bpy.types.PropertyGroup):
         default=1.0
     )
     use_mouse = BoolProperty(name="GUI use mouse")
+    is_dirty = BoolProperty(name="Srpytile GUI redraw flag")
 
 
 class SprytileGui(bpy.types.Operator):
@@ -98,6 +99,8 @@ class SprytileGui(bpy.types.Operator):
         if event is None or reject_region:
             return
 
+        change_cursor = False
+
         if mouse_pt is not None and event.type in {'MOUSEMOVE'}:
             mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
@@ -107,12 +110,14 @@ class SprytileGui(bpy.types.Operator):
             if mouse_in_gui:
                 context.window.cursor_modal_set('DEFAULT')
             elif mouse_in_region:
-                cursor_data = 'PAINT_BRUSH'
-                if context.scene.sprytile_data.is_snapping:
-                    cursor_data = 'CROSSHAIR'
-                context.window.cursor_modal_set(cursor_data)
+                change_cursor = True
             else:
                 context.window.cursor_modal_restore()
+
+        if change_cursor or context.scene.sprytile_ui.is_dirty:
+            is_snapping = context.scene.sprytile_data.is_snapping
+            cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
+            context.window.cursor_modal_set(cursor_data)
 
         if context.scene.sprytile_ui.use_mouse is False:
             return

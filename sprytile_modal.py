@@ -573,6 +573,8 @@ class SprytileModalTool(bpy.types.Operator):
                 self.refresh_mesh = True
                 return {'PASS_THROUGH'}
 
+        sprytile_data = context.scene.sprytile_data
+
         for key_intercept in self.intercept_keys:
             key = key_intercept[0]
             arg = key_intercept[1]
@@ -593,7 +595,7 @@ class SprytileModalTool(bpy.types.Operator):
                     abs(norm_vec.y) > 0,
                     abs(norm_vec.z) > 0
                 ]
-                snap_value = 1 / context.scene.sprytile_data.world_pixels
+                snap_value = 1 / sprytile_data.world_pixels
                 bpy.ops.transform.translate(
                     constraint_axis=axis_constrain,
                     snap_point=[snap_value, snap_value, snap_value]
@@ -609,7 +611,11 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type == 'X' and event.value == 'PRESS':
             bpy.ops.mesh.delete()
         if event.type == 'S':
-            context.scene.sprytile_data.is_snapping = event.value == 'PRESS'
+            last_snap = context.scene.sprytile_data.is_snapping
+            new_snap = event.value == 'PRESS'
+            sprytile_data.is_snapping = new_snap
+            # Ask UI to redraw snapping changed
+            context.scene.sprytile_ui.is_dirty = last_snap != new_snap
         elif event.type == 'W' and event.value == 'PRESS':
             bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
@@ -639,8 +645,11 @@ class SprytileModalTool(bpy.types.Operator):
             self.setup_user_keys(context)
             context.window_manager.modal_handler_add(self)
 
-            context.scene.sprytile_data.is_snapping = False
-            context.scene.sprytile_data.is_running = True
+            sprytile_data = context.scene.sprytile_data
+            sprytile_data.is_running = True
+            sprytile_data.is_snapping = False
+
+            context.scene.sprytile_ui.is_dirty = True
 
             bpy.ops.sprytile.gui_win('INVOKE_DEFAULT')
             return {'RUNNING_MODAL'}
