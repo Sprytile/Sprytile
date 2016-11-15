@@ -105,11 +105,14 @@ class SprytileGui(bpy.types.Operator):
             context.scene.sprytile_ui.use_mouse = mouse_in_gui
 
             if mouse_in_gui:
-                context.window.cursor_set('DEFAULT')
+                context.window.cursor_modal_set('DEFAULT')
             elif mouse_in_region:
-                context.window.cursor_set('PAINT_BRUSH')
+                cursor_data = 'PAINT_BRUSH'
+                if context.scene.sprytile_data.is_snapping:
+                    cursor_data = 'CROSSHAIR'
+                context.window.cursor_modal_set(cursor_data)
             else:
-                context.window.cursor_set('DEFAULT')
+                context.window.cursor_modal_restore()
 
         if context.scene.sprytile_ui.use_mouse is False:
             return
@@ -198,7 +201,7 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def handler_remove(self, context):
-        context.window.cursor_set('DEFAULT')
+        context.window.cursor_modal_restore()
         if SprytileGui.draw_callback is not None:
             bpy.types.SpaceView3D.draw_handler_remove(SprytileGui.draw_callback, 'WINDOW')
         SprytileGui.draw_callback = None

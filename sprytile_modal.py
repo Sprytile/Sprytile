@@ -548,7 +548,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-            if self.want_snap:
+            if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
         elif event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
             if self.no_cancel:
@@ -609,7 +609,7 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type == 'X' and event.value == 'PRESS':
             bpy.ops.mesh.delete()
         if event.type == 'S':
-            self.want_snap = event.value == 'PRESS'
+            context.scene.sprytile_data.is_snapping = event.value == 'PRESS'
         elif event.type == 'W' and event.value == 'PRESS':
             bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
@@ -629,7 +629,6 @@ class SprytileModalTool(bpy.types.Operator):
             self.no_cancel = False
             self.no_undo = False
             self.left_down = False
-            self.want_snap = False
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
@@ -639,7 +638,10 @@ class SprytileModalTool(bpy.types.Operator):
 
             self.setup_user_keys(context)
             context.window_manager.modal_handler_add(self)
+
+            context.scene.sprytile_data.is_snapping = False
             context.scene.sprytile_data.is_running = True
+
             bpy.ops.sprytile.gui_win('INVOKE_DEFAULT')
             return {'RUNNING_MODAL'}
         else:

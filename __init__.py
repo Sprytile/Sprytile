@@ -122,7 +122,14 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=False
     )
 
-    is_running = BoolProperty(name="Sprytile Modal Is Running")
+    is_running = BoolProperty(
+        name="Sprytile Running",
+        description="Is Sprytile modal tool currently running"
+    )
+    is_snapping = BoolProperty(
+        name="Is Cursor Snap",
+        description="Is cursor snapping currently activated"
+    )
 
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
