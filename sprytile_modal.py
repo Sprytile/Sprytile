@@ -533,16 +533,17 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'} and not gui_use_mouse:
             # allow navigation, if gui is not using the mouse
             return {'PASS_THROUGH'}
+        if self.no_undo:
+            if event.value != 'PRESS':
+                print(event.value)
+                self.no_undo = False
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS'
             if self.left_down:
                 self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
                 self.execute_tool(context, event)
             else:  # Mouse up, send undo
-                if self.no_undo:
-                    self.no_undo = False
-                else:
-                    bpy.ops.ed.undo_push()
+                bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
             if self.left_down:
@@ -588,22 +589,12 @@ class SprytileModalTool(bpy.types.Operator):
                 continue
             print("Special key is", arg)
             if arg == 'move_sel':
-                up_vec, right_vec, norm_vec = get_current_grid_vectors(context.scene)
-                norm_vec = snap_vector_to_axis(norm_vec)
-                axis_constrain = [
-                    abs(norm_vec.x) > 0,
-                    abs(norm_vec.y) > 0,
-                    abs(norm_vec.z) > 0
-                ]
-                snap_value = 1 / sprytile_data.world_pixels
-                bpy.ops.transform.translate(
-                    constraint_axis=axis_constrain,
-                    snap_point=[snap_value, snap_value, snap_value]
-                )
+                bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 self.no_undo = True
+                return None
             if arg == 'sel_mesh':
                 self.no_cancel = True
-            return {'PASS_THROUGH'}
+                return {'PASS_THROUGH'}
 
         if event.type == 'ESC':
             self.exit_modal(context)

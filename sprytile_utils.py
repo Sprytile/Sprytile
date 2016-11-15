@@ -1,6 +1,7 @@
 import bpy
 from mathutils import Matrix, Vector
 from bpy.types import Panel
+from . import sprytile_modal
 
 
 def get_grid_matrix(srpytile_grid):
@@ -213,6 +214,55 @@ class SprytileValidateGridList(bpy.types.Operator):
         grids_count = len(grids)
         if curr_sel >= grids_count:
             context.object.sprytile_gridid = grids_count-1
+
+
+class SprytileGridTranslate(bpy.types.Operator):
+    bl_idname = "sprytile.translate_grid"
+    bl_label = "Sprytile Translate on Grid"
+
+    def modal(self, context, event):
+        if self.exit:
+            print('Finishing grid translate modal')
+            op = context.active_operator
+            if op is not None and op.bl_idname == 'TRANSFORM_OT_translate':
+                pixel_unit = 1 / context.scene.sprytile_data.world_pixels
+                translation = op.properties.value.copy()
+                for i in range(3):
+                    translation[i] = int(round(translation[i] / pixel_unit))
+                    translation[i] *= pixel_unit
+                offset = translation - op.properties.value
+                bpy.ops.transform.translate(value=offset)
+            context.window_manager.event_timer_remove(self.timer)
+            return {'FINISHED'}
+
+        if event.type in {'RIGHTMOUSE', 'LEFTMOUSE'} and event.value == 'PRESS':
+            self.exit = True
+
+        return {'PASS_THROUGH'}
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        up_vec, right_vec, norm_vec = sprytile_modal.get_current_grid_vectors(context.scene)
+        norm_vec = sprytile_modal.snap_vector_to_axis(norm_vec)
+        axis_constraint = [
+            abs(norm_vec.x) == 0,
+            abs(norm_vec.y) == 0,
+            abs(norm_vec.z) == 0
+        ]
+
+        bpy.ops.transform.translate(
+            'INVOKE_REGION_WIN',
+            constraint_axis=axis_constraint
+        )
+
+        self.exit = False
+
+        win_mgr = context.window_manager
+        self.timer = win_mgr.event_timer_add(0.1, context.window)
+        win_mgr.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
