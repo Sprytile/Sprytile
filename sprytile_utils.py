@@ -221,6 +221,9 @@ class SprytileGridTranslate(bpy.types.Operator):
     bl_label = "Sprytile Pixel Translate"
 
     def modal(self, context, event):
+        # User cancelled transform
+        if event.type == 'RIGHTMOUSE' and event.value == 'RELEASE':
+            return self.exit_modal(context)
         # On the timer events, count down the frames and execute the
         # translate operator when reach 0
         if event.type == 'TIMER' and self.exec_counter > 0:
@@ -233,11 +236,14 @@ class SprytileGridTranslate(bpy.types.Operator):
                     abs(norm_vec.y) == 0,
                     abs(norm_vec.z) == 0
                 ]
-                bpy.ops.transform.translate(
+                tool_value = bpy.ops.transform.translate(
                     'INVOKE_DEFAULT',
                     constraint_axis=axis_constraint,
                     snap=self.restore_settings is not None
                 )
+                # Translate tool moved nothing, exit
+                if 'CANCELLED' in tool_value:
+                    return self.exit_modal(context)
 
         # When the active operator changes, we know that translate has been completed
         if context.active_operator != self.watch_operator:
