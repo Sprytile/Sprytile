@@ -218,25 +218,30 @@ class SprytileValidateGridList(bpy.types.Operator):
 
 class SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
-    bl_label = "Sprytile Translate on Grid"
+    bl_label = "Sprytile Pixel Translate"
 
     def modal(self, context, event):
-        if self.exit:
-            print('Finishing grid translate modal')
-            op = context.active_operator
-            if op is not None and op.bl_idname == 'TRANSFORM_OT_translate':
-                pixel_unit = 1 / context.scene.sprytile_data.world_pixels
-                translation = op.properties.value.copy()
-                for i in range(3):
-                    translation[i] = int(round(translation[i] / pixel_unit))
-                    translation[i] *= pixel_unit
-                offset = translation - op.properties.value
-                bpy.ops.transform.translate(value=offset)
-            context.window_manager.event_timer_remove(self.timer)
-            return {'FINISHED'}
+        # On the timer events, count down the frames and execute the
+        # translate operator when reach 0
+        if event.type == 'TIMER' and self.exec_counter > 0:
+            self.exec_counter -= 1
+            if self.exec_counter == 0:
+                up_vec, right_vec, norm_vec = sprytile_modal.get_current_grid_vectors(context.scene)
+                norm_vec = sprytile_modal.snap_vector_to_axis(norm_vec)
+                axis_constraint = [
+                    abs(norm_vec.x) == 0,
+                    abs(norm_vec.y) == 0,
+                    abs(norm_vec.z) == 0
+                ]
+                bpy.ops.transform.translate(
+                    'INVOKE_DEFAULT',
+                    constraint_axis=axis_constraint,
+                    snap=self.restore_settings is not None
+                )
 
-        if event.type in {'RIGHTMOUSE', 'LEFTMOUSE'} and event.value == 'PRESS':
-            self.exit = True
+        # When the active operator changes, we know that translate has been completed
+        if context.active_operator != self.watch_operator:
+            return self.exit_modal(context)
 
         return {'PASS_THROUGH'}
 
@@ -244,25 +249,60 @@ class SprytileGridTranslate(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
-        up_vec, right_vec, norm_vec = sprytile_modal.get_current_grid_vectors(context.scene)
-        norm_vec = sprytile_modal.snap_vector_to_axis(norm_vec)
-        axis_constraint = [
-            abs(norm_vec.x) == 0,
-            abs(norm_vec.y) == 0,
-            abs(norm_vec.z) == 0
-        ]
+        # When this tool is invoked, change the grid settings so that snapping
+        # is on pixel unit steps. Save settings to restore later
+        self.restore_settings = None
+        space_data = context.space_data
+        if space_data.type == 'VIEW_3D':
+            self.restore_settings = {
+                "grid_scale": space_data.grid_scale,
+                "grid_sub": space_data.grid_subdivisions,
+                "show_floor": space_data.show_floor,
+                "snap_element": context.scene.tool_settings.snap_element
+            }
+            pixel_unit = 1 / context.scene.sprytile_data.world_pixels
+            space_data.grid_scale = pixel_unit
+            space_data.grid_subdivisions = 1
+            space_data.show_floor = False
+            context.scene.tool_settings.snap_element = 'INCREMENT'
+        # Remember what the current active operator is, when it changes
+        # we know that the translate operator is complete
+        self.watch_operator = context.active_operator
 
-        bpy.ops.transform.translate(
-            'INVOKE_REGION_WIN',
-            constraint_axis=axis_constraint
-        )
-
-        self.exit = False
+        # Countdown the frames passed through the timer. For some reason
+        # the translate tool will not use the new grid scale if we switch
+        # over immediately to translate.
+        self.exec_counter = 2
 
         win_mgr = context.window_manager
         self.timer = win_mgr.event_timer_add(0.1, context.window)
         win_mgr.modal_handler_add(self)
+        # Now go up to modal function to read the rest
         return {'RUNNING_MODAL'}
+
+    def exit_modal(self, context):
+        # Restore grid settings if changed
+        if self.restore_settings is not None:
+            context.space_data.grid_scale = self.restore_settings['grid_scale']
+            context.space_data.grid_subdivisions = self.restore_settings['grid_sub']
+            context.space_data.show_floor = self.restore_settings['show_floor']
+            context.scene.tool_settings.snap_element = self.restore_settings['snap_element']
+        # Didn't snap to grid, force to grid by calculating what the snapped translate would be
+        else:
+            op = context.active_operator
+            if op is not None and op.bl_idname == 'TRANSFORM_OT_translate':
+                pixel_unit = 1 / context.scene.sprytile_data.world_pixels
+                # Take the translated value and snap it to pixel units
+                translation = op.properties.value.copy()
+                for i in range(3):
+                    translation[i] = int(round(translation[i] / pixel_unit))
+                    translation[i] *= pixel_unit
+                # Move selection to where snapped position would be
+                offset = translation - op.properties.value
+                bpy.ops.transform.translate(value=offset)
+
+        context.window_manager.event_timer_remove(self.timer)
+        return {'FINISHED'}
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
