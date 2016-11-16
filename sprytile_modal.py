@@ -728,7 +728,8 @@ class SprytileModalTool(bpy.types.Operator):
         keymap_pass_through = {
             'Screen': ['ed.undo', 'ed.redo'],
             'Mesh': ['mesh.select_all'],
-            '3D View': ['view3d.select_circle', 'transform.rotate']
+            '3D View': ['view3d.select_circle', 'transform.rotate'],
+            'Object Non-modal': ['object.mode_set']
         }
         for keymap_id in keymap_pass_through:
             cmd_list = keymap_pass_through[keymap_id]
@@ -739,6 +740,14 @@ class SprytileModalTool(bpy.types.Operator):
                 if cmd_entry is None:
                     continue
                 self.user_keys.append(cmd_entry)
+        for kmi in user_keymaps['Mesh'].keymap_items.values():
+            if kmi.properties is None:
+                continue
+            if 'name' not in kmi.properties:
+                continue
+            if kmi.properties.name == 'VIEW3D_MT_edit_mesh_select_mode':
+                self.user_keys.append(kmi)
+                break
 
         # These keymaps intercept existing shortcuts
         # and repurpose them
