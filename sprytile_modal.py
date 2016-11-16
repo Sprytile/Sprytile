@@ -533,9 +533,9 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'} and not gui_use_mouse:
             # allow navigation, if gui is not using the mouse
             return {'PASS_THROUGH'}
+        # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
-            if event.value != 'PRESS':
-                print(event.value)
+            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
                 self.no_undo = False
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS'
@@ -574,8 +574,7 @@ class SprytileModalTool(bpy.types.Operator):
                 self.refresh_mesh = True
                 return {'PASS_THROUGH'}
 
-        sprytile_data = context.scene.sprytile_data
-
+        # Now process intercepts for special keymaps
         for key_intercept in self.intercept_keys:
             key = key_intercept[0]
             arg = key_intercept[1]
@@ -587,7 +586,7 @@ class SprytileModalTool(bpy.types.Operator):
 
             if not is_mapped_key:
                 continue
-            print("Special key is", arg)
+            # print("Special key is", arg)
             if arg == 'move_sel':
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 self.no_undo = True
@@ -596,6 +595,7 @@ class SprytileModalTool(bpy.types.Operator):
                 self.no_cancel = True
                 return {'PASS_THROUGH'}
 
+        sprytile_data = context.scene.sprytile_data
         if event.type == 'ESC':
             self.exit_modal(context)
             return {'CANCELLED'}

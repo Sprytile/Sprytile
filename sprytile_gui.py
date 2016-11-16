@@ -46,7 +46,7 @@ class SprytileGui(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         self.handle_ui(context, event)
-
+        context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
         return {'PASS_THROUGH'}
 
