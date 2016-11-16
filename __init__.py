@@ -175,10 +175,6 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     )
 
 
-class SprytileFaceData(bpy.types.PropertyGroup):
-    """Data stored during face creation"""
-
-
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
     bpy.types.Scene.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)

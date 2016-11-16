@@ -165,6 +165,23 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if mat_idx > -1:
         face.material_index = mat_idx
 
+    # Save the grid and tile ID to the face
+    grid_layer_id = mesh.faces.layers.int.get('grid_index')
+    grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
+
+    if grid_layer_id is None:
+        grid_layer_id = mesh.faces.layers.int.new('grid_index')
+    if grid_layer_tileid is None:
+        grid_layer_tileid = mesh.faces.layers.int.new('grid_tile_id')
+
+    face = mesh.faces[face_index]
+    print("Current grid", face[grid_layer_id], "tile id", face[grid_layer_tileid])
+    row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
+    tile_id = (tile_xy[1] * row_size) + tile_xy[0]
+
+    face[grid_layer_id] = grid_id
+    face[grid_layer_tileid] = tile_id
+
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
@@ -214,6 +231,47 @@ class SprytileModalTool(bpy.types.Operator):
         if new_mode != scene.sprytile_data.normal_mode:
             self.virtual_cursor.clear()
         scene.sprytile_data.normal_mode = new_mode
+
+    def find_face_tile(self, context, event):
+        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
+            return
+
+        # get the context arguments
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+
+        # get the ray from the viewport and mouse
+        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        if location is None:
+            return
+
+        grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
+        tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
+
+        if grid_id_layer is None or tile_id_layer is None:
+            return
+
+        face = self.bmesh.faces[face_index]
+        grid_id = face[grid_id_layer]
+        tile_packed_id = face[tile_id_layer]
+
+        tilegrid = context.scene.sprytile_grids[grid_id]
+        texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
+
+        if texture is None:
+            return
+
+        row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
+        tile_y = math.floor(tile_packed_id / row_size)
+        tile_x = tile_packed_id % row_size
+
+        context.object.sprytile_gridid = grid_id
+        tilegrid.tile_selection[0] = tile_x
+        tilegrid.tile_selection[1] = tile_y
 
     def add_virtual_cursor(self, cursor_pos):
         cursor_len = len(self.virtual_cursor)
@@ -484,8 +542,7 @@ class SprytileModalTool(bpy.types.Operator):
                 return
 
             # Found the nearest face, go to BMesh to find the nearest vertex
-            bm = bmesh.from_edit_mesh(context.object.data)
-            face = bm.faces[face_index]
+            face = self.bmesh.faces[face_index]
             closest_vtx = -1
             closest_dist = float('inf')
             # positions are in object space
@@ -538,10 +595,12 @@ class SprytileModalTool(bpy.types.Operator):
             if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
                 self.no_undo = False
         elif event.type == 'LEFTMOUSE':
-            self.left_down = event.value == 'PRESS'
+            self.left_down = event.value == 'PRESS' and event.alt is False
             if self.left_down:
                 self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
                 self.execute_tool(context, event)
+            elif event.alt is True and event.value == 'PRESS':
+                self.find_face_tile(context, event)
             else:  # Mouse up, send undo
                 bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
