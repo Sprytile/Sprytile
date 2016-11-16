@@ -9,15 +9,15 @@ class SprytileMaterialGridList(bpy.types.UIList):
         elif bpy.data.materials.find(item.mat_id) == -1:
             layout.label("Invalid Material")
         elif self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(0.6)
+            layout_origin = layout
             if item.is_main:
                 material = bpy.data.materials[item.mat_id]
-                grid_tex = sprytile_utils.get_grid_texture(context.object, item)
-                if grid_tex is None:
-                    grid_tex = material
-                split.prop(material, "name", text="", emboss=False, icon_value=layout.icon(grid_tex))
-            else:
-                split.label("")
+                col = layout_origin.column()
+                col.prop(material, "name", text="", emboss=False, icon_value=layout.icon(material))
+                layout_origin = col
+
+            split = layout_origin.split(0.6, align=True)
+            split.prop(item, "name", text="")
             split.label("%dx%d" % (item.grid[0], item.grid[1]))
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
