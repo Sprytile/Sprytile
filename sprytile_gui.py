@@ -9,7 +9,7 @@ from . import sprytile_utils
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
-    ui_zoom = FloatProperty(
+    zoom = FloatProperty(
         name="Sprytile UI zoom",
         default=1.0
     )
@@ -22,6 +22,7 @@ class SprytileGui(bpy.types.Operator):
     bl_label = "Sprytile GUI"
 
     mouse_pt = None
+    zoom_levels = [0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
 
     # ================
     # Modal functions
@@ -60,7 +61,7 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
 
-            context.scene.sprytile_ui.ui_zoom = 1.0
+            context.scene.sprytile_ui.zoom = 1.0
             self.handle_ui(context, event)
 
             SprytileGui.handler_add(self, context)
@@ -84,7 +85,7 @@ class SprytileGui(bpy.types.Operator):
         tilegrid = grids[obj.sprytile_gridid]
         tex_size = SprytileGui.tex_size
 
-        display_scale = context.scene.sprytile_ui.ui_zoom
+        display_scale = context.scene.sprytile_ui.zoom
         display_size = SprytileGui.display_size
         display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
         display_pad = 5
@@ -131,7 +132,7 @@ class SprytileGui(bpy.types.Operator):
             ]
             if calc_size[0] < 64 or calc_size[1] < 64:
                 new_scale = max(64.0 / display_size[0], 64.0 / display_size[1])
-            context.scene.sprytile_ui.ui_zoom = new_scale
+            context.scene.sprytile_ui.zoom = new_scale
 
         if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
