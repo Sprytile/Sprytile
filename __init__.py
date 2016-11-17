@@ -213,11 +213,20 @@ def teardown_props():
 
 
 def setup_keymap():
+    km_array = sprytile_modal.SprytileModalTool.keymaps
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
+
     keymap = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
-    keymap_item = keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
-    sprytile_modal.SprytileModalTool.keymaps.append((keymap, keymap_item))
+    km_items = keymap.keymap_items
+    km_array.append((keymap, km_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)))
+
+    keymap = key_config.keymaps.new(name='Sprytile Paint', space_type='EMPTY', region_type='WINDOW', modal=True)
+    km_items = keymap.keymap_items
+    km_array.append((keymap, km_items.new_modal('SNAP', 'S', 'PRESS')))
+    km_array.append((keymap, km_items.new_modal('FOCUS', 'W', 'PRESS')))
+    km_array.append((keymap, km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS')))
+    km_array.append((keymap, km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')))
 
 
 def teardown_keymap():
