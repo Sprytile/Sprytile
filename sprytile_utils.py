@@ -216,6 +216,32 @@ class SprytileValidateGridList(bpy.types.Operator):
             context.object.sprytile_gridid = grids_count-1
 
 
+class SprytileRotateLeft(bpy.types.Operator):
+    bl_idname = "sprytile.rotate_left"
+    bl_label = "Rotate Sprytile Left"
+
+    def invoke(self, context, event):
+        curr_rotation = context.scene.sprytile_data.mesh_rotate
+        curr_rotation -= 1.5708
+        if curr_rotation < -6.28319:
+            curr_rotation = -1.5708
+        context.scene.sprytile_data.mesh_rotate = curr_rotation
+        return {'FINSISHED'}
+
+
+class SprytileRotateRight(bpy.types.Operator):
+    bl_idname = "sprytile.rotate_right"
+    bl_label = "Rotate Sprytile Right"
+
+    def invoke(self, context, event):
+        curr_rotation = context.scene.sprytile_data.mesh_rotate
+        curr_rotation += 1.5708
+        if curr_rotation > 6.28319:
+            curr_rotation = 1.5708
+        context.scene.sprytile_data.mesh_rotate = curr_rotation
+        return {'FINSISHED'}
+
+
 class SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
     bl_label = "Sprytile Pixel Translate"
