@@ -193,6 +193,8 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Sprytile Paint"
     bl_options = {'REGISTER'}
 
+    keymaps = []
+
     def find_view_axis(self, context):
         scene = context.scene
         if scene.sprytile_data.lock_normal is True:

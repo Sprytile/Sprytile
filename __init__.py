@@ -21,6 +21,7 @@ else:
 
 import bpy
 from bpy.props import *
+import rna_keymap_ui
 
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
@@ -178,6 +179,20 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     )
 
 
+class SprytileAddonPreferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="This is a preferences view for our addon")
+        col = layout.column()
+        kc = bpy.context.window_manager.keyconfigs.addon
+        for km, kmi in sprytile_modal.SprytileModalTool.keymaps:
+            km = km.active()
+            col.context_pointer_set("keymap", km)
+            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+
+
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
     bpy.types.Scene.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)
@@ -196,22 +211,19 @@ def teardown_props():
     del bpy.types.Scene.sprytile_ui
     del bpy.types.Object.sprytile_gridid
 
-addon_keymaps = []
-
 
 def setup_keymap():
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
-    km = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
-    km.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
-    addon_keymaps.append(km)
+    keymap = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
+    keymap_item = keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
+    sprytile_modal.SprytileModalTool.keymaps.append((keymap, keymap_item))
 
 
 def teardown_keymap():
-    win_mgr = bpy.context.window_manager
-    for keymap in addon_keymaps:
-        win_mgr.keyconfigs.addon.keymaps.remove(keymap)
-    addon_keymaps.clear()
+    for keymap, keymap_item in sprytile_modal.SprytileModalTool.keymaps:
+        keymap.keymap_items.remove(keymap_item)
+    sprytile_modal.SprytileModalTool.keymaps.clear()
 
 
 def register():
