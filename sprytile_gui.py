@@ -55,6 +55,8 @@ class SprytileGui(bpy.types.Operator):
         if context.space_data.type == 'VIEW_3D':
             if context.scene.sprytile_data.is_running is False:
                 return {'CANCELLED'}
+            if len(context.scene.sprytile_grids) < 1:
+                return {'CANCELLED'}
 
             # Try to setup offscreen
             setup_off_return = SprytileGui.setup_offscreen(self, context)

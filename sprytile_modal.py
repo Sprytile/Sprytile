@@ -682,6 +682,11 @@ class SprytileModalTool(bpy.types.Operator):
             if obj.hide or obj.type != 'MESH':
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
+            if len(context.scene.sprytile_grids) < 1:
+                bpy.ops.sprytile.validate_grids()
+            if len(context.scene.sprytile_grids) < 1:
+                self.report({'WARNING'}, "No valid materials")
+                return {'CANCELLED'}
 
             self.virtual_cursor = deque([], 3)
             self.no_cancel = False
