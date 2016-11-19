@@ -193,7 +193,7 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Sprytile Paint"
     bl_options = {'REGISTER'}
 
-    keymaps = []
+    keymaps = {}
 
     def find_view_axis(self, context):
         scene = context.scene
@@ -562,6 +562,10 @@ class SprytileModalTool(bpy.types.Operator):
             self.find_view_axis(context)
             return {'PASS_THROUGH'}
 
+        if context.object.mode != 'EDIT':
+            self.exit_modal(context)
+            return {'CANCELLED'}
+
         if self.refresh_mesh:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
@@ -780,7 +784,8 @@ class SprytileModalTool(bpy.types.Operator):
         context.scene.sprytile_data.is_running = False
         self.tree = None
         context.window_manager.event_timer_remove(self.view_axis_timer)
-        bmesh.update_edit_mesh(context.object.data, True, True)
+        if context.object.mode == 'EDIT':
+            bmesh.update_edit_mesh(context.object.data, True, True)
 
 
 def register():

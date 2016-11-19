@@ -187,10 +187,12 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         layout.label(text="This is a preferences view for our addon")
         col = layout.column()
         kc = bpy.context.window_manager.keyconfigs.addon
-        for km, kmi in sprytile_modal.SprytileModalTool.keymaps:
+        for km, kmi_list in sprytile_modal.SprytileModalTool.keymaps.items():
+            col.label(km.name)
             km = km.active()
-            col.context_pointer_set("keymap", km)
-            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            for kmi in kmi_list:
+                col.context_pointer_set("keymap", km)
+                rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
 
 def setup_props():
@@ -218,20 +220,25 @@ def setup_keymap():
     key_config = win_mgr.keyconfigs.addon
 
     keymap = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
-    km_items = keymap.keymap_items
-    km_array.append((keymap, km_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)))
+    km_array[keymap] = [
+        keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
+    ]
 
-    keymap = key_config.keymaps.new(name='Sprytile Paint', space_type='EMPTY', region_type='WINDOW', modal=True)
+    keymap = key_config.keymaps.new(name='sprytile.modal_tool', space_type='EMPTY', region_type='WINDOW', modal=True)
     km_items = keymap.keymap_items
-    km_array.append((keymap, km_items.new_modal('SNAP', 'S', 'PRESS')))
-    km_array.append((keymap, km_items.new_modal('FOCUS', 'W', 'PRESS')))
-    km_array.append((keymap, km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS')))
-    km_array.append((keymap, km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')))
+    km_array[keymap] = [
+        km_items.new_modal('SNAP', 'S', 'PRESS'),
+        km_items.new_modal('FOCUS', 'W', 'PRESS'),
+        km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS'),
+        km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')
+    ]
 
 
 def teardown_keymap():
-    for keymap, keymap_item in sprytile_modal.SprytileModalTool.keymaps:
-        keymap.keymap_items.remove(keymap_item)
+    for keymap in sprytile_modal.SprytileModalTool.keymaps:
+        kmi_list = keymap.keymap_items
+        for keymap_item in kmi_list:
+            keymap.keymap_items.remove(keymap_item)
     sprytile_modal.SprytileModalTool.keymaps.clear()
 
 
