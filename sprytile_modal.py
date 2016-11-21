@@ -591,6 +591,9 @@ class SprytileModalTool(bpy.types.Operator):
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         # Pass through if outside the region
         if coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height:
+            if event.type == 'RIGHTMOUSE':
+                self.exit_modal(context)
+                return {'CANCELLED'}
             return {'PASS_THROUGH'}
 
         key_return = self.handle_keys(context, event)
@@ -632,13 +635,15 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
-        elif event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
-            if self.no_cancel:
+        elif event.type == 'RIGHTMOUSE':
+            if self.no_cancel and event.value == 'PRESS':
                 self.no_cancel = False
                 return None
             if not gui_use_mouse:
-                self.exit_modal(context)
-                return {'CANCELLED'}
+                region = context.region
+                in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
+                if in_region:
+                    return {'PASS_THROUGH'}
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
