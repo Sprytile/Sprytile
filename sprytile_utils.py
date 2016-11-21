@@ -226,7 +226,7 @@ class SprytileRotateLeft(bpy.types.Operator):
         if curr_rotation < -6.28319:
             curr_rotation = -1.5708
         context.scene.sprytile_data.mesh_rotate = curr_rotation
-        return {'FINSISHED'}
+        return {'FINISHED'}
 
 
 class SprytileRotateRight(bpy.types.Operator):
@@ -239,7 +239,19 @@ class SprytileRotateRight(bpy.types.Operator):
         if curr_rotation > 6.28319:
             curr_rotation = 1.5708
         context.scene.sprytile_data.mesh_rotate = curr_rotation
-        return {'FINSISHED'}
+        return {'FINISHED'}
+
+
+class SprytileReloadImages(bpy.types.Operator):
+    bl_idname = "sprytile.reload_imgs"
+    bl_label = "Reload All Images"
+
+    def invoke(self, context, event):
+        for img in bpy.data.images:
+            if img is None:
+                continue
+            img.reload()
+        return {'FINISHED'}
 
 
 class SprytileGridTranslate(bpy.types.Operator):
@@ -357,7 +369,10 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "uv_flip_x", toggle=True)
         row.prop(data, "uv_flip_y", toggle=True)
 
-        layout.prop(data, "mesh_rotate")
+        row = layout.row(align=True)
+        row.operator("sprytile.rotate_left", icon="TRIA_DOWN", text="")
+        row.prop(data, "mesh_rotate")
+        row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
 
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
@@ -368,6 +383,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "cursor_flow", toggle=True)
 
         layout.prop(data, "world_pixels")
+        layout.operator("sprytile.reload_imgs")
 
 
 def register():
