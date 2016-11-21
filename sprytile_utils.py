@@ -302,12 +302,14 @@ class SprytileGridTranslate(bpy.types.Operator):
                 "grid_scale": space_data.grid_scale,
                 "grid_sub": space_data.grid_subdivisions,
                 "show_floor": space_data.show_floor,
+                "pivot": context.space_data.pivot_point,
                 "snap_element": context.scene.tool_settings.snap_element
             }
             pixel_unit = 1 / context.scene.sprytile_data.world_pixels
             space_data.grid_scale = pixel_unit
             space_data.grid_subdivisions = 1
             space_data.show_floor = False
+            space_data.pivot_point = 'CURSOR'
             context.scene.tool_settings.snap_element = 'INCREMENT'
         # Remember what the current active operator is, when it changes
         # we know that the translate operator is complete
@@ -330,6 +332,7 @@ class SprytileGridTranslate(bpy.types.Operator):
             context.space_data.grid_scale = self.restore_settings['grid_scale']
             context.space_data.grid_subdivisions = self.restore_settings['grid_sub']
             context.space_data.show_floor = self.restore_settings['show_floor']
+            context.space_data.pivot_point = self.restore_settings['pivot']
             context.scene.tool_settings.snap_element = self.restore_settings['snap_element']
         # Didn't snap to grid, force to grid by calculating what the snapped translate would be
         else:
