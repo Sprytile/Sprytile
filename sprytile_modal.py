@@ -378,6 +378,13 @@ class SprytileModalTool(bpy.types.Operator):
         # Change the uv of the given face
         grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+
+        face_up = self.get_face_up_vector(context, face_index)
+        print(up_vector, face_up)
+        if face_up.dot(up_vector) < 0.95:
+            up_vector = face_up
+            right_vector = face_up.cross(normal)
+
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
@@ -458,13 +465,11 @@ class SprytileModalTool(bpy.types.Operator):
         self.tree = BVHTree.FromBMesh(self.bmesh)
         return face.index
 
-    def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
-        hit_loc, hit_normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
-        if hit_loc is None:
-            return
-
-        # Get the up vector. The default scene view camera is pointed
+    def get_face_up_vector(self, context, face_index):
+        """Find the edge of the given face that most closely matches view up vector"""
+        # Get the view up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
+        rv3d = context.region_data
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
 
         # Find the edge of the hit face that most closely matches the view up vector
@@ -489,15 +494,26 @@ class SprytileModalTool(bpy.types.Operator):
                 closest_idx = idx
 
         if closest_idx == -1:
-            return
+            return None
 
         chosen_up = edge_vectors[closest_idx]
         if chosen_up.dot(view_up_vector) < 0:
             chosen_up *= -1
 
+        return chosen_up
+
+    def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
+        hit_loc, hit_normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        if hit_loc is None:
+            return
+
+        face_up_vector = self.get_face_up_vector(context, face_index)
+        if face_up_vector is None:
+            return
+
         sprytile_data = context.scene.sprytile_data
         sprytile_data.paint_normal_vector = hit_normal
-        sprytile_data.paint_up_vector = chosen_up
+        sprytile_data.paint_up_vector = face_up_vector
         sprytile_data.lock_normal = True
         sprytile_data.paint_mode = 'MAKE_FACE'
 
