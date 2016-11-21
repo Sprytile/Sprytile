@@ -64,6 +64,7 @@ class SprytileGui(bpy.types.Operator):
                 return setup_off_return
 
             context.scene.sprytile_ui.zoom = 1.0
+            self.prev_in_region = False
             self.handle_ui(context, event)
 
             SprytileGui.handler_add(self, context)
@@ -102,8 +103,6 @@ class SprytileGui(bpy.types.Operator):
         if event is None or reject_region:
             return
 
-        change_cursor = False
-
         if mouse_pt is not None and event.type in {'MOUSEMOVE'}:
             mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
@@ -112,17 +111,16 @@ class SprytileGui(bpy.types.Operator):
 
             if mouse_in_gui:
                 context.window.cursor_modal_set('DEFAULT')
-            elif mouse_in_region:
-                change_cursor = True
-            else:
-                context.window.cursor_modal_restore()
+            elif mouse_in_region or context.scene.sprytile_ui.is_dirty:
+                is_snapping = context.scene.sprytile_data.is_snapping
+                cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
+                if event.alt:
+                    cursor_data = 'EYEDROPPER'
+                context.window.cursor_modal_set(cursor_data)
 
-        if change_cursor or context.scene.sprytile_ui.is_dirty:
-            is_snapping = context.scene.sprytile_data.is_snapping
-            cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
-            if event.alt:
-                cursor_data = 'EYEDROPPER'
-            context.window.cursor_modal_set(cursor_data)
+            if not mouse_in_region and self.prev_in_region:
+                context.window.cursor_modal_restore()
+            self.prev_in_region = mouse_in_region
 
         if context.scene.sprytile_ui.use_mouse is False:
             return
