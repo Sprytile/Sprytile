@@ -48,14 +48,15 @@ class SprytilePanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         obj = context.object
+        sprytile_data = context.scene.sprytile_data
 
         layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
 
-        layout.prop(context.scene.sprytile_data, "paint_mode", expand=True)
+        layout.prop(sprytile_data, "paint_mode", expand=True)
 
         row = layout.row(align=True)
-        row.prop(context.scene.sprytile_data, "normal_mode", expand=True)
-        row.prop(context.scene.sprytile_data, "lock_normal", toggle=True)
+        row.prop(sprytile_data, "normal_mode", expand=True)
+        row.prop(sprytile_data, "lock_normal", toggle=True)
 
         row = layout.row()
 
@@ -75,10 +76,10 @@ class SprytilePanel(bpy.types.Panel):
 
         layout.prop(selected_grid, "grid", text="Grid Size")
 
-        show_icon = "TRIA_DOWN" if selected_grid.show_extra else "TRIA_RIGHT"
-        layout.prop(selected_grid, "show_extra", icon=show_icon, emboss=False)
+        show_icon = "TRIA_DOWN" if sprytile_data.show_extra else "TRIA_RIGHT"
+        layout.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)
 
-        if not selected_grid.show_extra:
+        if not sprytile_data.show_extra:
             return
 
         layout.prop(selected_grid, "offset")

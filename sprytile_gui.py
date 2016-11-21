@@ -1,7 +1,7 @@
 import bpy
 import bgl
 import blf
-from math import floor
+from math import floor, ceil
 from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
@@ -218,7 +218,7 @@ class SprytileGui(bpy.types.Operator):
     def draw_callback_handler(self, context):
         """Callback handler"""
         SprytileGui.draw_offscreen(self, context)
-        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max)
+        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, context.scene.sprytile_data.show_extra)
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -239,7 +239,6 @@ class SprytileGui(bpy.types.Operator):
             texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
             verco = [(0, 0), (0, tex_size[1]), (tex_size[0], tex_size[1]), (tex_size[0], 0)]
             glBegin(bgl.GL_QUADS)
-            # first draw the texture
             for i in range(4):
                 glTexCoord2f(texco[i][0], texco[i][1])
                 glVertex2f(verco[i][0], verco[i][1])
@@ -252,28 +251,47 @@ class SprytileGui(bpy.types.Operator):
             glColor4f(1.0, 1.0, 1.0, 1.0)
             target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
             glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
+            # first draw the texture
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glEnable(GL_TEXTURE_2D)
             draw_full_quad()
 
         # Translate the gl context by grid matrix
-        glColor4f(1.0, 1.0, 1.0, 1.0)
         glDisable(GL_TEXTURE_2D)
-        glLineWidth(2)
+
+        # glColor4f(1.0, 1.0, 1.0, 0.35)
+        # glLineWidth(0.25)
+        # # Draw the grid
+        # x_divs = ceil(tex_size[0] / grid_size[0])
+        # y_divs = ceil(tex_size[1] / grid_size[1])
+        # for x in range(x_divs):
+        #     x_pos = x * grid_size[0]
+        #     glBegin(GL_LINES)
+        #     glVertex2i(x_pos, 0)
+        #     glVertex2i(x_pos, tex_size[1])
+        #     glEnd()
+        # for y in range(y_divs):
+        #     y_pos = y * grid_size[1]
+        #     glBegin(GL_LINES)
+        #     glVertex2i(0, y_pos)
+        #     glVertex2i(tex_size[0], y_pos)
+        #     glEnd()
 
         def draw_selection(min, max):
             sel_vtx = [
-                (min[0], min[1]),
+                (min[0] + 1, min[1] + 1),
                 (max[0], min[1]),
                 (max[0], max[1]),
                 (min[0], max[1])
             ]
             glBegin(GL_LINE_STRIP)
             for vtx in sel_vtx:
-                glVertex2f(vtx[0], vtx[1])
-            glVertex2f(sel_vtx[0][0], sel_vtx[0][1])
+                glVertex2i(vtx[0], vtx[1])
+            glVertex2i(sel_vtx[0][0], sel_vtx[0][1] - 1)
             glEnd()
 
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glLineWidth(1)
         # Draw box for currently selected tile(s)
         grid_size = SprytileGui.loaded_grid.grid
         curr_sel = SprytileGui.loaded_grid.tile_selection
@@ -287,19 +305,18 @@ class SprytileGui(bpy.types.Operator):
         # Inside gui, draw box for tile under mouse
         if context.scene.sprytile_ui.use_mouse is True:
             glColor4f(1.0, 0.0, 0.0, 1.0)
-            glLineWidth(1)
             cursor_pos = SprytileGui.cursor_grid_pos
             cursor_min = int(cursor_pos.x * grid_size[0]), int(cursor_pos.y * grid_size[1])
             cursor_max = [
                 cursor_min[0] + grid_size[0],
                 cursor_min[1] + grid_size[1],
-            ]
+                ]
             draw_selection(cursor_min, cursor_max)
 
         offscreen.unbind()
 
     @staticmethod
-    def draw_to_viewport(min, max):
+    def draw_to_viewport(min, max, show_extra):
         """Draw the offscreen texture into the viewport"""
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
@@ -307,15 +324,41 @@ class SprytileGui(bpy.types.Operator):
         bgl.glEnable(bgl.GL_BLEND)
 
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
+        # Draw the texture in first
         bgl.glBegin(bgl.GL_QUADS)
-
         uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
         vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
         for i in range(4):
             glTexCoord2f(uv[i][0], uv[i][1])
             glVertex2f(vtx[i][0], vtx[i][1])
-
         bgl.glEnd()
+
+        if show_extra:
+            # Draw the tile grid overlay
+            # Translate the gl context by grid matrix
+            glDisable(GL_TEXTURE_2D)
+
+            glColor4f(0.0, 0.0, 0.0, 0.5)
+            glLineWidth(1)
+            # Draw the grid
+            tex_size = SprytileGui.tex_size
+            grid_size = SprytileGui.loaded_grid.grid
+            x_divs = ceil(tex_size[0] / grid_size[0])
+            y_divs = ceil(tex_size[1] / grid_size[1])
+            x_size = (grid_size[0] / tex_size[0]) * (max.x - min.x)
+            y_size = (grid_size[1] / tex_size[1]) * (max.y - min.y)
+            for x in range(x_divs):
+                x_pos = min.x + (x * x_size)
+                glBegin(GL_LINES)
+                glVertex2f(x_pos, min.y)
+                glVertex2f(x_pos, max.y)
+                glEnd()
+            for y in range(y_divs):
+                y_pos = min.y + (y * y_size)
+                glBegin(GL_LINES)
+                glVertex2f(min.x, y_pos)
+                glVertex2f(max.x, y_pos)
+                glEnd()
 
         # restore opengl defaults
         bgl.glLineWidth(1)

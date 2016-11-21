@@ -131,6 +131,10 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Is Cursor Snap",
         description="Is cursor snapping currently activated"
     )
+    show_extra = BoolProperty(
+        name="Extra UV Grid Settings",
+        default=False
+    )
 
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
@@ -172,10 +176,6 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         name="Tile Selection",
         size=4,
         default=(0, 0, 1, 1)
-    )
-    show_extra = BoolProperty(
-        name="Extra UV Grid Settings",
-        default=False
     )
 
 
