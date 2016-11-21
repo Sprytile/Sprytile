@@ -681,6 +681,8 @@ class SprytileModalTool(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
+        if context.scene.sprytile_data.is_running:
+            return {'CANCELLED'}
         if context.space_data.type == 'VIEW_3D':
             obj = context.object
             if obj.hide or obj.type != 'MESH':
