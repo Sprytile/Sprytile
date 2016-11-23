@@ -136,7 +136,12 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     uv_unit_y = pixel_uv_y * target_grid.grid[1]
 
     # Build the translation matrix
+    offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
+    rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
+    grid_matrix = offset_matrix * rotate_matrix
     uv_matrix = Matrix.Translation((uv_unit_x * tile_xy[0], uv_unit_y * tile_xy[1], 0))
+    uv_matrix = grid_matrix * uv_matrix
+
     flip_x = -1 if data.uv_flip_x else 1
     flip_y = -1 if data.uv_flip_y else 1
     flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
