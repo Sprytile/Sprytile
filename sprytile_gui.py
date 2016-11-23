@@ -139,9 +139,11 @@ class SprytileGui(bpy.types.Operator):
         if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
             ratio_pos = Vector((click_pos.x / display_size[0], click_pos.y / display_size[1]))
-            tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1]))
-            # Inverse matrix tex_pos
-            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
+            tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1], 0))
+            # Apply grid matrix to tex_pos
+            grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
+            tex_pos = grid_matrix.inverted() * tex_pos
+            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1], 0))
             grid_pos.x = floor(grid_pos.x)
             grid_pos.y = floor(grid_pos.y)
             SprytileGui.cursor_grid_pos = grid_pos
@@ -257,6 +259,15 @@ class SprytileGui(bpy.types.Operator):
             draw_full_quad()
 
         # Translate the gl context by grid matrix
+        grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
+        matrix_vals = [grid_matrix[j][i] for i in range(4) for j in range(4)]
+        grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
+
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        glLoadMatrixf(grid_buff)
+
         glDisable(GL_TEXTURE_2D)
 
         def draw_selection(min, max):
@@ -295,6 +306,7 @@ class SprytileGui(bpy.types.Operator):
                 ]
             draw_selection(cursor_min, cursor_max)
 
+        glPopMatrix()
         offscreen.unbind()
 
     @staticmethod
@@ -326,9 +338,15 @@ class SprytileGui(bpy.types.Operator):
             # Draw the tile grid overlay
 
             # Translate the gl context by grid matrix
-            grid_mat = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
-            temp_mat = [grid_mat[j][i] for i in range(4) for j in range(4)]
-            grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, temp_mat)
+            tex_size = SprytileGui.tex_size
+            scale_factor = view_size[0] / tex_size[1]
+
+            offset_matrix = Matrix.Translation((min.x, min.y, 0))
+            grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
+            grid_matrix = Matrix.Scale(scale_factor, 4) * grid_matrix
+            calc_matrix = offset_matrix * grid_matrix
+            matrix_vals = [calc_matrix[j][i] for i in range(4) for j in range(4)]
+            grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
             glPushMatrix()
             glLoadIdentity()
             glLoadMatrixf(grid_buff)
@@ -337,23 +355,24 @@ class SprytileGui(bpy.types.Operator):
             glColor4f(0.0, 0.0, 0.0, 0.5)
             glLineWidth(1)
             # Draw the grid
-            tex_size = SprytileGui.tex_size
             grid_size = SprytileGui.loaded_grid.grid
             x_divs = ceil(tex_size[0] / grid_size[0])
             y_divs = ceil(tex_size[1] / grid_size[1])
-            x_size = (grid_size[0] / tex_size[0]) * (max.x - min.x)
-            y_size = (grid_size[1] / tex_size[1]) * (max.y - min.y)
-            for x in range(x_divs):
-                x_pos = min.x + (x * x_size)
+            # x_size = (grid_size[0] / tex_size[0]) * (max.x - min.x)
+            # y_size = (grid_size[1] / tex_size[1]) * (max.y - min.y)
+            x_end = x_divs * grid_size[0]
+            y_end = y_divs * grid_size[1]
+            for x in range(x_divs + 1):
+                x_pos = (x * grid_size[0])
                 glBegin(GL_LINES)
-                glVertex2f(x_pos, min.y)
-                glVertex2f(x_pos, max.y)
+                glVertex2f(x_pos, 0)
+                glVertex2f(x_pos, y_end)
                 glEnd()
-            for y in range(y_divs):
-                y_pos = min.y + (y * y_size)
+            for y in range(y_divs + 1):
+                y_pos = (y * grid_size[1])
                 glBegin(GL_LINES)
-                glVertex2f(min.x, y_pos)
-                glVertex2f(max.x, y_pos)
+                glVertex2f(0, y_pos)
+                glVertex2f(x_end, y_pos)
                 glEnd()
 
             glPopMatrix()
