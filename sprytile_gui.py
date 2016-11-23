@@ -144,11 +144,11 @@ class SprytileGui(bpy.types.Operator):
             grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
             tex_pos = grid_matrix.inverted() * tex_pos
 
-            grid_max = Vector((ceil(tex_size[0]/tilegrid.grid[0]), ceil(tex_size[1]/tilegrid.grid[1])))
-            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1], 0))
+            grid_max = Vector((ceil(tex_size[0]/tilegrid.grid[0])-1, ceil(tex_size[1]/tilegrid.grid[1])-1))
+            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
             grid_pos.x = max(0, min(grid_max.x, floor(grid_pos.x)))
             grid_pos.y = max(0, min(grid_max.y, floor(grid_pos.y)))
-            
+
             SprytileGui.cursor_grid_pos = grid_pos
 
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
