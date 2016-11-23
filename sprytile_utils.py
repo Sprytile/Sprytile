@@ -154,6 +154,9 @@ class SprytileNewMaterial(bpy.types.Operator):
 
         mat = bpy.data.materials.new(name="Material")
         mat.use_shadeless = True
+        mat.use_transparency = True
+        mat.transparency_method = 'MASK'
+        mat.alpha = 0.0
 
         set_idx = len(obj.data.materials)
         obj.data.materials.append(mat)
