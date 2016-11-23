@@ -718,6 +718,9 @@ class SprytileModalTool(bpy.types.Operator):
                 self.report({'WARNING'}, "No valid materials")
                 return {'CANCELLED'}
 
+            if context.space_data.viewport_shade != 'MATERIAL':
+                context.space_data.viewport_shade = 'MATERIAL'
+
             self.virtual_cursor = deque([], 3)
             self.no_undo = False
             self.left_down = False
