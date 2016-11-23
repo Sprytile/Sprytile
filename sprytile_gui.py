@@ -259,24 +259,6 @@ class SprytileGui(bpy.types.Operator):
         # Translate the gl context by grid matrix
         glDisable(GL_TEXTURE_2D)
 
-        # glColor4f(1.0, 1.0, 1.0, 0.35)
-        # glLineWidth(0.25)
-        # # Draw the grid
-        # x_divs = ceil(tex_size[0] / grid_size[0])
-        # y_divs = ceil(tex_size[1] / grid_size[1])
-        # for x in range(x_divs):
-        #     x_pos = x * grid_size[0]
-        #     glBegin(GL_LINES)
-        #     glVertex2i(x_pos, 0)
-        #     glVertex2i(x_pos, tex_size[1])
-        #     glEnd()
-        # for y in range(y_divs):
-        #     y_pos = y * grid_size[1]
-        #     glBegin(GL_LINES)
-        #     glVertex2i(0, y_pos)
-        #     glVertex2i(tex_size[0], y_pos)
-        #     glEnd()
-
         def draw_selection(min, max):
             sel_vtx = [
                 (min[0] + 1, min[1] + 1),
@@ -323,10 +305,17 @@ class SprytileGui(bpy.types.Operator):
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
+        # Save the original scissor box, and then set new scissor setting
+        scissor_box = bgl.Buffer(bgl.GL_INT, [4])
+        bgl.glGetIntegerv(bgl.GL_SCISSOR_BOX, scissor_box)
+        view_size = int(max.x - min.x), int(max.y - min.y)
+        bgl.glScissor(int(min.x) + scissor_box[0], int(min.y) + scissor_box[1], view_size[0], view_size[1])
+
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         # Draw the texture in first
         bgl.glBegin(bgl.GL_QUADS)
         uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        # vtx = [(0, 0), (0, view_size[1]), view_size, (view_size[0], 0)]
         vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
         for i in range(4):
             glTexCoord2f(uv[i][0], uv[i][1])
@@ -335,7 +324,14 @@ class SprytileGui(bpy.types.Operator):
 
         if show_extra:
             # Draw the tile grid overlay
+
             # Translate the gl context by grid matrix
+            grid_mat = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
+            temp_mat = [grid_mat[j][i] for i in range(4) for j in range(4)]
+            grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, temp_mat)
+            glPushMatrix()
+            glLoadIdentity()
+            glLoadMatrixf(grid_buff)
             glDisable(GL_TEXTURE_2D)
 
             glColor4f(0.0, 0.0, 0.0, 0.5)
@@ -360,7 +356,10 @@ class SprytileGui(bpy.types.Operator):
                 glVertex2f(max.x, y_pos)
                 glEnd()
 
+            glPopMatrix()
+
         # restore opengl defaults
+        bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
         bgl.glLineWidth(1)
         bgl.glDisable(bgl.GL_BLEND)
         bgl.glDisable(bgl.GL_TEXTURE_2D)

@@ -4,8 +4,11 @@ from bpy.types import Panel
 from . import sprytile_modal
 
 
-def get_grid_matrix(srpytile_grid):
+def get_grid_matrix(sprytile_grid):
     """Returns the transform matrix of a sprytile grid"""
+    offset_mtx = Matrix.Translation((sprytile_grid.offset[0], sprytile_grid.offset[1], 0))
+    rotate_mtx = Matrix.Rotation(sprytile_grid.rotate, 4, 'Z')
+    return rotate_mtx * offset_mtx
 
 
 def get_grid_texture(obj, sprytile_grid):

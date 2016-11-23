@@ -636,14 +636,13 @@ class SprytileModalTool(bpy.types.Operator):
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
         elif event.type == 'RIGHTMOUSE':
-            if self.no_cancel and event.value == 'PRESS':
-                self.no_cancel = False
+            if gui_use_mouse:
                 return None
-            if not gui_use_mouse:
-                region = context.region
-                in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
-                if in_region:
-                    return {'PASS_THROUGH'}
+            region = context.region
+            in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
+            if in_region:
+                return {'PASS_THROUGH'}
+        return None
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
@@ -678,7 +677,6 @@ class SprytileModalTool(bpy.types.Operator):
                 self.no_undo = True
                 return None
             if arg == 'sel_mesh':
-                self.no_cancel = True
                 return {'PASS_THROUGH'}
 
         sprytile_data = context.scene.sprytile_data
@@ -716,7 +714,6 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'CANCELLED'}
 
             self.virtual_cursor = deque([], 3)
-            self.no_cancel = False
             self.no_undo = False
             self.left_down = False
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
