@@ -1,6 +1,5 @@
 import bpy
 from mathutils import Matrix, Vector
-from bpy.types import Panel
 from . import sprytile_modal
 
 
