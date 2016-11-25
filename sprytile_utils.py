@@ -287,17 +287,12 @@ class SprytileGridTranslate(bpy.types.Operator):
         blf.size(font_id, font_size, 72)
 
         bgl.glColor4f(1, 1, 1, 1)
-        # blf.enable(font_id, blf.SHADOW)
-        # blf.shadow(font_id, 0, 0, 0, 0, 1)
-        # blf.shadow_offset(font_id, 2, -2)
 
         readout_axis = ['X', 'Y', 'Z']
         for i in range(3):
             blf.position(font_id, screen_x, screen_y, 0)
             blf.draw(font_id, "%s : %d" % (readout_axis[i], measure_vec[i]))
             screen_y -= font_size + padding
-
-        # blf.disable(font_id, blf.SHADOW)
 
     def modal(self, context, event):
         # User cancelled transform
@@ -342,10 +337,10 @@ class SprytileGridTranslate(bpy.types.Operator):
         target = self.bmesh.select_history.active
         if isinstance(target, BMFace):
             return target.calc_center_median()
-        if isinstance(target, BMVert):
-            return target.co
         if isinstance(target, BMEdge):
-            return target.verts[0].co
+            return target.verts[0].co.copy()
+        if isinstance(target, BMVert):
+            return target.co.copy()
         return None
 
     def execute(self, context):
