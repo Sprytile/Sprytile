@@ -764,28 +764,38 @@ class SprytileModalTool(bpy.types.Operator):
 
         # These keymaps are passed through blender
         keymap_pass_through = {
-            'Screen': ['ed.undo', 'ed.redo'],
-            'Mesh': ['mesh.select_all'],
-            '3D View': ['view3d.select_circle', 'transform.rotate'],
-            'Object Non-modal': ['object.mode_set']
+            'Screen': {
+                "ids": ['ed.undo', 'ed.redo']
+            },
+            'Mesh': {
+                "ids": ['mesh.select_all', 'mesh.hide', 'mesh.reveal'],
+                "prop": ['VIEW3D_MT_edit_mesh_select_mode']
+            },
+            '3D View': {
+                "ids": ['view3d.select_circle', 'transform.rotate']
+            },
+            'Object Non-modal': {
+                "ids": ['object.mode_set']
+            }
         }
         for keymap_id in keymap_pass_through:
+            keymap = user_keymaps[keymap_id]
+            if keymap is None:
+                continue
             cmd_list = keymap_pass_through[keymap_id]
-            for cmd in cmd_list:
-                has_map, cmd_entry = get_keymap_entry(keymap_id, cmd)
-                if not has_map:
-                    break
-                if cmd_entry is None:
+            for kmi in keymap.keymap_items.values():
+                if "ids" in cmd_list:
+                    if kmi.idname in cmd_list["ids"]:
+                        self.user_keys.append(kmi)
+                        continue
+                if "prop" not in cmd_list:
                     continue
-                self.user_keys.append(cmd_entry)
-        for kmi in user_keymaps['Mesh'].keymap_items.values():
-            if kmi.properties is None:
-                continue
-            if 'name' not in kmi.properties:
-                continue
-            if kmi.properties.name == 'VIEW3D_MT_edit_mesh_select_mode':
-                self.user_keys.append(kmi)
-                break
+                if kmi.properties is None:
+                    continue
+                if 'name' not in kmi.properties:
+                    continue
+                if kmi.properties.name in cmd_list["prop"]:
+                    self.user_keys.append(kmi)
 
         # These keymaps intercept existing shortcuts
         # and repurpose them
