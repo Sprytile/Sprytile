@@ -622,7 +622,7 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
-            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+            if event.type in {'LEFTMOUSE', 'RIGHTMOUSE'} and event.value == 'RELEASE':
                 self.no_undo = False
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS' and event.alt is False
@@ -641,12 +641,11 @@ class SprytileModalTool(bpy.types.Operator):
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
         elif event.type == 'RIGHTMOUSE':
-            if gui_use_mouse:
-                return None
             region = context.region
             in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
-            if in_region:
+            if in_region and not gui_use_mouse:
                 return {'PASS_THROUGH'}
+            print("Right mouse did not pass")
         return None
 
     def handle_keys(self, context, event):

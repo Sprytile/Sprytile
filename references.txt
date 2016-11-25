@@ -19,7 +19,9 @@ bpy.context.window_manager.keyconfigs.user.keymaps['Screen'].keymap_items.find('
 Screen keymap:
 ed.undo, ed.redo
 Mesh keymap:
-wm.call_menu
+mesh.select_all,
+mesh.hide
+mesh.reveal
 
 Change the key handler in the modal to operate through KeyMapItem found by this way.
 If the event matches, pass the event through
