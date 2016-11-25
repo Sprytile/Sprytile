@@ -596,7 +596,8 @@ class SprytileModalTool(bpy.types.Operator):
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         # Pass through if outside the region
         if coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height:
-            if event.type == 'RIGHTMOUSE':
+            # Unless exit events, then exit
+            if event.type in {'RIGHTMOUSE', 'ESC'}:
                 self.exit_modal(context)
                 return {'CANCELLED'}
             return {'PASS_THROUGH'}
