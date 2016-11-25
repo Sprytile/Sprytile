@@ -143,6 +143,9 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         description="Name of the material this grid references",
         default=""
     )
+    id = IntProperty(
+        name="Grid ID"
+    )
     is_main = BoolProperty(
         name="Main grid flag",
         default=False
@@ -179,20 +182,19 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     )
 
 
-class SprytileAddonPreferences(bpy.types.AddonPreferences):
-    bl_idname = __name__
+class SprytileMaterialData(bpy.types.PropertyGroup):
+    mat_id = StringProperty(
+        name="Material Id",
+        description="Name of the material this grid references",
+        default=""
+    )
+    is_expanded = BoolProperty(default=True)
+    grids = CollectionProperty(type=SprytileMaterialGridSettings)
 
-    def draw(self, context):
-        layout = self.layout
-        layout.label(text="This is a preferences view for our addon")
-        col = layout.column()
-        kc = bpy.context.window_manager.keyconfigs.addon
-        for km, kmi_list in sprytile_modal.SprytileModalTool.keymaps.items():
-            col.label(km.name)
-            km = km.active()
-            for kmi in kmi_list:
-                col.context_pointer_set("keymap", km)
-                rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+
+class SprytileGridDisplay(bpy.types.PropertyGroup):
+    mat_id = StringProperty(default="")
+    grid_id = IntProperty(default=-1)
 
 
 def setup_props():
@@ -212,6 +214,22 @@ def teardown_props():
     del bpy.types.Scene.sprytile_grids
     del bpy.types.Scene.sprytile_ui
     del bpy.types.Object.sprytile_gridid
+
+
+class SprytileAddonPreferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="This is a preferences view for our addon")
+        col = layout.column()
+        kc = bpy.context.window_manager.keyconfigs.addon
+        for km, kmi_list in sprytile_modal.SprytileModalTool.keymaps.items():
+            col.label(km.name)
+            km = km.active()
+            for kmi in kmi_list:
+                col.context_pointer_set("keymap", km)
+                rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
 
 def setup_keymap():
