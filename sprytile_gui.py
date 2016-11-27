@@ -55,7 +55,7 @@ class SprytileGui(bpy.types.Operator):
         if context.space_data.type == 'VIEW_3D':
             if context.scene.sprytile_data.is_running is False:
                 return {'CANCELLED'}
-            if len(context.scene.sprytile_grids) < 1:
+            if len(context.scene.sprytile_mats) < 1:
                 return {'CANCELLED'}
 
             # Try to setup offscreen
@@ -84,8 +84,7 @@ class SprytileGui(bpy.types.Operator):
         region = context.region
         obj = context.object
 
-        grids = context.scene.sprytile_grids
-        tilegrid = grids[obj.sprytile_gridid]
+        tilegrid = sprytile_utils.get_grid(context, obj.sprytile_gridid)
         tex_size = SprytileGui.tex_size
 
         display_scale = context.scene.sprytile_ui.zoom
@@ -174,19 +173,18 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def setup_gpu_offscreen(self, context):
-        import gpu
-        scene = context.scene
         obj = context.object
 
         grid_id = obj.sprytile_gridid
 
         # Get the current tile grid, to fetch the texture size to render to
-        tilegrid = scene.sprytile_grids[grid_id]
+        tilegrid = sprytile_utils.get_grid(context, grid_id)
+
         tex_size = 128, 128
-        target_img = sprytile_utils.get_grid_texture(obj, tilegrid)
-        # Couldn't get the texture outta here
-        if target_img is not None:
-            tex_size = target_img.size[0], target_img.size[1]
+        if tilegrid is not None:
+            target_img = sprytile_utils.get_grid_texture(obj, tilegrid)
+            if target_img is not None:
+                tex_size = target_img.size[0], target_img.size[1]
 
         import gpu
         try:

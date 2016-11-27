@@ -4,32 +4,36 @@ from bpy.types import Panel, UIList
 
 class SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        if isinstance(item.mat_id, str) is False:
-            layout.label("Invalid Material")
-        elif bpy.data.materials.find(item.mat_id) == -1:
-            layout.label("Invalid Material")
-        elif self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout_origin = layout
-            if item.is_main:
-                material = bpy.data.materials[item.mat_id]
-                col = layout_origin.column()
-                col.prop(material, "name", text="", emboss=False, icon_value=layout.icon(material))
-                layout_origin = col
-
-            split = layout_origin.split(0.6, align=True)
-            split.prop(item, "name", text="")
-            split.label("%dx%d" % (item.grid[0], item.grid[1]))
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label(text="", icon_value=icon)
+        if item.mat_id != "":
+            mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
+            material = bpy.data.materials[item.mat_id]
+            row = layout.row(align=True)
+            if mat_data is not None:
+                show_icon = "TRIA_DOWN" if mat_data.is_expanded else "TRIA_RIGHT"
+                row.prop(mat_data, "is_expanded", text="", icon=show_icon, emboss=False)
+            row.prop(material, "name", text="", emboss=False, icon_value=layout.icon(material))
+            if material.name != item.mat_id:
+                print("%s changed to %s" % (item.mat_id, material.name))
+        elif item.grid_id != "":
+            grid = sprytile_utils.get_grid(context, item.grid_id)
+            if grid is not None:
+                split = layout.split(0.6, align=True)
+                split.prop(grid, "name", text="")
+                split.label("%dx%d" % (grid.grid[0], grid.grid[1]))
+            else:
+                layout.label("Invalid Data")
+        else:
+            layout.label("Invalid Data")
 
 class SprytileGridDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_grid_drop"
     bl_label = "Grid drop down"
     def draw(self, context):
         layout = self.layout
-        layout.operator("sprytile.add_new_material", icon="NEW")
         layout.operator("sprytile.validate_grids", icon="GRID")
+        layout.operator("sprytile.material_setup", icon="MATERIAL_DATA")
+        layout.operator("sprytile.texture_setup", icon="FORCE_TEXTURE")
+        layout.operator("sprytile.add_new_material", icon="NEW")
 
 class SprytilePanel(bpy.types.Panel):
     bl_label = "Sprytile Painter"
@@ -60,17 +64,21 @@ class SprytilePanel(bpy.types.Panel):
 
         row = layout.row()
 
-        row.template_list("SprytileMaterialGridList", "", scene, "sprytile_grids", obj, "sprytile_gridid", rows=2)
+        row.template_list("SprytileMaterialGridList", "",
+                          scene.sprytile_list, "display",
+                          scene.sprytile_list, "idx", rows=4)
 
         col = row.column(align=True)
         col.operator("sprytile.grid_add", icon='ZOOMIN', text="")
         col.operator("sprytile.grid_remove", icon='ZOOMOUT', text="")
         col.menu("SPRYTILE_grid_drop", icon='DOWNARROW_HLT', text="")
 
-        if len(scene.sprytile_grids) == 0:
+        if len(scene.sprytile_mats) == 0:
             return
 
-        selected_grid = scene.sprytile_grids[obj.sprytile_gridid]
+        selected_grid = sprytile_utils.get_grid(context, obj.sprytile_gridid)
+        if selected_grid is None:
+            return
 
         layout.label("Tile Grid Settings", icon='GRID')
 

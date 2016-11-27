@@ -144,11 +144,8 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         default=""
     )
     id = IntProperty(
-        name="Grid ID"
-    )
-    is_main = BoolProperty(
-        name="Main grid flag",
-        default=False
+        name="Grid ID",
+        default=-1
     )
     name = StringProperty(
         name="Grid Name"
@@ -183,12 +180,32 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
 
 
 class SprytileMaterialData(bpy.types.PropertyGroup):
+
+    def expanded_default(self):
+        if 'is_expanded' not in self.keys():
+            self['is_expanded'] = True
+
+    def get_expanded(self):
+        self.expanded_default()
+        return self['is_expanded']
+
+    def set_expanded(self, value):
+        self.expanded_default()
+        do_rebuild = self['is_expanded'] is not value
+        self['is_expanded'] = value
+        if do_rebuild:
+            bpy.ops.sprytile.build_grid_list()
+
     mat_id = StringProperty(
         name="Material Id",
         description="Name of the material this grid references",
         default=""
     )
-    is_expanded = BoolProperty(default=True)
+    is_expanded = BoolProperty(
+        default=True,
+        get=get_expanded,
+        set=set_expanded
+    )
     grids = CollectionProperty(type=SprytileMaterialGridSettings)
 
 
@@ -197,22 +214,65 @@ class SprytileGridDisplay(bpy.types.PropertyGroup):
     grid_id = IntProperty(default=-1)
 
 
+class SprytileGridList(bpy.types.PropertyGroup):
+
+    def get_idx(self):
+        if "idx" not in self.keys():
+            self["idx"] = 0
+        return self["idx"]
+
+    def set_idx(self, value):
+        # If the selected index is a material entry
+        # Move to next entry
+        list_size = len(self.display)
+        while value < (list_size - 1) and self.display[value].mat_id != "":
+            value += 1
+        value = max(0, min(len(self.display)-1, value))
+        self["idx"] = value
+        if value < 0 or value >= len(self.display):
+            return
+        # Set the object grid id to target grid
+        target_entry = self.display[value]
+        if target_entry.grid_id != "":
+            bpy.context.object.sprytile_gridid = target_entry.grid_id
+
+    display = bpy.props.CollectionProperty(type=SprytileGridDisplay)
+    idx = IntProperty(
+        default=0,
+        get=get_idx,
+        set=set_idx
+    )
+
+
 def setup_props():
     bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
-    bpy.types.Scene.sprytile_grids = bpy.props.CollectionProperty(type=SprytileMaterialGridSettings)
+    bpy.types.Scene.sprytile_mats = bpy.props.CollectionProperty(type=SprytileMaterialData)
+
+    bpy.types.Scene.sprytile_list = bpy.props.PointerProperty(type=SprytileGridList)
+    bpy.types.Scene.sprytile_list_display = bpy.props.CollectionProperty(type=SprytileGridDisplay)
+    bpy.types.Scene.sprytile_list_idx = IntProperty(
+        default=0
+    )
 
     bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.SprytileGuiData)
 
     bpy.types.Object.sprytile_gridid = IntProperty(
         name="Grid ID",
-        description="Grid index used for object"
+        description="Grid index used for object",
+        default=-1
     )
 
 
 def teardown_props():
     del bpy.types.Scene.sprytile_data
-    del bpy.types.Scene.sprytile_grids
+    del bpy.types.Scene.sprytile_mats
+
+    del bpy.types.Scene.sprytile_list
+    del bpy.types.Scene.sprytile_list_display
+    del bpy.types.scene.sprytile_list_idx
+
     del bpy.types.Scene.sprytile_ui
+
     del bpy.types.Object.sprytile_gridid
 
 
@@ -261,12 +321,14 @@ def teardown_keymap():
 
 
 def register():
+    bpy.utils.register_class(sprytile_panel.SprytilePanel)
     bpy.utils.register_module(__name__)
     setup_props()
     setup_keymap()
 
 
 def unregister():
+    bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
     teardown_props()
     teardown_keymap()

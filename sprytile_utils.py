@@ -37,6 +37,46 @@ def get_grid_texture(obj, sprytile_grid):
     return target_img
 
 
+def get_selected_grid(context):
+    obj = context.object
+    scene = context.scene
+
+    mat_list = scene.sprytile_mats
+    grid_id = obj.sprytile_gridid
+
+    for mat_data in mat_list:
+        for grid in mat_data.grids:
+            if grid.id == grid_id:
+                return grid
+    return None
+
+
+def get_grid(context, grid_id):
+    mat_list = context.scene.sprytile_mats
+    for mat_data in mat_list:
+        for grid in mat_data.grids:
+            if grid.id == grid_id:
+                return grid
+    return None
+
+
+def get_highest_grid_id(context):
+    highest_id = -1
+    mat_list = context.scene.sprytile_mats
+    for mat_data in mat_list:
+        for grid in mat_data.grids:
+            highest_id = max(grid.id, highest_id)
+    return highest_id
+
+
+def get_mat_data(context, mat_id):
+    mat_list = context.scene.sprytile_mats
+    for mat_data in mat_list:
+        if mat_data.mat_id == mat_id:
+            return mat_data
+    return None
+
+
 class SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
     bl_label = "Add New Grid"
@@ -50,19 +90,41 @@ class SprytileGridAdd(bpy.types.Operator):
 
     @staticmethod
     def add_new_grid(context):
-        grid_array = context.scene.sprytile_grids
-        if len(grid_array) < 1:
+        mat_list = context.scene.sprytile_mats
+        target_mat = None
+
+        if len(mat_list) > 0:
+            target_mat = mat_list[0]
+
+        grid_id = context.object.sprytile_gridid
+
+        target_grid = get_grid(context, grid_id)
+        if target_grid is not None:
+            for mat in mat_list:
+                if mat.mat_id == target_grid.mat_id:
+                    target_mat = mat
+                    break
+
+        if target_mat is None:
             return
-        grid_idx = context.object.sprytile_gridid
-        selected_grid = grid_array[grid_idx]
 
-        new_idx = len(grid_array)
-        new_grid = grid_array.add()
-        new_grid.mat_id = selected_grid.mat_id
-        new_grid.grid = selected_grid.grid
-        new_grid.is_main = False
+        grid_idx = -1
+        for idx, grid in enumerate(mat.grids):
+            if grid.id == grid_id:
+                grid_idx = idx
+                break
 
-        grid_array.move(new_idx, grid_idx + 1)
+        new_idx = len(target_mat.grids)
+
+        new_grid = target_mat.grids.add()
+        new_grid.mat_id = target_mat.mat_id
+        new_grid.id = get_highest_grid_id(context) + 1
+
+        if grid_idx > -1:
+            new_grid.grid = target_mat.grids[grid_idx].grid
+            target_mat.grids.move(new_idx, grid_idx + 1)
+
+        bpy.ops.sprytile.build_grid_list()
 
 
 class SprytileGridRemove(bpy.types.Operator):
@@ -78,42 +140,32 @@ class SprytileGridRemove(bpy.types.Operator):
 
     @staticmethod
     def delete_grid(context):
-        grid_array = context.scene.sprytile_grids
-        if len(grid_array) <= 1:
-            return
-        grid_idx = context.object.sprytile_gridid
+        mat_list = context.scene.sprytile_mats
+        target_mat = None
 
-        del_grid = grid_array[grid_idx]
-        del_mat_id = del_grid.mat_id
+        if len(mat_list) > 0:
+            target_mat = mat_list[0]
 
-        # Check the grid array has
-        has_main = False
-        grid_count = 0
-        for idx, grid in enumerate(grid_array.values()):
-            if grid.mat_id != del_mat_id:
-                continue
-            if idx == grid_idx:
-                continue
-            grid_count += 1
-            if grid.is_main:
-                has_main = True
+        grid_id = context.object.sprytile_gridid
 
-        # No grid will be left referencing the material
-        # Don't allow deletion
-        if grid_count < 1:
+        target_grid = get_grid(context, grid_id)
+        if target_grid is not None:
+            for mat in mat_list:
+                if mat.mat_id == target_grid.mat_id:
+                    target_mat = mat
+                    break
+
+        if target_mat is None or len(target_mat.grids) <= 1:
             return
 
-        grid_array.remove(grid_idx)
-        context.object.sprytile_gridid -= 1
-        # A main grid is left, exit
-        if has_main:
-            return
-        # Mark the first grid that references material as main
-        for grid in grid_array:
-            if grid.mat_id != del_mat_id:
-                continue
-            grid.is_main = True
-            break
+        grid_idx = -1
+        for idx, grid in enumerate(target_mat.grids):
+            if grid.id == grid_id:
+                grid_idx = idx
+                break
+
+        target_mat.grids.remove(grid_idx)
+        bpy.ops.sprytile.build_grid_list()
 
 
 class SprytileGridCycle(bpy.types.Operator):
@@ -130,18 +182,26 @@ class SprytileGridCycle(bpy.types.Operator):
     @staticmethod
     def cycle_grid(context):
         obj = context.object
-        grids = context.scene.sprytile_grids
-        curr_grid_idx = obj.sprytile_gridid
-        curr_mat_id = grids[curr_grid_idx].mat_id
-        next_grid_idx = curr_grid_idx + 1
-        if next_grid_idx < len(grids):
-            if grids[next_grid_idx].mat_id == curr_mat_id:
-                obj.sprytile_gridid = next_grid_idx
-        else:
-            for grid_idx, check_grid in enumerate(grids):
-                if check_grid.mat_id == curr_mat_id:
-                    obj.sprytile_gridid = grid_idx
-                    break
+        curr_grid = get_grid(context, obj.sprytile_gridid)
+        if curr_grid is None:
+            return
+
+        curr_mat = get_mat_data(context, curr_grid.mat_id)
+        if curr_mat is None:
+            return
+
+        idx = -1
+        for grid in curr_mat.grids:
+            idx += 1
+            if grid.id == curr_grid.id:
+                break
+
+        idx += 1
+        if idx >= len(curr_mat.grids):
+            idx = 0
+
+        obj.sprytile_gridid = curr_mat.grids[idx].id
+        bpy.ops.sprytile.build_grid_list()
 
 
 class SprytileNewMaterial(bpy.types.Operator):
@@ -156,17 +216,80 @@ class SprytileNewMaterial(bpy.types.Operator):
         obj = context.object
 
         mat = bpy.data.materials.new(name="Material")
-        mat.use_shadeless = True
-        mat.use_transparency = True
-        mat.transparency_method = 'MASK'
-        mat.alpha = 0.0
 
         set_idx = len(obj.data.materials)
         obj.data.materials.append(mat)
         obj.active_material_index = set_idx
 
+        bpy.ops.sprytile.material_setup()
         bpy.ops.sprytile.validate_grids()
         return {'FINISHED'}
+
+
+class SprytileSetupMaterial(bpy.types.Operator):
+    bl_idname = "sprytile.material_setup"
+    bl_label = "Set Material to Shadeless"
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+
+    def invoke(self, context, event):
+        mat = bpy.data.materials[context.object.active_material_index]
+        mat.use_shadeless = True
+        mat.use_transparency = True
+        mat.transparency_method = 'MASK'
+        mat.alpha = 0.0
+        return {'FINISHED'}
+
+
+class SprytileSetupTexture(bpy.types.Operator):
+    bl_idname = "sprytile.texture_setup"
+    bl_label = "Setup Pixel Texture"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.setup_tex(context)
+        return {'FINISHED'}
+
+    @staticmethod
+    def setup_tex(context):
+        """"""
+        material = bpy.data.materials[context.object.active_material_index]
+        target_texture = None
+        target_img = None
+        target_slot = None
+        for texture_slot in material.texture_slots:
+            if texture_slot is None:
+                continue
+            if texture_slot.texture is None:
+                continue
+            if texture_slot.texture.type == 'NONE':
+                continue
+            if texture_slot.texture.type == 'IMAGE':
+                # Cannot use the texture slot image reference directly
+                # Have to get it through bpy.data.images to be able to use with BGL
+                target_texture = bpy.data.textures.get(texture_slot.texture.name)
+                target_img = bpy.data.images.get(texture_slot.texture.image.name)
+                target_slot = texture_slot
+                break
+        if target_texture is None or target_img is None:
+            return
+
+        target_texture.use_preview_alpha = True
+        target_texture.use_alpha = True
+        target_texture.use_interpolation = False
+        target_texture.use_mipmap = False
+        target_texture.filter_type = 'BOX'
+
+        target_img.use_alpha = True
+
+        target_slot.use_map_color_diffuse = True
+        target_slot.use_map_alpha = True
+        target_slot.alpha_factor = 1.0
+        target_slot.diffuse_color_factor = 1.0
 
 
 class SprytileValidateGridList(bpy.types.Operator):
@@ -186,43 +309,99 @@ class SprytileValidateGridList(bpy.types.Operator):
 
     @staticmethod
     def validate_grids(context):
-        curr_sel = context.object.sprytile_gridid
-        grids = context.scene.sprytile_grids
         mat_list = bpy.data.materials
-        remove_idx = []
-        print("Material count: %d" % len(bpy.data.materials))
+        mat_data_list = context.scene.sprytile_mats
 
-        # Filter out grids with invalid IDs or users
-        for idx, grid in enumerate(grids.values()):
-            mat_idx = mat_list.find(grid.mat_id)
+        # Validate the material IDs in scene.sprytile_mats
+        for check_mat_data in mat_data_list:
+            mat_idx = mat_list.find(check_mat_data.mat_id)
+            if mat_idx > -1:
+                continue
+            # This mat data id not found in materials
+            # Loop through materials looking for one
+            # that doesn't appear in sprytile_mats list
+            for check_mat in mat_list:
+                found_unused = False
+                for mat_data in mat_data_list:
+                    if mat_data.mat_id != check_mat.name:
+                        found_unused = True
+                        break
+                if found_unused:
+                    target_mat_id = check_mat_data.mat_id
+                    check_mat_data.mat_id = check_mat.name
+                    for grid in check_mat_data.grids:
+                        grid.mat_id = check_mat.name
+                    for list_display in context.scene.sprytile_list.display:
+                        if list_display.mat_id == target_mat_id:
+                            list_display.mat_id = check_mat.name
+                    break
+
+        remove_idx = []
+
+        # Filter out mat data with invalid IDs or users
+        for idx, mat in enumerate(mat_data_list.values()):
+            mat_idx = mat_list.find(mat.mat_id)
             if mat_idx < 0:
                 remove_idx.append(idx)
                 continue
             if mat_list[mat_idx].users == 0:
                 remove_idx.append(idx)
+            for grid in mat.grids:
+                grid.mat_id = mat.mat_id
         remove_idx.reverse()
         for idx in remove_idx:
-            grids.remove(idx)
+            mat_data_list.remove(idx)
 
-        # Loop through available materials, checking if grids has
-        # at least one entry with the name
+        # Loop through available materials, checking if mat_data_list has
+        # at least one entry for each material
         for mat in mat_list:
             if mat.users == 0:
                 continue
             is_mat_valid = False
-            for grid in grids:
-                if grid.mat_id == mat.name:
+            for mat_data in mat_data_list:
+                if mat_data.mat_id == mat.name:
                     is_mat_valid = True
                     break
-            # No grid found for this material, add new one
             if is_mat_valid is False:
-                grid_setting = grids.add()
-                grid_setting.mat_id = mat.name
-                grid_setting.is_main = True
+                mat_data_entry = mat_data_list.add()
+                mat_data_entry.mat_id = mat.name
+                mat_grid = mat_data_entry.grids.add()
+                mat_grid.mat_id = mat.name
+                mat_grid.id = get_highest_grid_id(context) + 1
 
-        grids_count = len(grids)
-        if curr_sel >= grids_count:
-            context.object.sprytile_gridid = grids_count-1
+        context.object.sprytile_gridid = get_highest_grid_id(context)
+        bpy.ops.sprytile.build_grid_list()
+
+
+class SprytileBuildGridList(bpy.types.Operator):
+    bl_idname = "sprytile.build_grid_list"
+    bl_label = "Sprytile Build Grid List"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.build_list(context)
+        return {'FINISHED'}
+
+    @staticmethod
+    def build_list(context):
+        """Build the scene.sprytile_list.display from scene.sprytile_mats"""
+        display_list = context.scene.sprytile_list.display
+        mat_list = context.scene.sprytile_mats
+
+        display_list.clear()
+        for mat_data in mat_list:
+            mat_display = display_list.add()
+            mat_display.mat_id = mat_data.mat_id
+            if mat_data.is_expanded is False:
+                continue
+            for mat_grid in mat_data.grids:
+                idx = len(display_list)
+                grid_display = display_list.add()
+                grid_display.grid_id = mat_grid.id
+                if context.object.sprytile_gridid == grid_display.grid_id:
+                    context.scene.sprytile_list.idx = idx
 
 
 class SprytileRotateLeft(bpy.types.Operator):

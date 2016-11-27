@@ -66,7 +66,7 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
-def raycast_grid(scene, grid_id, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
     """Raycast to a normal plane on the scene cursor, and return the grid snapped position"""
 
     plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
@@ -75,7 +75,7 @@ def raycast_grid(scene, grid_id, up_vector, right_vector, plane_normal, ray_orig
         return None, None, None, None
 
     world_pixels = scene.sprytile_data.world_pixels
-    target_grid = scene.sprytile_grids[grid_id]
+    target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
     grid_x = target_grid.grid[0]
     grid_y = target_grid.grid[1]
 
@@ -113,7 +113,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     data = scene.sprytile_data
 
     grid_id = obj.sprytile_gridid
-    target_grid = scene.sprytile_grids[grid_id]
+    target_grid = sprytile_utils.get_grid(context, grid_id)
 
     # Generate a transform matrix from the grid settings
 
@@ -266,7 +266,7 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
 
-        tilegrid = context.scene.sprytile_grids[grid_id]
+        tilegrid = sprytile_utils.get_grid(context, grid_id)
         texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
 
         if texture is None:
@@ -381,7 +381,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         self.add_virtual_cursor(hit_loc)
         # Change the uv of the given face
-        grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
+        grid_id = context.object.sprytile_gridid
+        grid = sprytile_utils.get_grid(context, grid_id)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         face_up = self.get_face_up_vector(context, face_index)
@@ -393,7 +394,7 @@ class SprytileModalTool(bpy.types.Operator):
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
-        grid = context.scene.sprytile_grids[context.object.sprytile_gridid]
+        grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
@@ -420,7 +421,7 @@ class SprytileModalTool(bpy.types.Operator):
                 return
 
         face_position, x_vector, y_vector, plane_cursor = raycast_grid(
-            scene, context.object.sprytile_gridid,
+            scene, context,
             up_vector, right_vector, plane_normal,
             ray_origin, ray_vector)
         if face_position is None:
@@ -544,7 +545,7 @@ class SprytileModalTool(bpy.types.Operator):
             if location is None:
                 return
             world_pixels = scene.sprytile_data.world_pixels
-            target_grid = scene.sprytile_grids[context.object.sprytile_gridid]
+            target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
             grid_x = target_grid.grid[0]
             grid_y = target_grid.grid[1]
 
@@ -712,9 +713,9 @@ class SprytileModalTool(bpy.types.Operator):
             if obj.hide or obj.type != 'MESH':
                 self.report({'WARNING'}, "Active object must be a visible mesh")
                 return {'CANCELLED'}
-            if len(context.scene.sprytile_grids) < 1:
+            if len(context.scene.sprytile_mats) < 1:
                 bpy.ops.sprytile.validate_grids()
-            if len(context.scene.sprytile_grids) < 1:
+            if len(context.scene.sprytile_mats) < 1:
                 self.report({'WARNING'}, "No valid materials")
                 return {'CANCELLED'}
 
