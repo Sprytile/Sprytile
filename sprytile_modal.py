@@ -262,9 +262,13 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
 
-        tilegrid = sprytile_utils.get_grid(context, grid_id)
-        texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
+        # print("Grid id:", grid_id, "tile", tile_packed_id)
 
+        tilegrid = sprytile_utils.get_grid(context, grid_id)
+        if tilegrid is None:
+            return
+
+        texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
         if texture is None:
             return
 
