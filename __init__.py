@@ -213,6 +213,28 @@ class SprytileGridDisplay(bpy.types.PropertyGroup):
     mat_id = StringProperty(default="")
     grid_id = IntProperty(default=-1)
 
+    def get_mat_name(self):
+        if self.mat_id == "":
+            return ""
+        data_idx = bpy.data.materials.find(self.mat_id)
+        if data_idx < 0:
+            return ""
+        return bpy.data.materials[self.mat_id].name
+
+    def set_mat_name(self, value):
+        if self.mat_id == "":
+            return
+        data_idx = bpy.data.materials.find(self.mat_id)
+        if data_idx < 0:
+            return
+        bpy.data.materials[self.mat_id].name = value
+        bpy.ops.sprytile.validate_grids()
+
+    mat_name = StringProperty(
+        get=get_mat_name,
+        set=set_mat_name
+    )
+
 
 class SprytileGridList(bpy.types.PropertyGroup):
 

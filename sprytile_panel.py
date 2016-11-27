@@ -7,13 +7,18 @@ class SprytileMaterialGridList(bpy.types.UIList):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
             material = bpy.data.materials[item.mat_id]
+            if material is None:
+                layout.label("Invalid Data")
+                return
+
+            display_icon = layout.icon(material)
+
             row = layout.row(align=True)
             if mat_data is not None:
                 show_icon = "TRIA_DOWN" if mat_data.is_expanded else "TRIA_RIGHT"
                 row.prop(mat_data, "is_expanded", text="", icon=show_icon, emboss=False)
-            row.prop(material, "name", text="", emboss=False, icon_value=layout.icon(material))
-            if material.name != item.mat_id:
-                print("%s changed to %s" % (item.mat_id, material.name))
+            row.prop(item, "mat_name", text="", emboss=False, icon_value=display_icon)
+
         elif item.grid_id != "":
             grid = sprytile_utils.get_grid(context, item.grid_id)
             if grid is not None:
