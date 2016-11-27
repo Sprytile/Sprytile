@@ -39,8 +39,10 @@ class SprytileGridDropDown(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.validate_grids", icon="GRID")
+        layout.separator()
         layout.operator("sprytile.material_setup", icon="MATERIAL_DATA")
         layout.operator("sprytile.texture_setup", icon="FORCE_TEXTURE")
+        layout.separator()
         layout.operator("sprytile.add_new_material", icon="NEW")
 
 class SprytilePanel(bpy.types.Panel):
