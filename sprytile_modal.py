@@ -114,9 +114,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
 
     grid_id = obj.sprytile_gridid
     target_grid = sprytile_utils.get_grid(context, grid_id)
-
-    # Generate a transform matrix from the grid settings
-
     world_units = data.world_pixels
     world_convert = Vector((target_grid.grid[0] / world_units,
                             target_grid.grid[1] / world_units))
@@ -180,7 +177,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         grid_layer_tileid = mesh.faces.layers.int.new('grid_tile_id')
 
     face = mesh.faces[face_index]
-    print("Current grid", face[grid_layer_id], "tile id", face[grid_layer_tileid])
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
 
@@ -386,7 +382,6 @@ class SprytileModalTool(bpy.types.Operator):
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         face_up = self.get_face_up_vector(context, face_index)
-        print(up_vector, face_up)
         if face_up.dot(up_vector) < 0.95:
             up_vector = face_up
             right_vector = face_up.cross(normal)
