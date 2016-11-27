@@ -12,6 +12,9 @@ class SprytileMaterialGridList(bpy.types.UIList):
                 return
 
             display_icon = layout.icon(material)
+            texture = sprytile_utils.get_grid_texture(context.object, mat_data.grids[0])
+            if texture is not None:
+                display_icon = layout.icon(texture)
 
             row = layout.row(align=True)
             if mat_data is not None:
