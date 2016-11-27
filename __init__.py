@@ -135,6 +135,10 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Extra UV Grid Settings",
         default=False
     )
+    show_overlay = BoolProperty(
+        name="Show Grid Overlay",
+        default=False
+    )
 
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):

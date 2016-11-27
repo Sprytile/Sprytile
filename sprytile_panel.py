@@ -25,7 +25,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
         elif item.grid_id != "":
             grid = sprytile_utils.get_grid(context, item.grid_id)
             if grid is not None:
-                split = layout.split(0.6, align=True)
+                split = layout.split(0.65, align=True)
                 split.prop(grid, "name", text="")
                 split.label("%dx%d" % (grid.grid[0], grid.grid[1]))
             else:
@@ -90,12 +90,16 @@ class SprytilePanel(bpy.types.Panel):
         if selected_grid is None:
             return
 
-        layout.label("Tile Grid Settings", icon='GRID')
+        # layout.label("Tile Grid Settings", icon='GRID')
 
         layout.prop(selected_grid, "grid", text="Grid Size")
 
+        row = layout.row()
+        row.prop(sprytile_data, "show_overlay", text="", icon='GRID')
+
         show_icon = "TRIA_DOWN" if sprytile_data.show_extra else "TRIA_RIGHT"
-        layout.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)
+        row.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)
+
 
         if not sprytile_data.show_extra:
             return

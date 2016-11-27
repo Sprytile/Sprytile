@@ -220,8 +220,11 @@ class SprytileGui(bpy.types.Operator):
     @staticmethod
     def draw_callback_handler(self, context):
         """Callback handler"""
+        sprytile_data = context.scene.sprytile_data
+        show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
+
         SprytileGui.draw_offscreen(self, context)
-        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, context.scene.sprytile_data.show_extra)
+        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra)
 
     @staticmethod
     def draw_offscreen(self, context):
