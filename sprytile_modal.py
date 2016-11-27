@@ -769,7 +769,8 @@ class SprytileModalTool(bpy.types.Operator):
                 "prop": ['VIEW3D_MT_edit_mesh_select_mode']
             },
             '3D View': {
-                "ids": ['view3d.select_circle', 'transform.rotate']
+                "ids": ['view3d.select_circle', 'transform.rotate'],
+                "prop": ['VIEW3D_MT_snap']
             },
             'Object Non-modal': {
                 "ids": ['object.mode_set']
