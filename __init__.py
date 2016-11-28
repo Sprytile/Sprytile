@@ -259,7 +259,7 @@ class SprytileGridList(bpy.types.PropertyGroup):
             return
         # Set the object grid id to target grid
         target_entry = self.display[value]
-        if target_entry.grid_id != "":
+        if target_entry.grid_id != -1:
             bpy.context.object.sprytile_gridid = target_entry.grid_id
 
     display = bpy.props.CollectionProperty(type=SprytileGridDisplay)
@@ -275,10 +275,6 @@ def setup_props():
     bpy.types.Scene.sprytile_mats = bpy.props.CollectionProperty(type=SprytileMaterialData)
 
     bpy.types.Scene.sprytile_list = bpy.props.PointerProperty(type=SprytileGridList)
-    bpy.types.Scene.sprytile_list_display = bpy.props.CollectionProperty(type=SprytileGridDisplay)
-    bpy.types.Scene.sprytile_list_idx = IntProperty(
-        default=0
-    )
 
     bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.SprytileGuiData)
 
@@ -294,8 +290,6 @@ def teardown_props():
     del bpy.types.Scene.sprytile_mats
 
     del bpy.types.Scene.sprytile_list
-    del bpy.types.Scene.sprytile_list_display
-    del bpy.types.scene.sprytile_list_idx
 
     del bpy.types.Scene.sprytile_ui
 
@@ -317,7 +311,6 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
                 col.context_pointer_set("keymap", km)
                 rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
-
 def setup_keymap():
     km_array = sprytile_modal.SprytileModalTool.keymaps
     win_mgr = bpy.context.window_manager
@@ -328,14 +321,14 @@ def setup_keymap():
         keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
     ]
 
-    keymap = key_config.keymaps.new(name='sprytile.modal_tool', space_type='EMPTY', region_type='WINDOW', modal=True)
-    km_items = keymap.keymap_items
-    km_array[keymap] = [
-        km_items.new_modal('SNAP', 'S', 'PRESS'),
-        km_items.new_modal('FOCUS', 'W', 'PRESS'),
-        km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS'),
-        km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')
-    ]
+    # keymap = key_config.keymaps.new(name='sprytile.modal_keys', space_type='EMPTY', region_type='WINDOW', modal=True)
+    # km_items = keymap.keymap_items
+    # km_array[keymap] = [
+    #     km_items.new_modal('SNAP', 'S', 'PRESS'),
+    #     km_items.new_modal('FOCUS', 'W', 'PRESS'),
+    #     km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS'),
+    #     km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')
+    # ]
 
 
 def teardown_keymap():
@@ -354,10 +347,10 @@ def register():
 
 
 def unregister():
+    teardown_keymap()
+    teardown_props()
     bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
-    teardown_props()
-    teardown_keymap()
 
 
 if __name__ == "__main__":

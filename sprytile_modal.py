@@ -690,12 +690,17 @@ class SprytileModalTool(bpy.types.Operator):
             return {'CANCELLED'}
         if event.type == 'X' and event.value == 'PRESS':
             bpy.ops.mesh.delete()
+            self.refresh_mesh = True
         if event.type == 'S':
             last_snap = context.scene.sprytile_data.is_snapping
             new_snap = event.value == 'PRESS'
             sprytile_data.is_snapping = new_snap
             # Ask UI to redraw snapping changed
             context.scene.sprytile_ui.is_dirty = last_snap != new_snap
+        if event.type == 'Q' and event.value == 'PRESS':
+            bpy.ops.sprytile.rotate_left()
+        if event.type == 'D' and event.value == 'PRESS':
+            bpy.ops.sprytile.rotate_right()
         elif event.type == 'W' and event.value == 'PRESS':
             bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
@@ -729,10 +734,11 @@ class SprytileModalTool(bpy.types.Operator):
             self.refresh_mesh = False
 
             # Set up timer callback
-            self.view_axis_timer = context.window_manager.event_timer_add(0.1, context.window)
+            win_mgr = context.window_manager
+            self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
 
             self.setup_user_keys(context)
-            context.window_manager.modal_handler_add(self)
+            win_mgr.modal_handler_add(self)
 
             sprytile_data = context.scene.sprytile_data
             sprytile_data.is_running = True

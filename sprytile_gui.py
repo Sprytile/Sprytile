@@ -179,6 +179,7 @@ class SprytileGui(bpy.types.Operator):
 
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = sprytile_utils.get_grid(context, grid_id)
+        target_img = None
 
         tex_size = 128, 128
         if tilegrid is not None:
