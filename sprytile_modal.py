@@ -386,7 +386,7 @@ class SprytileModalTool(bpy.types.Operator):
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         face_up = self.get_face_up_vector(context, face_index)
-        if face_up.dot(up_vector) < 0.95:
+        if face_up is not None and face_up.dot(up_vector) < 0.95:
             up_vector = face_up
             right_vector = face_up.cross(normal)
 
@@ -722,6 +722,9 @@ class SprytileModalTool(bpy.types.Operator):
             if len(context.scene.sprytile_mats) < 1:
                 self.report({'WARNING'}, "No valid materials")
                 return {'CANCELLED'}
+
+            if obj.sprytile_gridid == -1:
+                obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
 
             if context.space_data.viewport_shade != 'MATERIAL':
                 context.space_data.viewport_shade = 'MATERIAL'
