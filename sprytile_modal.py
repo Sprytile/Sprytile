@@ -146,21 +146,32 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     face = mesh.faces[face_index]
     vert_origin = face.calc_center_median()
     for loop in face.loops:
-        # Project the vert position onto UV space
-        # using up and right vectors
         vert = loop.vert
+        # Center around 0, 0
         vert_pos = vert.co - vert_origin
+        # Apply flip scaling
         vert_pos = flip_matrix * vert_pos
+        # Get x/y values by using the right/up vectors
         vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
         vert_xy = Vector(vert_xy)
+        # Convert to -0.5 to 0.5 space
         vert_xy.x /= world_convert.x
         vert_xy.y /= world_convert.y
+        # Offset by half, to move it coordinates back into 0-1 range
         vert_xy += Vector((0.5, 0.5, 0))
-        # and then apply the grid transform matrix
+        # Multiply by the uv unit sizes to get actual UV space
         vert_xy.x *= uv_unit_x
         vert_xy.y *= uv_unit_y
+        print(vert_xy)
+        # Then offset the actual UV space by the translation matrix
         vert_xy = uv_matrix * vert_xy
+        # Record min/max for tile alignment step
         loop[uv_layer].uv = vert_xy.xy
+
+    # Only do tile alignment if in paint mode
+        # Generate where tile min/max points are
+        # Use the recorded min/max points to calculate offset
+        # Loop through and face loops and apply offset to UV
 
     # Apply the correct material to the face
     mat_idx = context.object.material_slots.find(target_grid.mat_id)
