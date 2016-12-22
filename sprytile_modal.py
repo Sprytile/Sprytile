@@ -143,6 +143,9 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     flip_y = -1 if data.uv_flip_y else 1
     flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
 
+    uv_min = Vector((float('inf'), float('inf')))
+    uv_max = Vector((float('-inf'), float('-inf')))
+
     face = mesh.faces[face_index]
     vert_origin = face.calc_center_median()
     for loop in face.loops:
@@ -162,16 +165,36 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         # Multiply by the uv unit sizes to get actual UV space
         vert_xy.x *= uv_unit_x
         vert_xy.y *= uv_unit_y
-        print(vert_xy)
         # Then offset the actual UV space by the translation matrix
         vert_xy = uv_matrix * vert_xy
         # Record min/max for tile alignment step
+        uv_min.x = min(uv_min.x, vert_xy.x)
+        uv_min.y = min(uv_min.y, vert_xy.y)
+        uv_max.x = max(uv_max.x, vert_xy.x)
+        uv_max.y = max(uv_max.y, vert_xy.y)
+        # Apply the UV
         loop[uv_layer].uv = vert_xy.xy
 
     # Only do tile alignment if in paint mode
+    if data.paint_mode == 'PAINT' and data.paint_align != 'CENTER':
         # Generate where tile min/max points are
+        tile_min = uv_matrix * Vector((0, 0, 0))
+        tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
         # Use the recorded min/max points to calculate offset
+        uv_offset = Vector((0, 0))
+        # Calculate x offsets
+        if data.paint_align in {'TOP_LEFT', 'LEFT', 'BOTTOM_LEFT'}:
+            uv_offset.x = tile_min.x - uv_min.x
+        elif data.paint_align in {'TOP_RIGHT', 'RIGHT', 'BOTTOM_RIGHT'}:
+            uv_offset.x = tile_max.x - uv_max.x
+        # Calculate y offsets
+        if data.paint_align in {'TOP_LEFT', 'TOP', 'TOP_RIGHT'}:
+            uv_offset.y = tile_max.y - uv_max.y
+        if data.paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
+            uv_offset.y = tile_min.y - uv_min.y
         # Loop through and face loops and apply offset to UV
+        for loop in face.loops:
+            loop[uv_layer].uv += uv_offset
 
     # Apply the correct material to the face
     mat_idx = context.object.material_slots.find(target_grid.mat_id)

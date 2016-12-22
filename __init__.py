@@ -123,6 +123,23 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=False
     )
 
+    paint_align = EnumProperty(
+        items=[
+            ('BOTTOM_RIGHT', "Bottom Right", "", 9),
+            ('BOTTOM_LEFT', "Bottom", "", 8),
+            ('BOTTOM_LEFT', "Bottom Left", "", 7),
+            ('RIGHT', "Right", "", 6),
+            ('CENTER', "Center", "", 5),
+            ('LEFT', "Left", "", 4),
+            ('TOP_RIGHT', "Top Right", "", 3),
+            ('TOP', "Top", "", 2),
+            ('TOP_LEFT', "Top Left", "", 1),
+        ],
+        name="Paint Align",
+        description="Paint alignment mode",
+        default='CENTER'
+    )
+
     is_running = BoolProperty(
         name="Sprytile Running",
         description="Is Sprytile modal tool currently running"
