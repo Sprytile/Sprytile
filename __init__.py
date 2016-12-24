@@ -139,6 +139,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Paint alignment mode",
         default='CENTER'
     )
+    paint_stretch_x = BoolProperty(
+        name="Stretch X"
+    )
+    paint_stretch_y = BoolProperty(
+        name="Stretch Y"
+    )
 
     is_running = BoolProperty(
         name="Sprytile Running",
