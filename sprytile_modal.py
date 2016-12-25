@@ -354,8 +354,6 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
 
-        # print("Grid id:", grid_id, "tile", tile_packed_id)
-
         tilegrid = sprytile_utils.get_grid(context, grid_id)
         if tilegrid is None:
             return
@@ -371,6 +369,8 @@ class SprytileModalTool(bpy.types.Operator):
         context.object.sprytile_gridid = grid_id
         tilegrid.tile_selection[0] = tile_x
         tilegrid.tile_selection[1] = tile_y
+
+        bpy.ops.sprytile.build_grid_list()
 
     def add_virtual_cursor(self, cursor_pos):
         cursor_len = len(self.virtual_cursor)
