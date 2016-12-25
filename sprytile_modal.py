@@ -147,7 +147,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     uv_max = Vector((float('-inf'), float('-inf')))
 
     face = mesh.faces[face_index]
-    vert_origin = face.calc_center_median()
+    vert_origin = face .calc_center_bounds()
     for loop in face.loops:
         vert = loop.vert
         # Center around 0, 0
@@ -175,26 +175,10 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         # Apply the UV
         loop[uv_layer].uv = vert_xy.xy
 
-    # Only do tile alignment if in paint mode
-    if data.paint_mode == 'PAINT' and data.paint_align != 'CENTER':
-        # Generate where tile min/max points are
-        tile_min = uv_matrix * Vector((0, 0, 0))
-        tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
-        # Use the recorded min/max points to calculate offset
-        uv_offset = Vector((0, 0))
-        # Calculate x offsets
-        if data.paint_align in {'TOP_LEFT', 'LEFT', 'BOTTOM_LEFT'}:
-            uv_offset.x = tile_min.x - uv_min.x
-        elif data.paint_align in {'TOP_RIGHT', 'RIGHT', 'BOTTOM_RIGHT'}:
-            uv_offset.x = tile_max.x - uv_max.x
-        # Calculate y offsets
-        if data.paint_align in {'TOP_LEFT', 'TOP', 'TOP_RIGHT'}:
-            uv_offset.y = tile_max.y - uv_max.y
-        if data.paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
-            uv_offset.y = tile_min.y - uv_min.y
-        # Loop through and face loops and apply offset to UV
-        for loop in face.loops:
-            loop[uv_layer].uv += uv_offset
+    # In paint mode, do alignment and stretching steps
+    if data.paint_mode == 'PAINT':
+        uv_map_paint_modify(data, face, uv_layer, uv_matrix,
+                            uv_unit_x, uv_unit_y, uv_min, uv_max)
 
     # Apply the correct material to the face
     mat_idx = context.object.material_slots.find(target_grid.mat_id)
@@ -220,6 +204,80 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
+
+
+def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max):
+    paint_align = data.paint_align
+    # Stretching will change how the tile will be aligned
+    if data.paint_stretch_x:
+        if paint_align in {'TOP_LEFT', 'TOP_RIGHT'}:
+            paint_align = "TOP"
+        if paint_align in {'LEFT', 'RIGHT'}:
+            paint_align = 'CENTER'
+        if paint_align in {'BOTTOM_LEFT', 'BOTTOM_RIGHT'}:
+            paint_align = 'BOTTOM'
+    if data.paint_stretch_y:
+        if paint_align in {'TOP_LEFT', 'BOTTOM_LEFT'}:
+            paint_align = 'LEFT'
+        if paint_align in {'TOP', 'BOTTOM'}:
+            paint_align = 'CENTER'
+        if paint_align in {'TOP_RIGHT', 'BOTTOM_RIGHT'}:
+            paint_align = 'RIGHT'
+
+    # Generate where tile min/max points are
+    tile_min = uv_matrix * Vector((0, 0, 0))
+    tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
+
+    # Only do align if not center
+    if paint_align != 'CENTER':
+        # Use the recorded min/max points to calculate offset
+        uv_offset = Vector((0, 0))
+        # Calculate x offsets
+        if paint_align in {'TOP_LEFT', 'LEFT', 'BOTTOM_LEFT'}:
+            uv_offset.x = tile_min.x - uv_min.x
+        elif paint_align in {'TOP_RIGHT', 'RIGHT', 'BOTTOM_RIGHT'}:
+            uv_offset.x = tile_max.x - uv_max.x
+        # Calculate y offsets
+        if paint_align in {'TOP_LEFT', 'TOP', 'TOP_RIGHT'}:
+            uv_offset.y = tile_max.y - uv_max.y
+        if paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
+            uv_offset.y = tile_min.y - uv_min.y
+        # Loop through and face loops and apply offset to UV
+        for loop in face.loops:
+            loop[uv_layer].uv += uv_offset
+
+    # Execute tile stretch
+    threshold_ratio = 0.45
+    if data.paint_stretch_x:
+        # Scale the tile to fit x
+        tile_width = tile_max.x - tile_min.x
+        face_width = uv_max.x - uv_min.x
+        threshold = tile_width * threshold_ratio
+        for loop in face.loops:
+            uv = loop[uv_layer].uv
+            uv.x -= tile_min.x
+            uv = Matrix.Scale(tile_width / face_width, 2, Vector((1, 0))) * uv
+            uv.x += tile_min.x
+            if abs(uv.x - tile_min.x) < threshold:
+                uv.x = tile_min.x
+            if abs(uv.x - tile_max.x) < threshold:
+                uv.x = tile_max.x
+            loop[uv_layer].uv = uv.xy
+    if data.paint_stretch_y:
+        tile_height = tile_max.y - tile_min.y
+        face_height = uv_max.y - uv_min.y
+        print(tile_height, face_height)
+        threshold = tile_height * threshold_ratio
+        for loop in face.loops:
+            uv = loop[uv_layer].uv
+            uv.y -= tile_min.y
+            uv = Matrix.Scale(tile_height / face_height, 2, Vector((0, 1))) * uv
+            uv.y += tile_min.y
+            if abs(uv.y - tile_min.y) < threshold:
+                uv.y = tile_min.y
+            if abs(uv.y - tile_max.y) < threshold:
+                uv.y = tile_max.y
+            loop[uv_layer].uv = uv
 
 
 class SprytileModalTool(bpy.types.Operator):
