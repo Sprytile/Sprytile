@@ -29,6 +29,8 @@ def get_grid_texture(obj, sprytile_grid):
             continue
         if texture_slot.texture.type == 'NONE':
             continue
+        if texture_slot.texture.image is None:
+            continue
         if texture_slot.texture.type == 'IMAGE':
             # Cannot use the texture slot image reference directly
             # Have to get it through bpy.data.images to be able to use with BGL
@@ -233,6 +235,9 @@ class SprytileSetupMaterial(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         return context.object is not None
+
+    def execute(self, context):
+        return self.invoke(context, None)
 
     def invoke(self, context, event):
         mat = bpy.data.materials[context.object.active_material_index]
