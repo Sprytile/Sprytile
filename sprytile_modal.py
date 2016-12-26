@@ -479,6 +479,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         face_up = self.get_face_up_vector(context, face_index)
         if face_up is not None and face_up.dot(up_vector) < 0.95:
+            data = context.scene.sprytile_data
+            face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
             up_vector = face_up
             right_vector = face_up.cross(normal)
 
@@ -576,9 +578,9 @@ class SprytileModalTool(bpy.types.Operator):
         edge_vectors = []
         idx = -1
         for edge in face.edges:
-            if edge.is_boundary is False:
-                continue
             idx += 1
+            # if edge.is_boundary is False:
+            #     continue
             # Move vertices to world space
             vtx1 = context.object.matrix_world * edge.verts[0].co
             vtx2 = context.object.matrix_world * edge.verts[1].co
