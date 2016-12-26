@@ -180,6 +180,15 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         uv_map_paint_modify(data, face, uv_layer, uv_matrix,
                             uv_unit_x, uv_unit_y, uv_min, uv_max)
 
+    # One final loop to snap the UVs to the pixel grid
+    for loop in face.loops:
+        uv = loop[uv_layer].uv
+        uv_pixel_x = int(round(uv.x / pixel_uv_x))
+        uv_pixel_y = int(round(uv.y / pixel_uv_y))
+        uv.x = uv_pixel_x * pixel_uv_x
+        uv.y = uv_pixel_y * pixel_uv_y
+        loop[uv_layer].uv = uv
+
     # Apply the correct material to the face
     mat_idx = context.object.material_slots.find(target_grid.mat_id)
     if mat_idx > -1:
