@@ -108,6 +108,9 @@ def get_current_grid_vectors(scene):
 
 def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     """UV map the given face"""
+    if mesh is None:
+        return None, None
+
     scene = context.scene
     obj = context.object
     data = scene.sprytile_data
