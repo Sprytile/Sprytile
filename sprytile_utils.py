@@ -608,6 +608,19 @@ class SprytileGridTranslate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileObjectPanel(bpy.types.Panel):
+    bl_label = "Sprytile Tools"
+    bl_idname = "sprytile.panel_object"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Sprytile"
+
+    def draw(self, context):
+        layout = self.layout
+        # data = context.scene.sprytile_data
+        layout.operator("sprytile.reload_imgs")
+
+
 class SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
