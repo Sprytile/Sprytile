@@ -615,9 +615,21 @@ class SprytileObjectPanel(bpy.types.Panel):
     bl_region_type = "TOOLS"
     bl_category = "Sprytile"
 
+    @classmethod
+    def poll(cls, context):
+        if context.object and context.object.type == 'MESH':
+            return context.object.mode == 'OBJECT'
+
     def draw(self, context):
         layout = self.layout
         # data = context.scene.sprytile_data
+        layout.label("Material Setup")
+        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.texture_setup")
+        layout.separator()
+        layout.operator("sprytile.add_new_material")
+        layout.separator()
+        layout.label("Image Utilities")
         layout.operator("sprytile.reload_imgs")
 
 
