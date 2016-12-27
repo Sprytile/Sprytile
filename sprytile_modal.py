@@ -881,7 +881,7 @@ class SprytileModalTool(bpy.types.Operator):
                 "ids": ['ed.undo', 'ed.redo']
             },
             'Mesh': {
-                "ids": ['mesh.select_all', 'mesh.hide', 'mesh.reveal'],
+                "ids": ['mesh.select_all', 'mesh.hide', 'mesh.reveal', 'mesh.edge_face_add'],
                 "prop": ['VIEW3D_MT_edit_mesh_select_mode']
             },
             '3D View': {
