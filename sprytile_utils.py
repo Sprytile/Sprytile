@@ -676,6 +676,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
             row.prop(data, "paint_stretch_x")
             row.prop(data, "paint_stretch_y")
 
+        layout.separator()
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
