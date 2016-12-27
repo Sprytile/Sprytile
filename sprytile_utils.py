@@ -608,6 +608,16 @@ class SprytileGridTranslate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileResetData(bpy.types.Operator):
+    bl_idname = "sprytile.reset_sprytile"
+    bl_label = "Reset Sprytile"
+    bl_description = "In case sprytile breaks…"
+
+    def invoke(self, context, event):
+        context.scene.sprytile_data.is_running = False
+        return {'FINISHED'}
+
+
 class SprytileObjectPanel(bpy.types.Panel):
     bl_label = "Sprytile Tools"
     bl_idname = "sprytile.panel_object"
@@ -623,6 +633,8 @@ class SprytileObjectPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         # data = context.scene.sprytile_data
+        layout.label("Reset Sprytile")
+        layout.operator("sprytile.reset_sprytile")
         layout.label("Material Setup")
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
