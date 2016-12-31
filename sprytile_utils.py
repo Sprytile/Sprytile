@@ -521,12 +521,14 @@ class SprytileGridTranslate(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
     def get_ref_pos(self, context):
+        if context.object.mode != 'EDIT':
+            return None
         if self.bmesh is None:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
 
         target = self.bmesh.select_history.active
         if isinstance(target, BMFace):
-            return target.calc_center_median()
+            return target.verts[0].co.copy()
         if isinstance(target, BMEdge):
             return target.verts[0].co.copy()
         if isinstance(target, BMVert):
@@ -548,6 +550,7 @@ class SprytileGridTranslate(bpy.types.Operator):
                 "show_floor": space_data.show_floor,
                 "pivot": context.space_data.pivot_point,
                 "orient": context.space_data.transform_orientation,
+                "use_snap": context.scene.tool_settings.use_snap,
                 "snap_element": context.scene.tool_settings.snap_element
             }
             pixel_unit = 1 / context.scene.sprytile_data.world_pixels
@@ -556,6 +559,7 @@ class SprytileGridTranslate(bpy.types.Operator):
             space_data.show_floor = False
             space_data.pivot_point = 'CURSOR'
             space_data.transform_orientation = 'GLOBAL'
+            context.scene.tool_settings.use_snap = True
             context.scene.tool_settings.snap_element = 'INCREMENT'
         # Remember what the current active operator is, when it changes
         # we know that the translate operator is complete
@@ -587,6 +591,7 @@ class SprytileGridTranslate(bpy.types.Operator):
             context.space_data.show_floor = self.restore_settings['show_floor']
             context.space_data.pivot_point = self.restore_settings['pivot']
             context.space_data.transform_orientation = self.restore_settings['orient']
+            context.scene.tool_settings.use_snap = self.restore_settings['use_snap']
             context.scene.tool_settings.snap_element = self.restore_settings['snap_element']
         # Didn't snap to grid, force to grid by calculating what the snapped translate would be
         else:
