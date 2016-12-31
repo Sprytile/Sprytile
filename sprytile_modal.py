@@ -489,7 +489,7 @@ class SprytileModalTool(bpy.types.Operator):
         grid = sprytile_utils.get_grid(context, grid_id)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
-        face_up = self.get_face_up_vector(context, face_index)
+        face_up = self.get_face_up_vector(context, face_index, normal)
         if face_up is not None and face_up.dot(up_vector) < 0.95:
             data = context.scene.sprytile_data
             face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
@@ -520,7 +520,7 @@ class SprytileModalTool(bpy.types.Operator):
             if check_dot and check_coplanar:
                 self.add_virtual_cursor(hit_loc)
                 # Change UV of this face instead
-                face_up = self.get_face_up_vector(context, face_index)
+                face_up = self.get_face_up_vector(context, face_index, hit_normal)
                 if face_up is not None and face_up.dot(up_vector) < 0.95:
                     data = context.scene.sprytile_data
                     face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
@@ -586,15 +586,50 @@ class SprytileModalTool(bpy.types.Operator):
         self.tree = BVHTree.FromBMesh(self.bmesh)
         return face.index
 
-    def get_face_up_vector(self, context, face_index):
+    def get_face_up_vector(self, context, face_index, normal):
         """Find the edge of the given face that most closely matches view up vector"""
         # Get the view up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
         rv3d = context.region_data
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
 
-        # Find the edge of the hit face that most closely matches the view up vector
         face = self.bmesh.faces[face_index]
+        match_up = None
+        match_right = None
+
+        # First, try to use the UV to determine the up vector for this face
+        uv_layer = self.bmesh.loops.layers.uv.verify()
+        self.bmesh.faces.layers.tex.verify()
+        idx = -1
+        for loop in face.loops:
+            idx += 1
+            uv = loop[uv_layer].uv
+            uv_next = loop.link_loop_next[uv_layer].uv
+            uv_vector = uv_next - uv
+            if match_up is None:
+                if uv_vector.x == 0 and abs(uv_vector.y) > 0:
+                    is_directional = uv_vector.y > 0
+                    vtx1 = context.object.matrix_world * loop.edge.verts[0 if is_directional else 1].co
+                    vtx2 = context.object.matrix_world * loop.edge.verts[1 if is_directional else 0].co
+                    match_up = vtx2 - vtx1
+                    match_up.normalize()
+                    break
+            if match_right is None:
+                if uv_vector.y == 0 and abs(uv_vector.x) > 0:
+                    is_directional = uv_vector.x > 0
+                    vtx1 = context.object.matrix_world * loop.edge.verts[0 if is_directional else 1].co
+                    vtx2 = context.object.matrix_world * loop.edge.verts[1 if is_directional else 0].co
+                    match_right = vtx2 - vtx1
+                    match_right.normalize()
+
+        if match_up is not None:
+            return match_up
+
+        # If didn't find a match up but found match right, use right to find up
+        if match_right is not None:
+            return match_right.cross(normal)
+
+        # Find the edge of the hit face that most closely matches the view up vector
         closest_idx = -1
         closest_dot = 2.0
         edge_vectors = []
@@ -628,7 +663,7 @@ class SprytileModalTool(bpy.types.Operator):
         if hit_loc is None:
             return
 
-        face_up_vector = self.get_face_up_vector(context, face_index)
+        face_up_vector = self.get_face_up_vector(context, face_index, hit_normal)
         if face_up_vector is None:
             return
 
