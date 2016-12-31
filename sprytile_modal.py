@@ -520,6 +520,12 @@ class SprytileModalTool(bpy.types.Operator):
             if check_dot and check_coplanar:
                 self.add_virtual_cursor(hit_loc)
                 # Change UV of this face instead
+                face_up = self.get_face_up_vector(context, face_index)
+                if face_up is not None and face_up.dot(up_vector) < 0.95:
+                    data = context.scene.sprytile_data
+                    face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
+                    up_vector = face_up
+                    right_vector = face_up.cross(plane_normal)
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
