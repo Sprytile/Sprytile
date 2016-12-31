@@ -542,6 +542,10 @@ class SprytileModalTool(bpy.types.Operator):
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector):
         """Build a face at the given position"""
+        if self.bmesh is None:
+            self.refresh_mesh = True
+            return None
+
         x_dot = right_vector.dot(x_vector.normalized())
         y_dot = up_vector.dot(y_vector.normalized())
         x_positive = x_dot > 0
