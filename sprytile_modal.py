@@ -494,7 +494,7 @@ class SprytileModalTool(bpy.types.Operator):
             data = context.scene.sprytile_data
             face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
             up_vector = face_up
-            right_vector = face_up.cross(normal)
+            right_vector = up_vector.cross(normal)
 
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
@@ -508,12 +508,12 @@ class SprytileModalTool(bpy.types.Operator):
         # If raycast on the mesh, check that the hit face isn't facing
         # the same way as the plane_normal and not coplanar to target plane
         if face_index is not None:
-            check_dot = plane_normal.dot(hit_normal)
+            check_dot = abs(plane_normal.dot(hit_normal))
             check_dot -= 1
             check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-            # print("Hit face")
-            # print("Dot:", check_dot, " Coplanar", check_coplanar)
+            print("Hit face")
+            print("Dot:", check_dot, " Coplanar", check_coplanar)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
@@ -525,7 +525,8 @@ class SprytileModalTool(bpy.types.Operator):
                     data = context.scene.sprytile_data
                     face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
                     up_vector = face_up
-                    right_vector = face_up.cross(plane_normal)
+                    right_vector = up_vector.cross(plane_normal)
+                print("up", up_vector, "right", right_vector)
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
@@ -583,79 +584,84 @@ class SprytileModalTool(bpy.types.Operator):
         bmesh.update_edit_mesh(context.object.data, True, True)
 
         # Update the collision BVHTree with new data
-        self.tree = BVHTree.FromBMesh(self.bmesh)
+        self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index, normal):
+    def get_face_up_vector(self, context, face_index, face_normal):
         """Find the edge of the given face that most closely matches view up vector"""
         # Get the view up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
+
         rv3d = context.region_data
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+        view_right_vector = rv3d.view_rotation * Vector((1.0, 0.0, 0.0))
+        data = context.scene.sprytile_data
 
+        if self.bmesh is None or self.bmesh.faces is None:
+            self.refresh_mesh = True
+            return None
         face = self.bmesh.faces[face_index]
-        match_up = None
-        match_right = None
 
-        # First, try to use the UV to determine the up vector for this face
-        uv_layer = self.bmesh.loops.layers.uv.verify()
-        self.bmesh.faces.layers.tex.verify()
-        idx = -1
-        for loop in face.loops:
-            idx += 1
-            uv = loop[uv_layer].uv
-            uv_next = loop.link_loop_next[uv_layer].uv
-            uv_vector = uv_next - uv
-            if match_up is None:
-                if uv_vector.x == 0 and abs(uv_vector.y) > 0:
-                    is_directional = uv_vector.y > 0
-                    vtx1 = context.object.matrix_world * loop.edge.verts[0 if is_directional else 1].co
-                    vtx2 = context.object.matrix_world * loop.edge.verts[1 if is_directional else 0].co
-                    match_up = vtx2 - vtx1
-                    match_up.normalize()
-                    break
-            if match_right is None:
-                if uv_vector.y == 0 and abs(uv_vector.x) > 0:
-                    is_directional = uv_vector.x > 0
-                    vtx1 = context.object.matrix_world * loop.edge.verts[0 if is_directional else 1].co
-                    vtx2 = context.object.matrix_world * loop.edge.verts[1 if is_directional else 0].co
-                    match_right = vtx2 - vtx1
-                    match_right.normalize()
+        do_hint = data.paint_mode == 'PAINT' and data.paint_hinting
+        if do_hint:
+            selection = self.bmesh.select_history.active
+            if isinstance(selection, bmesh.types.BMEdge):
+                vtx1 = context.object.matrix_world * selection.verts[0].co.copy()
+                vtx2 = context.object.matrix_world * selection.verts[1].co.copy()
+                sel_vector = vtx2 - vtx1
+                sel_vector.normalize()
+                print("UV mapping hinting")
+                print("sel", sel_vector, "current right", view_right_vector)
+                if sel_vector.dot(view_right_vector) < 0:
+                    sel_vector *= -1
+                view_right_vector = sel_vector
+                view_up_vector = face_normal.cross(sel_vector)
+                print("up", view_up_vector, "right", view_right_vector)
 
-        if match_up is not None:
-            return match_up
-
-        # If didn't find a match up but found match right, use right to find up
-        if match_right is not None:
-            return match_right.cross(normal)
-
-        # Find the edge of the hit face that most closely matches the view up vector
-        closest_idx = -1
-        closest_dot = 2.0
-        edge_vectors = []
+        # Find the edge of the hit face that most closely matches
+        # the view up / view right vectors
+        closest_up = None
+        closest_up_dot = 2.0
+        closest_right = None
+        closest_right_dot = 2.0
         idx = -1
         for edge in face.edges:
             idx += 1
-            # if edge.is_boundary is False:
-            #     continue
             # Move vertices to world space
             vtx1 = context.object.matrix_world * edge.verts[0].co
             vtx2 = context.object.matrix_world * edge.verts[1].co
-            edge_vec = vtx1 - vtx2
+            edge_vec = vtx2 - vtx1
             edge_vec.normalize()
-            edge_vectors.append(edge_vec)
-            edge_dot = 1 - abs(edge_vec.dot(view_up_vector))
-            if edge_dot < closest_dot:
-                closest_dot = edge_dot
-                closest_idx = idx
+            edge_up_dot = 1 - abs(edge_vec.dot(view_up_vector))
+            edge_right_dot = 1 - abs(edge_vec.dot(view_right_vector))
+            # print(idx, edge_vec, "up dot", edge_up_dot, "right dot", edge_right_dot)
+            if edge_up_dot < 0.1 and edge_up_dot < closest_up_dot:
+                closest_up_dot = edge_up_dot
+                closest_up = edge_vec
+                # print("Setting", idx, "as closest up")
+            if edge_right_dot < 0.1 and edge_right_dot < closest_right_dot:
+                closest_right_dot = edge_right_dot
+                closest_right = edge_vec
+                # print("Setting", idx, "as closest right")
 
-        if closest_idx == -1:
-            return None
+        # print("Closest indices: up", closest_up, "right", closest_right)
+        chosen_up = None
 
-        chosen_up = edge_vectors[closest_idx]
-        if chosen_up.dot(view_up_vector) < 0:
-            chosen_up *= -1
+        if closest_up is not None:
+            if closest_up.dot(view_up_vector) < 0:
+                closest_up *= -1
+            chosen_up = closest_up
+        elif closest_right is not None:
+            if closest_right.dot(view_right_vector) < 0:
+                closest_right *= -1
+            chosen_up = face_normal.cross(closest_right)
 
+        if do_hint and closest_right is not None:
+            if closest_right.dot(view_right_vector) < 0:
+                closest_right *= -1
+            chosen_up = face_normal.cross(closest_right)
+
+        # print("Chosen up", chosen_up)
         return chosen_up
 
     def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
