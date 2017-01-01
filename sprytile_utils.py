@@ -675,13 +675,6 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "mesh_rotate")
         row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
 
-        if data.paint_mode == 'PAINT':
-            layout.prop(data, "paint_align", expand=False)
-            row = layout.row(align=True)
-            row.prop(data, "paint_stretch_x")
-            row.prop(data, "paint_stretch_y")
-
-        layout.separator()
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)

@@ -68,6 +68,14 @@ class SprytilePanel(bpy.types.Panel):
 
         layout.prop(sprytile_data, "paint_mode", expand=True)
 
+        if sprytile_data.paint_mode == 'PAINT':
+            layout.prop(sprytile_data, "paint_align", expand=False)
+            row = layout.row(align=True)
+            row.prop(sprytile_data, "paint_hinting")
+            row.prop(sprytile_data, "paint_stretch_x")
+            row.prop(sprytile_data, "paint_stretch_y")
+            layout.separator()
+
         row = layout.row(align=True)
         row.prop(sprytile_data, "normal_mode", expand=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)
