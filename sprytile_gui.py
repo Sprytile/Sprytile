@@ -113,6 +113,8 @@ class SprytileGui(bpy.types.Operator):
             elif mouse_in_region or context.scene.sprytile_ui.is_dirty:
                 is_snapping = context.scene.sprytile_data.is_snapping
                 cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
+                if context.scene.sprytile_data.paint_mode == 'MAKE_FACE':
+                    cursor_data = 'KNIFE'
                 if event.alt:
                     cursor_data = 'EYEDROPPER'
                 context.window.cursor_modal_set(cursor_data)
