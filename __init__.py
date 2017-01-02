@@ -148,6 +148,10 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     paint_stretch_y = BoolProperty(
         name="Stretch Y"
     )
+    paint_uv_snap = BoolProperty(
+        name="UV Snap",
+        default=True
+    )
 
     is_running = BoolProperty(
         name="Sprytile Running",
