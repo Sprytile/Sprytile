@@ -150,11 +150,11 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     uv_max = Vector((float('-inf'), float('-inf')))
 
     face = mesh.faces[face_index]
-    vert_origin = face .calc_center_bounds()
+    vert_origin = context.object.matrix_world * face.calc_center_bounds()
     for loop in face.loops:
         vert = loop.vert
         # Center around 0, 0
-        vert_pos = vert.co - vert_origin
+        vert_pos = (context.object.matrix_world * vert.co) - vert_origin
         # Apply flip scaling
         vert_pos = flip_matrix * vert_pos
         # Get x/y values by using the right/up vectors
@@ -512,9 +512,6 @@ class SprytileModalTool(bpy.types.Operator):
             check_dot -= 1
             check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-            print("Hit face")
-            print("Dot:", check_dot, " Coplanar", check_coplanar)
-
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
             if check_dot and check_coplanar:
@@ -526,7 +523,7 @@ class SprytileModalTool(bpy.types.Operator):
                     face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
                     up_vector = face_up
                     right_vector = up_vector.cross(plane_normal)
-                print("up", up_vector, "right", right_vector)
+                # print("up", up_vector, "right", right_vector)
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
