@@ -200,8 +200,8 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         default=(0, 0)
     )
     rotate = FloatProperty(
-        name="Grid Rotation",
-        description="Rotation of the grid",
+        name="UV Rotation",
+        description="Rotation of UV grid",
         subtype='ANGLE',
         unit='ROTATION',
         default=0.0
