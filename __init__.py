@@ -167,7 +167,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
     show_overlay = BoolProperty(
         name="Show Grid Overlay",
-        default=False
+        default=True
     )
 
 
