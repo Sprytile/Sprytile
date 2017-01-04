@@ -631,9 +631,9 @@ class SprytileModalTool(bpy.types.Operator):
                 print("sel", sel_vector, "current right", view_right_vector)
                 if sel_vector.dot(view_right_vector) < 0:
                     sel_vector *= -1
-                view_right_vector = sel_vector
+
                 view_up_vector = face_normal.cross(sel_vector)
-                print("up", view_up_vector, "right", view_right_vector)
+                return view_up_vector
 
         # Find the edge of the hit face that most closely matches
         # the view up / view right vectors
