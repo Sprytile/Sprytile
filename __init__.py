@@ -122,23 +122,23 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Cursor automatically follows mesh building",
         default=False
     )
-
     paint_align = EnumProperty(
         items=[
-            ('BOTTOM_RIGHT', "Bottom Right", "", 9),
-            ('BOTTOM_LEFT', "Bottom", "", 8),
-            ('BOTTOM_LEFT', "Bottom Left", "", 7),
-            ('RIGHT', "Right", "", 6),
-            ('CENTER', "Center", "", 5),
-            ('LEFT', "Left", "", 4),
-            ('TOP_RIGHT', "Top Right", "", 3),
-            ('TOP', "Top", "", 2),
             ('TOP_LEFT', "Top Left", "", 1),
+            ('TOP', "Top", "", 2),
+            ('TOP_RIGHT', "Top Right", "", 3),
+            ('LEFT', "Left", "", 4),
+            ('CENTER', "Center", "", 5),
+            ('RIGHT', "Right", "", 6),
+            ('BOTTOM_LEFT', "Bottom Left", "", 7),
+            ('BOTTOM_LEFT', "Bottom", "", 8),
+            ('BOTTOM_RIGHT', "Bottom Right", "", 9),
         ],
         name="Paint Align",
         description="Paint alignment mode",
         default='CENTER'
     )
+
     paint_hinting = BoolProperty(
         name="Hinting"
     )

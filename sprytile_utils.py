@@ -653,6 +653,16 @@ class SprytileResetData(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileObjectDropDown(bpy.types.Menu):
+    bl_idname = "SPRYTILE_object_drop"
+    bl_label = "Sprytile Utilites"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("sprytile.reset_sprytile")
+        layout.separator()
+
+
 class SprytileObjectPanel(bpy.types.Panel):
     bl_label = "Sprytile Tools"
     bl_idname = "sprytile.panel_object"
@@ -667,9 +677,7 @@ class SprytileObjectPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        # data = context.scene.sprytile_data
-        layout.label("Reset Sprytile")
-        layout.operator("sprytile.reset_sprytile")
+        layout.menu("SPRYTILE_object_drop")
         layout.label("Material Setup")
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
@@ -678,6 +686,17 @@ class SprytileObjectPanel(bpy.types.Panel):
         layout.separator()
         layout.label("Image Utilities")
         layout.operator("sprytile.reload_imgs")
+
+
+class SprytileWorkDropDown(bpy.types.Menu):
+    bl_idname = "SPRYTILE_work_drop"
+    bl_label = "Sprytile Utilites"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("sprytile.reset_sprytile")
+        layout.separator()
+        layout.operator("sprytile.make_double_sided")
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
@@ -714,6 +733,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "cursor_flow", toggle=True)
 
         layout.prop(data, "world_pixels")
+        layout.menu("SPRYTILE_work_drop")
         layout.operator("sprytile.reload_imgs")
 
 
