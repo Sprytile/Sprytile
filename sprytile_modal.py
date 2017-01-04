@@ -491,7 +491,7 @@ class SprytileModalTool(bpy.types.Operator):
         rv3d = context.region_data
         view_vector = rv3d.view_rotation * Vector((0.0, 0.0, -1.0))
         view_dot = view_vector.dot(normal)
-        if view_dot > -0.71:
+        if view_dot > -0.25:
             return
 
         self.add_virtual_cursor(hit_loc)
