@@ -568,15 +568,15 @@ class SprytileModalTool(bpy.types.Operator):
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector):
         """Build a face at the given position"""
-        if self.bmesh is None:
-            self.refresh_mesh = True
-            return None
 
         x_dot = right_vector.dot(x_vector.normalized())
         y_dot = up_vector.dot(y_vector.normalized())
         x_positive = x_dot > 0
         y_positive = y_dot > 0
 
+        if self.bmesh is None:
+            self.refresh_mesh = True
+            return None
         # These are in world positions
         vtx1 = self.bmesh.verts.new(position)
         vtx2 = self.bmesh.verts.new(position + y_vector)
@@ -740,6 +740,9 @@ class SprytileModalTool(bpy.types.Operator):
                 return
 
             # Found the nearest face, go to BMesh to find the nearest vertex
+            if self.bmesh is None:
+                self.refresh_mesh = True
+                return
             face = self.bmesh.faces[face_index]
             closest_vtx = -1
             closest_dist = float('inf')
