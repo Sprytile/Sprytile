@@ -798,6 +798,7 @@ class SprytileModalTool(bpy.types.Operator):
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
             if event.type in {'LEFTMOUSE', 'RIGHTMOUSE'} and event.value == 'RELEASE':
+                self.refresh_mesh = True
                 self.no_undo = False
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS' and event.alt is False
