@@ -453,6 +453,36 @@ class SprytileReloadImages(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileMakeDoubleSided(bpy.types.Operator):
+    bl_idname = "sprytile.make_double_sided"
+    bl_label = "Make Double Sided"
+    bl_description = "Duplicate selected faces and flip normals"
+
+    def execute(self, context):
+        self.invoke(context, None)
+
+    def invoke(self, context, event):
+        print("Invoked make double sided")
+        if context.object is None or (context.object.type != 'MESH' or context.object.mode != 'EDIT'):
+            print("Nope")
+            return {'FINISHED'}
+        mesh = bmesh.from_edit_mesh(context.object.data)
+        double_face = []
+        for face in mesh.faces:
+            if not face.select:
+                continue
+            double_face.append(face)
+        for face in double_face:
+            face.copy(True, True)
+            face.normal_flip()
+            face.normal_update()
+
+        mesh.faces.index_update()
+        mesh.faces.ensure_lookup_table()
+        bmesh.update_edit_mesh(context.object.data, True, True)
+        return {'FINISHED'}
+
+
 class SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
     bl_label = "Sprytile Pixel Translate"
