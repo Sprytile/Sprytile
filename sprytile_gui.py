@@ -90,7 +90,6 @@ class SprytileGui(bpy.types.Operator):
             zoom_level = self.calc_zoom(zoom_level, -1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
-        print("Final zoom", zoom_level)
         context.scene.sprytile_ui.zoom = zoom_level
 
     def calc_zoom(self, zoom, steps):
