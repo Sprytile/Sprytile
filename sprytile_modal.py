@@ -268,32 +268,33 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
         # Scale the tile to fit x
         tile_width = tile_max.x - tile_min.x
         face_width = uv_max.x - uv_min.x
-        threshold = tile_width * threshold_ratio
-        for loop in face.loops:
-            uv = loop[uv_layer].uv
-            uv.x -= tile_min.x
-            uv = Matrix.Scale(tile_width / face_width, 2, Vector((1, 0))) * uv
-            uv.x += tile_min.x
-            if abs(uv.x - tile_min.x) < threshold:
-                uv.x = tile_min.x
-            if abs(uv.x - tile_max.x) < threshold:
-                uv.x = tile_max.x
-            loop[uv_layer].uv = uv.xy
+        if face_width > 0:
+            threshold = tile_width * threshold_ratio
+            for loop in face.loops:
+                uv = loop[uv_layer].uv
+                uv.x -= tile_min.x
+                uv = Matrix.Scale(tile_width / face_width, 2, Vector((1, 0))) * uv
+                uv.x += tile_min.x
+                if abs(uv.x - tile_min.x) < threshold:
+                    uv.x = tile_min.x
+                if abs(uv.x - tile_max.x) < threshold:
+                    uv.x = tile_max.x
+                loop[uv_layer].uv = uv.xy
     if data.paint_stretch_y:
         tile_height = tile_max.y - tile_min.y
         face_height = uv_max.y - uv_min.y
-        print(tile_height, face_height)
-        threshold = tile_height * threshold_ratio
-        for loop in face.loops:
-            uv = loop[uv_layer].uv
-            uv.y -= tile_min.y
-            uv = Matrix.Scale(tile_height / face_height, 2, Vector((0, 1))) * uv
-            uv.y += tile_min.y
-            if abs(uv.y - tile_min.y) < threshold:
-                uv.y = tile_min.y
-            if abs(uv.y - tile_max.y) < threshold:
-                uv.y = tile_max.y
-            loop[uv_layer].uv = uv
+        if face_height > 0:
+            threshold = tile_height * threshold_ratio
+            for loop in face.loops:
+                uv = loop[uv_layer].uv
+                uv.y -= tile_min.y
+                uv = Matrix.Scale(tile_height / face_height, 2, Vector((0, 1))) * uv
+                uv.y += tile_min.y
+                if abs(uv.y - tile_min.y) < threshold:
+                    uv.y = tile_min.y
+                if abs(uv.y - tile_max.y) < threshold:
+                    uv.y = tile_max.y
+                loop[uv_layer].uv = uv
 
 
 class SprytileModalTool(bpy.types.Operator):
