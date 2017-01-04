@@ -150,6 +150,9 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     uv_max = Vector((float('-inf'), float('-inf')))
 
     face = mesh.faces[face_index]
+    if face.hide:
+        return None, None
+
     vert_origin = context.object.matrix_world * face.calc_center_bounds()
     for loop in face.loops:
         vert = loop.vert
