@@ -76,6 +76,7 @@ class SprytilePanel(bpy.types.Panel):
             row = layout.row(align=True)
             row.prop(sprytile_data, "paint_stretch_x")
             row.prop(sprytile_data, "paint_stretch_y")
+            row.prop(sprytile_data, "paint_edge_snap")
             layout.separator()
 
         row = layout.row(align=True)
