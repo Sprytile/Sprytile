@@ -1,7 +1,7 @@
 import bpy
 import bgl
 import blf
-from math import floor, ceil
+from math import floor, ceil, copysign
 from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
@@ -22,7 +22,6 @@ class SprytileGui(bpy.types.Operator):
     bl_label = "Sprytile GUI"
 
     mouse_pt = None
-    zoom_levels = [0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
 
     # ================
     # Modal functions
@@ -63,7 +62,7 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
 
-            context.scene.sprytile_ui.zoom = 1.0
+            self.get_zoom_level(context)
             self.prev_in_region = False
             self.handle_ui(context, event)
 
@@ -74,6 +73,63 @@ class SprytileGui(bpy.types.Operator):
             return {'RUNNING_MODAL'}
         else:
             return {'CANCELLED'}
+
+    def set_zoom_level(self, context, zoom_shift):
+        region = context.region
+        zoom_level = context.scene.sprytile_ui.zoom
+        zoom_level = self.calc_zoom(zoom_level, zoom_shift)
+        display_size = SprytileGui.display_size
+
+        calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
+        height_min = min(128, display_size[1])
+        while calc_size[1] < height_min:
+            zoom_level = self.calc_zoom(zoom_level, 1)
+            calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
+
+        while calc_size[0] > region.width or calc_size[1] > region.height:
+            zoom_level = self.calc_zoom(zoom_level, -1)
+            calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
+
+        print("Final zoom", zoom_level)
+        context.scene.sprytile_ui.zoom = zoom_level
+
+    def calc_zoom(self, zoom, steps):
+        if steps == 0:
+            return zoom
+        step = copysign(1, steps)
+        count = 0
+        while count != steps:
+            # Zooming in
+            if steps > 0:
+                if zoom >= 2.0:
+                    zoom += 0.5
+                elif zoom >= 0.25:
+                    zoom += 0.25
+                else:
+                    zoom *= 2
+            # Zooming out
+            else:
+                if zoom <= 0.25:
+                    zoom *= 0.5
+                elif zoom <= 2.0:
+                    zoom -= 0.25
+                else:
+                    zoom -= 0.5
+            count += step
+        return zoom
+
+    def get_zoom_level(self, context):
+        region = context.region
+        display_size = SprytileGui.display_size
+        target_height = region.height * 0.35
+
+        zoom_level = round(region.height / display_size[1])
+        calc_height = round(display_size[1] * zoom_level)
+        while calc_height > target_height:
+            zoom_level = self.calc_zoom(zoom_level, -1)
+            calc_height = round(display_size[1] * zoom_level)
+
+        context.scene.sprytile_ui.zoom = zoom_level
 
     def handle_ui(self, context, event):
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
@@ -127,15 +183,8 @@ class SprytileGui(bpy.types.Operator):
             return
 
         if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            new_scale = display_scale
-            new_scale += 0.2 if event.type == 'WHEELUPMOUSE' else -0.2
-            calc_size = [
-                (display_size[0] * new_scale),
-                (display_size[1] * new_scale)
-            ]
-            if calc_size[0] < 64 or calc_size[1] < 64:
-                new_scale = max(64.0 / display_size[0], 64.0 / display_size[1])
-            context.scene.sprytile_ui.zoom = new_scale
+            zoom_shift = 1 if event.type == 'WHEELUPMOUSE' else -1
+            self.set_zoom_level(context, zoom_shift)
 
         if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
