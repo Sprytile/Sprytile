@@ -153,7 +153,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if face.hide:
         return None, None
 
-    vert_origin = context.object.matrix_world * face.calc_center_bounds()
+    vert_origin = context.object.matrix_world * face.calc_center_median_weighted()
     for loop in face.loops:
         vert = loop.vert
         # Center around 0, 0
@@ -183,8 +183,13 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
 
     # In paint mode, do alignment and stretching steps
     if data.paint_mode == 'PAINT':
+        # Convert vert origin to UV space, for use with paint modify
+        uv_center = Vector((0.5, 0.5, 0.0))
+        uv_center.x *= uv_unit_x
+        uv_center.y *= uv_unit_y
+        uv_center = uv_matrix * uv_center
         uv_map_paint_modify(data, face, uv_layer, uv_matrix,
-                            uv_unit_x, uv_unit_y, uv_min, uv_max)
+                            uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center)
 
     # One final loop to snap the UVs to the pixel grid
     do_snap = data.paint_mode != 'PAINT'
@@ -225,7 +230,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     return face.index, target_grid
 
 
-def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max):
+def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center):
     paint_align = data.paint_align
     # Stretching will change how the tile will be aligned
     if data.paint_stretch_x:
@@ -264,6 +269,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
         for loop in face.loops:
             loop[uv_layer].uv += uv_offset
 
+    # Execute tile stretch
     scale_x = 1
     scale_y = 1
     tile_size = tile_max - tile_min
@@ -277,25 +283,25 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
 
     matrix_stretch = Matrix.Scale(scale_x, 2, Vector((1, 0))) * Matrix.Scale(scale_y, 2, Vector((0, 1)))
 
-    # Execute tile stretch
     threshold_ratio = 0.45
     threshold = tile_size * threshold_ratio
-    tile_center = (tile_min.xy + tile_max.xy) / 2
     for loop in face.loops:
         uv = loop[uv_layer].uv
-        uv -= tile_center
+        uv -= uv_center.xy
         uv = matrix_stretch * uv
-        uv += tile_center
-        if data.paint_edge_snap and data.paint_stretch_x:
-            if abs(uv.x - tile_min.x) < threshold.x:
-                uv.x = tile_min.x
-            if abs(uv.x - tile_max.x) < threshold.x:
-                uv.x = tile_max.x
-        if data.paint_edge_snap and data.paint_stretch_y:
-            if abs(uv.y - tile_min.y) < threshold.y:
-                uv.y = tile_min.y
-            if abs(uv.y - tile_max.y) < threshold.y:
-                uv.y = tile_max.y
+        uv += uv_center.xy
+        # uv += matrix_stretch * uv_center.xy
+        if data.paint_edge_snap:
+            if data.paint_stretch_x:
+                if abs(uv.x - tile_min.x) < threshold.x:
+                    uv.x = tile_min.x
+                if abs(uv.x - tile_max.x) < threshold.x:
+                    uv.x = tile_max.x
+            if data.paint_stretch_y:
+                if abs(uv.y - tile_min.y) < threshold.y:
+                    uv.y = tile_min.y
+                if abs(uv.y - tile_max.y) < threshold.y:
+                    uv.y = tile_max.y
         loop[uv_layer].uv = uv
 
 
@@ -804,6 +810,7 @@ class SprytileModalTool(bpy.types.Operator):
             if event.type in {'LEFTMOUSE', 'RIGHTMOUSE'} and event.value == 'RELEASE':
                 self.refresh_mesh = True
                 self.no_undo = False
+            return {'PASS_THROUGH'} if self.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS' and event.alt is False
             if self.left_down:
