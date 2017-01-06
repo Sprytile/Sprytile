@@ -418,8 +418,8 @@ class SprytileRotateLeft(bpy.types.Operator):
 
     def invoke(self, context, event):
         curr_rotation = context.scene.sprytile_data.mesh_rotate
-        curr_rotation -= 1.5708
-        if curr_rotation < -6.28319:
+        curr_rotation += 1.5708
+        if curr_rotation > 6.28319:
             curr_rotation = 0
         context.scene.sprytile_data.mesh_rotate = curr_rotation
         return {'FINISHED'}
@@ -434,8 +434,8 @@ class SprytileRotateRight(bpy.types.Operator):
 
     def invoke(self, context, event):
         curr_rotation = context.scene.sprytile_data.mesh_rotate
-        curr_rotation += 1.5708
-        if curr_rotation > 6.28319:
+        curr_rotation -= 1.5708
+        if curr_rotation < -6.28319:
             curr_rotation = 0
         context.scene.sprytile_data.mesh_rotate = curr_rotation
         return {'FINISHED'}
