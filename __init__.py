@@ -140,20 +140,25 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
     paint_hinting = BoolProperty(
-        name="Hinting"
+        name="Hinting",
+        description="Selected edge is used as X axis for UV mapping."
     )
     paint_stretch_x = BoolProperty(
-        name="Stretch X"
+        name="Stretch X",
+        description="Stretch face over X axis of tile"
     )
     paint_stretch_y = BoolProperty(
-        name="Stretch Y"
+        name="Stretch Y",
+        description="Stretch face over Y axis of tile"
     )
     paint_edge_snap = BoolProperty(
-        name="Edge Snap"
+        name="Edge Snap",
+        description="Snap UV vertices to edges of tile."
     )
     paint_uv_snap = BoolProperty(
         name="UV Snap",
-        default=True
+        default=True,
+        description="Snap UV vertices to texture pixels"
     )
 
     is_running = BoolProperty(
