@@ -153,7 +153,8 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if face.hide:
         return None, None
 
-    vert_origin = context.object.matrix_world * face.calc_center_median_weighted()
+    # vert_origin = context.object.matrix_world * face.calc_center_median_weighted()
+    vert_origin = context.object.matrix_world * face.calc_center_bounds()
     for loop in face.loops:
         vert = loop.vert
         # Center around 0, 0
@@ -252,23 +253,6 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
     tile_min = uv_matrix * Vector((0, 0, 0))
     tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
 
-    # Only do align if not center
-    if paint_align != 'CENTER':
-        # Use the recorded min/max points to calculate offset
-        uv_offset = Vector((0, 0))
-        # Calculate x offsets
-        if paint_align in {'TOP_LEFT', 'LEFT', 'BOTTOM_LEFT'}:
-            uv_offset.x = tile_min.x - uv_min.x
-        elif paint_align in {'TOP_RIGHT', 'RIGHT', 'BOTTOM_RIGHT'}:
-            uv_offset.x = tile_max.x - uv_max.x
-        # Calculate y offsets
-        if paint_align in {'TOP_LEFT', 'TOP', 'TOP_RIGHT'}:
-            uv_offset.y = tile_max.y - uv_max.y
-        if paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
-            uv_offset.y = tile_min.y - uv_min.y
-        for loop in face.loops:
-            loop[uv_layer].uv += uv_offset
-
     # Execute tile stretch
     scale_x = 1
     scale_y = 1
@@ -285,6 +269,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
 
     threshold_ratio = 0.45
     threshold = tile_size * threshold_ratio
+    tile_center = (tile_max + tile_min) / 2
     for loop in face.loops:
         uv = loop[uv_layer].uv
         uv -= uv_center.xy
@@ -302,7 +287,29 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
                     uv.y = tile_min.y
                 if abs(uv.y - tile_max.y) < threshold.y:
                     uv.y = tile_max.y
+        # Record min/max for tile alignment step
+        uv_min.x = min(uv_min.x, uv.x)
+        uv_min.y = min(uv_min.y, uv.y)
+        uv_max.x = max(uv_max.x, uv.x)
+        uv_max.y = max(uv_max.y, uv.y)
         loop[uv_layer].uv = uv
+
+    # Only do align if not center
+    if paint_align != 'CENTER':
+        # Use the recorded min/max points to calculate offset
+        uv_offset = Vector((0, 0))
+        # Calculate x offsets
+        if paint_align in {'TOP_LEFT', 'LEFT', 'BOTTOM_LEFT'}:
+            uv_offset.x = tile_min.x - uv_min.x
+        elif paint_align in {'TOP_RIGHT', 'RIGHT', 'BOTTOM_RIGHT'}:
+            uv_offset.x = tile_max.x - uv_max.x
+        # Calculate y offsets
+        if paint_align in {'TOP_LEFT', 'TOP', 'TOP_RIGHT'}:
+            uv_offset.y = tile_max.y - uv_max.y
+        if paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
+            uv_offset.y = tile_min.y - uv_min.y
+        for loop in face.loops:
+            loop[uv_layer].uv += uv_offset
 
 
 class SprytileModalTool(bpy.types.Operator):
