@@ -715,15 +715,6 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         layout = self.layout
         data = context.scene.sprytile_data
 
-        row = layout.row(align=True)
-        row.prop(data, "uv_flip_x", toggle=True)
-        row.prop(data, "uv_flip_y", toggle=True)
-
-        row = layout.row(align=True)
-        row.operator("sprytile.rotate_left", icon="TRIA_DOWN", text="")
-        row.prop(data, "mesh_rotate")
-        row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
-
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)

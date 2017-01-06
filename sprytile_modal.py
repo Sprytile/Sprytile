@@ -190,12 +190,13 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         uv_center.y *= uv_unit_y
         uv_center = uv_matrix * uv_center
         uv_map_paint_modify(data, face, uv_layer, uv_matrix,
-                            uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center)
+                            uv_unit_x, uv_unit_y, uv_min, uv_max,
+                            uv_center, Vector((pixel_uv_x, pixel_uv_y)))
 
     # One final loop to snap the UVs to the pixel grid
+    # Always snap if not in paint mode, paint mode does
+    # UV snapping in UV map paint modify function
     do_snap = data.paint_mode != 'PAINT'
-    if do_snap is False:
-        do_snap = data.paint_uv_snap
     if do_snap:
         for loop in face.loops:
             uv = loop[uv_layer].uv
@@ -231,7 +232,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     return face.index, target_grid
 
 
-def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center):
+def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
     paint_align = data.paint_align
     # Stretching will change how the tile will be aligned
     if data.paint_stretch_x:
@@ -253,7 +254,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
     tile_min = uv_matrix * Vector((0, 0, 0))
     tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
 
-    # Execute tile stretch
+    # Calculate tile stretch
     scale_x = 1
     scale_y = 1
     tile_size = tile_max - tile_min
@@ -261,20 +262,19 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
 
     if data.paint_stretch_x and face_size.x > 0:
         scale_x = tile_size.x / face_size.x
-
     if data.paint_stretch_y and face_size.y > 0:
         scale_y = tile_size.y / face_size.y
 
     matrix_stretch = Matrix.Scale(scale_x, 2, Vector((1, 0))) * Matrix.Scale(scale_y, 2, Vector((0, 1)))
 
-    threshold_ratio = 0.45
-    threshold = tile_size * threshold_ratio
+    threshold = tile_size * data.edge_threshold
     for loop in face.loops:
+        # First, apply the stretch matrix
         uv = loop[uv_layer].uv
         uv -= uv_center.xy
         uv = matrix_stretch * uv
         uv += uv_center.xy
-        # uv += matrix_stretch * uv_center.xy
+        # Next, check if want to snap to edges
         if data.paint_edge_snap:
             if data.paint_stretch_x:
                 if abs(uv.x - tile_min.x) < threshold.x:
@@ -286,6 +286,12 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
                     uv.y = tile_min.y
                 if abs(uv.y - tile_max.y) < threshold.y:
                     uv.y = tile_max.y
+        # Pixel snap now, because alignment step depends on it
+        if data.paint_uv_snap:
+            uv_pixel_x = int(round(uv.x / pixel_uv.x))
+            uv_pixel_y = int(round(uv.y / pixel_uv.y))
+            uv.x = uv_pixel_x * pixel_uv.x
+            uv.y = uv_pixel_y * pixel_uv.y
         # Record min/max for tile alignment step
         uv_min.x = min(uv_min.x, uv.x)
         uv_min.y = min(uv_min.y, uv.y)

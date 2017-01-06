@@ -158,6 +158,78 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default='CENTER'
     )
 
+    def set_align_toggle(self, value, row):
+        prev_value = self.get_align_toggle(row)
+        print(row, prev_value, value)
+        row_val = 0
+        if row == 'top':
+            row_val = 0
+        elif row == 'middle':
+            row_val = 3
+        elif row == 'bottom':
+            row_val = 6
+        else:
+            return
+        col_val = 0
+        if value[0] and prev_value[0] != value[0]:
+            col_val = 1
+        elif value[1] and prev_value[1] != value[1]:
+            col_val = 2
+        elif value[2] and prev_value[2] != value[2]:
+            col_val = 3
+        else:
+            return
+        self["paint_align"] = row_val + col_val
+
+    def set_align_top(self, value):
+        self.set_align_toggle(value, "top")
+
+    def set_align_middle(self, value):
+        self.set_align_toggle(value, "middle")
+
+    def set_align_bottom(self, value):
+        self.set_align_toggle(value, "bottom")
+
+    def get_align_toggle(self, row):
+        if "paint_align" not in self.keys():
+            self["paint_align"] = 5
+        align = self["paint_align"]
+        if row == 'top':
+            return align == 1, align == 2, align == 3
+        if row == 'middle':
+            return align == 4, align == 5, align == 6
+        if row == 'bottom':
+            return align == 7, align == 8, align == 9
+        return False, False, False
+
+    def get_align_top(self):
+        return self.get_align_toggle("top")
+
+    def get_align_middle(self):
+        return self.get_align_toggle("middle")
+
+    def get_align_bottom(self):
+        return self.get_align_toggle("bottom")
+
+    paint_align_top = BoolVectorProperty(
+        name="Align",
+        size=3,
+        set=set_align_top,
+        get=get_align_top
+    )
+    paint_align_middle = BoolVectorProperty(
+        name="Align",
+        size=3,
+        set=set_align_middle,
+        get=get_align_middle
+    )
+    paint_align_bottom = BoolVectorProperty(
+        name="Align",
+        size=3,
+        set=set_align_bottom,
+        get=get_align_bottom
+    )
+
     paint_hinting = BoolProperty(
         name="Hinting",
         description="Selected edge is used as X axis for UV mapping."
@@ -171,8 +243,18 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Stretch face over Y axis of tile"
     )
     paint_edge_snap = BoolProperty(
-        name="Edge Snap",
-        description="Snap UV vertices to edges of tile."
+        name="Stretch Edge Snap",
+        description="Snap UV vertices to edges of tile when stretching.",
+        default=True
+    )
+    edge_threshold = FloatProperty(
+        name="Threshold",
+        description="Ratio of UV tile near to edge to apply snap",
+        min=0.01,
+        max=0.5,
+        soft_min=0.01,
+        soft_max=0.5,
+        default=0.35
     )
     paint_uv_snap = BoolProperty(
         name="UV Snap",

@@ -66,26 +66,44 @@ class SprytilePanel(bpy.types.Panel):
 
         layout.prop(sprytile_data, "paint_mode", expand=True)
 
+        row = layout.row(align=True)
+        row.prop(sprytile_data, "uv_flip_x", toggle=True)
+        row.prop(sprytile_data, "uv_flip_y", toggle=True)
+
+        row = layout.row(align=True)
+        row.operator("sprytile.rotate_left", icon="TRIA_DOWN", text="")
+        row.prop(sprytile_data, "mesh_rotate")
+        row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
+
         if sprytile_data.paint_mode == 'PAINT':
-            layout.prop(sprytile_data, "paint_align", expand=False)
-            row = layout.row(align=True)
-            row.prop(sprytile_data, "paint_uv_snap")
-            row.prop(sprytile_data, "paint_hinting")
-            row = layout.row(align=True)
-            row.prop(sprytile_data, "paint_stretch_x")
-            row.prop(sprytile_data, "paint_stretch_y")
-            row.prop(sprytile_data, "paint_edge_snap")
-            layout.separator()
+
+            row = layout.row(align=False)
+            split = row.split(percentage=0.65)
+
+            left_col = split.column(align=True)
+            left_col.prop(sprytile_data, "paint_uv_snap", text="Pixel Snap")
+            left_col.prop(sprytile_data, "paint_edge_snap")
+            left_col.prop(sprytile_data, "edge_threshold")
+            left_col.prop(sprytile_data, "paint_stretch_x")
+            left_col.prop(sprytile_data, "paint_stretch_y")
+
+            right_col = split.column(align=True)
+            right_col.label(text="UV Align")
+            right_col.row(align=True).prop(sprytile_data, "paint_align_top", toggle=True, text="")
+            right_col.row(align=True).prop(sprytile_data, "paint_align_middle", toggle=True, text="")
+            right_col.row(align=True).prop(sprytile_data, "paint_align_bottom", toggle=True, text="")
+            right_col.row(align=True).prop(sprytile_data, "paint_hinting")
+
         if sprytile_data.paint_mode == 'SET_NORMAL':
             layout.prop(sprytile_data, "paint_hinting")
-            layout.separator()
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)
         row.prop(sprytile_data, "normal_mode", expand=True)
 
-        row = layout.row()
+        layout.separator()
 
+        row = layout.row()
         row.template_list("SprytileMaterialGridList", "",
                           scene.sprytile_list, "display",
                           scene.sprytile_list, "idx", rows=4)
