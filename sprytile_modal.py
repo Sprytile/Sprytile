@@ -763,6 +763,9 @@ class SprytileModalTool(bpy.types.Operator):
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
     def modal(self, context, event):
+        if context.scene.sprytile_data.is_running is False:
+            self.exit_modal(context)
+            return {'CANCELLED'}
         if event.type == 'TIMER':
             self.find_view_axis(context)
             return {'PASS_THROUGH'}
