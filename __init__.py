@@ -54,15 +54,33 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=False
     )
 
+    def set_mode(self, value):
+        run_modal = True
+        if "is_running" in self.keys():
+            if self["is_running"]:
+                run_modal = self["paint_mode"] != value
+        if run_modal:
+            bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
+        else:
+            self["is_running"] = False
+        self["paint_mode"] = value
+
+    def get_mode(self):
+        if "paint_mode" not in self.keys():
+            self["paint_mode"] = 3
+        return self["paint_mode"]
+
     paint_mode = EnumProperty(
         items=[
-            ("PAINT", "Paint", "", 1),
+            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2),
+            ("PAINT", "Paint", "Advanced UV paint tools", 1),
             ("MAKE_FACE", "Build", "Only create new faces", 3),
-            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2)
         ],
         name="Sprytile Paint Mode",
         description="Paint mode",
-        default='MAKE_FACE'
+        default='MAKE_FACE',
+        set=set_mode,
+        get=get_mode
     )
 
     world_pixels = IntProperty(
@@ -163,7 +181,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     is_running = BoolProperty(
         name="Sprytile Running",
-        description="Is Sprytile modal tool currently running"
+        description="Exit Sprytile tool"
     )
     is_snapping = BoolProperty(
         name="Is Cursor Snap",

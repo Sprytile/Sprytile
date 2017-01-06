@@ -64,8 +64,6 @@ class SprytilePanel(bpy.types.Panel):
         obj = context.object
         sprytile_data = context.scene.sprytile_data
 
-        layout.operator("sprytile.modal_tool", icon='BRUSH_DATA')
-
         layout.prop(sprytile_data, "paint_mode", expand=True)
 
         if sprytile_data.paint_mode == 'PAINT':
@@ -80,8 +78,8 @@ class SprytilePanel(bpy.types.Panel):
             layout.separator()
 
         row = layout.row(align=True)
-        row.prop(sprytile_data, "normal_mode", expand=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)
+        row.prop(sprytile_data, "normal_mode", expand=True)
 
         row = layout.row()
 
