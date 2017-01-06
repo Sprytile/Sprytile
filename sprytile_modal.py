@@ -761,6 +761,8 @@ class SprytileModalTool(bpy.types.Operator):
             if self.bmesh is None:
                 self.refresh_mesh = True
                 return
+            if face_index >= len(self.bmesh.faces) or face_index < 0:
+                return
             face = self.bmesh.faces[face_index]
             closest_vtx = -1
             closest_dist = float('inf')
