@@ -455,7 +455,7 @@ class SprytileReloadImages(bpy.types.Operator):
 
 class SprytileMakeDoubleSided(bpy.types.Operator):
     bl_idname = "sprytile.make_double_sided"
-    bl_label = "Make Double Sided"
+    bl_label = "Make Double Sided (Sprytile)"
     bl_description = "Duplicate selected faces and flip normals"
 
     def execute(self, context):
@@ -485,7 +485,7 @@ class SprytileMakeDoubleSided(bpy.types.Operator):
 
 class SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
-    bl_label = "Sprytile Pixel Translate"
+    bl_label = "Pixel Translate (Sprytile)"
 
     @staticmethod
     def draw_callback(self, context):
