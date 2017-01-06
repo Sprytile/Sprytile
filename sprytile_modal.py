@@ -763,16 +763,18 @@ class SprytileModalTool(bpy.types.Operator):
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
     def modal(self, context, event):
+        do_exit = False
         if context.scene.sprytile_data.is_running is False:
+            do_exit = True
+        if context.object.mode != 'EDIT':
+            do_exit = True
+        if do_exit:
             self.exit_modal(context)
             return {'CANCELLED'}
+
         if event.type == 'TIMER':
             self.find_view_axis(context)
             return {'PASS_THROUGH'}
-
-        if context.object.mode != 'EDIT':
-            self.exit_modal(context)
-            return {'CANCELLED'}
 
         if self.refresh_mesh:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
