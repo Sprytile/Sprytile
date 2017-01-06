@@ -76,6 +76,9 @@ class SprytilePanel(bpy.types.Panel):
             row.prop(sprytile_data, "paint_stretch_y")
             row.prop(sprytile_data, "paint_edge_snap")
             layout.separator()
+        if sprytile_data.paint_mode == 'SET_NORMAL':
+            layout.prop(sprytile_data, "paint_hinting")
+            layout.separator()
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)

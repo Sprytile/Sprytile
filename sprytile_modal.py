@@ -269,7 +269,6 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
 
     threshold_ratio = 0.45
     threshold = tile_size * threshold_ratio
-    tile_center = (tile_max + tile_min) / 2
     for loop in face.loops:
         uv = loop[uv_layer].uv
         uv -= uv_center.xy
@@ -634,7 +633,7 @@ class SprytileModalTool(bpy.types.Operator):
             return None
         face = self.bmesh.faces[face_index]
 
-        do_hint = data.paint_mode == 'PAINT' and data.paint_hinting
+        do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
             selection = self.bmesh.select_history.active
             if isinstance(selection, bmesh.types.BMEdge):
