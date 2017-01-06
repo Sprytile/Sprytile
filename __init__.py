@@ -58,11 +58,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         run_modal = True
         if "is_running" in self.keys():
             if self["is_running"]:
-                run_modal = self["paint_mode"] != value
+                if self["paint_mode"] == value:
+                    self["is_running"] = False
+                    run_modal = False
+
         if run_modal:
             bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
-        else:
-            self["is_running"] = False
         self["paint_mode"] = value
 
     def get_mode(self):
