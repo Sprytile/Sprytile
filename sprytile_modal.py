@@ -874,9 +874,6 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type == 'ESC':
             self.exit_modal(context)
             return {'CANCELLED'}
-        if event.type == 'X' and event.value == 'PRESS':
-            bpy.ops.mesh.delete()
-            self.refresh_mesh = True
         if event.type == 'S':
             last_snap = context.scene.sprytile_data.is_snapping
             new_snap = event.value == 'PRESS'
@@ -965,7 +962,7 @@ class SprytileModalTool(bpy.types.Operator):
             },
             'Mesh': {
                 "ids": ['mesh.select_all', 'mesh.hide', 'mesh.reveal', 'mesh.edge_face_add'],
-                "prop": ['VIEW3D_MT_edit_mesh_select_mode']
+                "prop": ['VIEW3D_MT_edit_mesh_select_mode', 'VIEW3D_MT_edit_mesh_delete']
             },
             '3D View': {
                 "ids": ['view3d.select_circle', 'transform.rotate'],
