@@ -197,7 +197,7 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     # Always snap if not in paint mode, paint mode does
     # UV snapping in UV map paint modify function
     do_snap = data.paint_mode != 'PAINT'
-    if do_snap:
+    if do_snap and pixel_uv_x > 0 and pixel_uv_y > 0:
         for loop in face.loops:
             uv = loop[uv_layer].uv
             uv_pixel_x = int(round(uv.x / pixel_uv_x))
@@ -287,7 +287,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
                 if abs(uv.y - tile_max.y) < threshold.y:
                     uv.y = tile_max.y
         # Pixel snap now, because alignment step depends on it
-        if data.paint_uv_snap:
+        if data.paint_uv_snap and pixel_uv.x > 0 and pixel_uv.y > 0:
             uv_pixel_x = int(round(uv.x / pixel_uv.x))
             uv_pixel_y = int(round(uv.y / pixel_uv.y))
             uv.x = uv_pixel_x * pixel_uv.x
