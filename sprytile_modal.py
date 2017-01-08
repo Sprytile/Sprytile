@@ -992,6 +992,7 @@ class SprytileModalTool(bpy.types.Operator):
                 "prop": [
                     'VIEW3D_MT_edit_mesh_select_mode',
                     'VIEW3D_MT_edit_mesh_delete',
+                    'VIEW3D_MT_edit_mesh_edges'
                 ]
             },
             '3D View': {
