@@ -980,8 +980,19 @@ class SprytileModalTool(bpy.types.Operator):
                 "ids": ['ed.undo', 'ed.redo']
             },
             'Mesh': {
-                "ids": ['mesh.select_all', 'mesh.hide', 'mesh.reveal', 'mesh.edge_face_add'],
-                "prop": ['VIEW3D_MT_edit_mesh_select_mode', 'VIEW3D_MT_edit_mesh_delete']
+                "ids": [
+                    'mesh.select_all',
+                    'mesh.hide',
+                    'mesh.reveal',
+                    'mesh.edge_face_add',
+                    'mesh.knife_tool',
+                    'mesh.loopcut_slide',
+                    'view3d.edit_mesh_extrude_move_normal',
+                ],
+                "prop": [
+                    'VIEW3D_MT_edit_mesh_select_mode',
+                    'VIEW3D_MT_edit_mesh_delete',
+                ]
             },
             '3D View': {
                 "ids": ['view3d.select_circle', 'transform.rotate'],
