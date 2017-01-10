@@ -323,7 +323,18 @@ class SprytileModalTool(bpy.types.Operator):
     bl_label = "Sprytile Paint"
     bl_options = {'REGISTER'}
 
+    modal_map = bpy.props.EnumProperty(
+        items=[
+            ("SNAP", "Snap Cursor", "", 1),
+            ("FOCUS", "Focus on Cursor", "", 2),
+            ("ROTATE_LEFT", "Rotate Left", "", 3),
+            ("ROTATE_RIGHT", "Rotate Right", "", 4),
+        ],
+        name="Sprytile Paint Modal Map"
+    )
+
     keymaps = {}
+    modal_values = []
 
     def find_view_axis(self, context):
         scene = context.scene
@@ -856,15 +867,18 @@ class SprytileModalTool(bpy.types.Operator):
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
+        def keymap_is_evt(kmi, evt):
+            is_mapped_key = kmi.type == event.type and \
+                            kmi.value in {event.value, 'ANY'} and \
+                            kmi.ctrl is event.ctrl and \
+                            kmi.alt is event.alt and \
+                            kmi.shift is event.shift
+            return is_mapped_key
+
         # Check if the event matches any of the keymap
         # entries we're interested in. If it is, pass the event through
         for keymap_item in self.user_keys:
-            is_mapped_key = keymap_item.type == event.type and\
-                            keymap_item.value == event.value and\
-                            keymap_item.ctrl is event.ctrl and\
-                            keymap_item.alt is event.alt and\
-                            keymap_item.shift is event.shift
-            if is_mapped_key:
+            if keymap_is_evt(keymap_item, event):
                 # If intercepted undo/redo, will want to refresh mesh
                 self.refresh_mesh = True
                 return {'PASS_THROUGH'}
@@ -873,13 +887,7 @@ class SprytileModalTool(bpy.types.Operator):
         for key_intercept in self.intercept_keys:
             key = key_intercept[0]
             arg = key_intercept[1]
-            is_mapped_key = key.type == event.type and\
-                key.value == event.value and\
-                key.ctrl is event.ctrl and\
-                key.alt is event.alt and\
-                key.shift is event.shift
-
-            if not is_mapped_key:
+            if not keymap_is_evt(key, event):
                 continue
             # print("Special key is", arg)
             if arg == 'move_sel':
@@ -890,21 +898,46 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'PASS_THROUGH'}
 
         sprytile_data = context.scene.sprytile_data
-        if event.type == 'ESC':
-            self.exit_modal(context)
-            return {'CANCELLED'}
-        if event.type == 'S':
-            last_snap = context.scene.sprytile_data.is_snapping
-            new_snap = event.value == 'PRESS'
-            sprytile_data.is_snapping = new_snap
-            # Ask UI to redraw snapping changed
-            context.scene.sprytile_ui.is_dirty = last_snap != new_snap
-        if event.type == 'Q' and event.value == 'PRESS':
-            bpy.ops.sprytile.rotate_left()
-        if event.type == 'D' and event.value == 'PRESS':
-            bpy.ops.sprytile.rotate_right()
-        elif event.type == 'W' and event.value == 'PRESS':
-            bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
+        # Hack to use modal keymap
+        for keymap, kmi_list in self.keymaps.items():
+            if not keymap.is_modal:
+                continue
+            for kmi_idx, keymap_item in enumerate(kmi_list):
+                if keymap_is_evt(keymap_item, event):
+                    modal_evt = self.modal_values[kmi_idx]
+                    print(event.type, modal_evt)
+                    if modal_evt == 'Cancel':
+                        self.exit_modal(context)
+                        return {'CANCELLED'}
+                    elif modal_evt == 'Cursor Snap':
+                        last_snap = context.scene.sprytile_data.is_snapping
+                        new_snap = event.value == 'PRESS'
+                        sprytile_data.is_snapping = new_snap
+                        # Ask UI to redraw snapping changed
+                        context.scene.sprytile_ui.is_dirty = last_snap != new_snap
+                    elif modal_evt == 'Cursor Focus':
+                        bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
+                    elif modal_evt == 'Rotate Left':
+                        bpy.ops.sprytile.rotate_left()
+                    elif modal_evt == 'Rotate Right':
+                        bpy.ops.sprytile.rotate_right()
+
+
+        # if event.type == 'ESC':
+        #     self.exit_modal(context)
+        #     return {'CANCELLED'}
+        # if event.type == 'S':
+        #     last_snap = context.scene.sprytile_data.is_snapping
+        #     new_snap = event.value == 'PRESS'
+        #     sprytile_data.is_snapping = new_snap
+        #     # Ask UI to redraw snapping changed
+        #     context.scene.sprytile_ui.is_dirty = last_snap != new_snap
+        # if event.type == 'Q' and event.value == 'PRESS':
+        #     bpy.ops.sprytile.rotate_left()
+        # if event.type == 'D' and event.value == 'PRESS':
+        #     bpy.ops.sprytile.rotate_right()
+        # elif event.type == 'W' and event.value == 'PRESS':
+        #     bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
 
         return None
 

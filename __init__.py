@@ -460,14 +460,22 @@ def setup_keymap():
         keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
     ]
 
-    # keymap = key_config.keymaps.new(name='sprytile.modal_keys', space_type='EMPTY', region_type='WINDOW', modal=True)
-    # km_items = keymap.keymap_items
-    # km_array[keymap] = [
-    #     km_items.new_modal('SNAP', 'S', 'PRESS'),
-    #     km_items.new_modal('FOCUS', 'W', 'PRESS'),
-    #     km_items.new_modal('ROTATE_LEFT', 'Q', 'PRESS'),
-    #     km_items.new_modal('ROTATE_RIGHT', 'E', 'PRESS')
-    # ]
+    keymap = key_config.keymaps.new(name="Sprytile Paint Modal Map", space_type='EMPTY', region_type='WINDOW', modal=True)
+    km_items = keymap.keymap_items
+    km_array[keymap] = [
+        km_items.new_modal('CANCEL', 'ESC', 'PRESS'),
+        km_items.new_modal('SNAP', 'S', 'ANY'),
+        km_items.new_modal('FOCUS', 'W', 'PRESS'),
+        km_items.new_modal('ROTATE_LEFT', 'ONE', 'PRESS'),
+        km_items.new_modal('ROTATE_RIGHT', 'TWO', 'PRESS')
+    ]
+    sprytile_modal.SprytileModalTool.modal_values = [
+        'Cancel',
+        'Cursor Snap',
+        'Cursor Focus',
+        'Rotate Left',
+        'Rotate Right'
+    ]
 
 
 def teardown_keymap():
