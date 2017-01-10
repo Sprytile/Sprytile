@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (2, 7, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
@@ -160,7 +160,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     def set_align_toggle(self, value, row):
         prev_value = self.get_align_toggle(row)
-        print(row, prev_value, value)
         row_val = 0
         if row == 'top':
             row_val = 0
