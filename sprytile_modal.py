@@ -984,7 +984,7 @@ class SprytileModalTool(bpy.types.Operator):
 
             context.scene.sprytile_ui.is_dirty = True
 
-            bpy.ops.sprytile.gui_win('INVOKE_DEFAULT')
+            bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
