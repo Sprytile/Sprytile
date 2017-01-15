@@ -907,8 +907,9 @@ class SprytileModalTool(bpy.types.Operator):
                     modal_evt = self.modal_values[kmi_idx]
                     print(event.type, modal_evt)
                     if modal_evt == 'Cancel':
-                        self.exit_modal(context)
-                        return {'CANCELLED'}
+                        context.scene.sprytile_data.is_running = False
+                        # self.exit_modal(context)
+                        # return {'CANCELLED'}
                     elif modal_evt == 'Cursor Snap':
                         last_snap = context.scene.sprytile_data.is_snapping
                         new_snap = event.value == 'PRESS'
@@ -921,24 +922,6 @@ class SprytileModalTool(bpy.types.Operator):
                         bpy.ops.sprytile.rotate_left()
                     elif modal_evt == 'Rotate Right':
                         bpy.ops.sprytile.rotate_right()
-
-
-        # if event.type == 'ESC':
-        #     self.exit_modal(context)
-        #     return {'CANCELLED'}
-        # if event.type == 'S':
-        #     last_snap = context.scene.sprytile_data.is_snapping
-        #     new_snap = event.value == 'PRESS'
-        #     sprytile_data.is_snapping = new_snap
-        #     # Ask UI to redraw snapping changed
-        #     context.scene.sprytile_ui.is_dirty = last_snap != new_snap
-        # if event.type == 'Q' and event.value == 'PRESS':
-        #     bpy.ops.sprytile.rotate_left()
-        # if event.type == 'D' and event.value == 'PRESS':
-        #     bpy.ops.sprytile.rotate_right()
-        # elif event.type == 'W' and event.value == 'PRESS':
-        #     bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
-
         return None
 
     def execute(self, context):
