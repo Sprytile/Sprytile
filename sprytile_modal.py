@@ -837,7 +837,8 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
-            if event.type in {'LEFTMOUSE', 'RIGHTMOUSE'} and event.value == 'RELEASE':
+            clear_types = {'LEFTMOUSE', 'RIGHTMOUSE', 'INBETWEEN_MOUSEMOVE', 'MOUSEMOVE'}
+            if event.type in clear_types and event.value == 'RELEASE':
                 self.refresh_mesh = True
                 self.no_undo = False
             return {'PASS_THROUGH'} if self.no_undo else {'RUNNING_MODAL'}
