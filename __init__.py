@@ -54,6 +54,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=False
     )
 
+    snap_translate = BoolProperty(
+        name="Snap Translate",
+        description="Snap pixel translations to pixel grid",
+        default=True
+    )
+
     def set_mode(self, value):
         run_modal = True
         if "is_running" in self.keys():

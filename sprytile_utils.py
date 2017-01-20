@@ -643,23 +643,24 @@ class SprytileGridTranslate(bpy.types.Operator):
                 bpy.ops.transform.translate(value=offset)
 
         # Loop through the selected of the bmesh
-        for sel in self.bmesh.select_history:
-            vert_list = []
-            if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
-                for vert in sel.verts:
-                    vert_list.append(vert)
-            if isinstance(sel, BMVert):
-                vert_list.append(sel)
-            cursor_pos = context.scene.cursor_location
-            for vert in vert_list:
-                vert_offset = vert.co - cursor_pos
-                vert_int = Vector((
-                            int(round(vert_offset.x / pixel_unit)),
-                            int(round(vert_offset.y / pixel_unit)),
-                            int(round(vert_offset.z / pixel_unit))
-                            ))
-                new_vert_pos = cursor_pos + (vert_int * pixel_unit)
-                vert.co = new_vert_pos
+        if context.scene.sprytile_data.snap_translate:
+            for sel in self.bmesh.select_history:
+                vert_list = []
+                if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
+                    for vert in sel.verts:
+                        vert_list.append(vert)
+                if isinstance(sel, BMVert):
+                    vert_list.append(sel)
+                cursor_pos = context.scene.cursor_location
+                for vert in vert_list:
+                    vert_offset = vert.co - cursor_pos
+                    vert_int = Vector((
+                                int(round(vert_offset.x / pixel_unit)),
+                                int(round(vert_offset.y / pixel_unit)),
+                                int(round(vert_offset.z / pixel_unit))
+                                ))
+                    new_vert_pos = cursor_pos + (vert_int * pixel_unit)
+                    vert.co = new_vert_pos
 
         self.bmesh = None
         bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'WINDOW')
@@ -708,6 +709,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         layout.separator()
         layout.operator("sprytile.add_new_material")
         layout.separator()
+        layout.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
         layout.label("Image Utilities")
         layout.operator("sprytile.reload_imgs")
 
@@ -747,6 +749,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="CURSOR")
         row.prop(data, "cursor_flow", toggle=True)
 
+        layout.prop(data, "snap_translate", toggle=True)
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
         layout.operator("sprytile.reload_imgs")
