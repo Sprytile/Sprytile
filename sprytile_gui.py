@@ -223,6 +223,7 @@ class SprytileGui(bpy.types.Operator):
         # Cycle through grids on same material when right click
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
             bpy.ops.sprytile.grid_cycle()
+            self.label_counter = SprytileGui.label_frames
 
     # ==================
     # Actual GUI drawing
