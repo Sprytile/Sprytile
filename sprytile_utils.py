@@ -174,6 +174,8 @@ class SprytileGridCycle(bpy.types.Operator):
     bl_idname = "sprytile.grid_cycle"
     bl_label = "Cycle grid settings"
 
+    direction = bpy.props.IntProperty(default=1)
+
     def execute(self, context):
         return self.invoke(context, None)
 
@@ -181,8 +183,7 @@ class SprytileGridCycle(bpy.types.Operator):
         self.cycle_grid(context)
         return {'FINISHED'}
 
-    @staticmethod
-    def cycle_grid(context):
+    def cycle_grid(self, context):
         obj = context.object
         curr_grid = get_grid(context, obj.sprytile_gridid)
         if curr_grid is None:
@@ -198,7 +199,9 @@ class SprytileGridCycle(bpy.types.Operator):
             if grid.id == curr_grid.id:
                 break
 
-        idx += 1
+        idx += self.direction
+        if idx < 0:
+            idx = len(curr_mat.grids)-1
         if idx >= len(curr_mat.grids):
             idx = 0
 
