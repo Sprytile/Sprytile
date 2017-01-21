@@ -954,7 +954,11 @@ class SprytileModalTool(bpy.types.Operator):
                 self.report({'WARNING'}, "No valid materials")
                 return {'CANCELLED'}
 
-            if obj.sprytile_gridid == -1:
+            use_default_grid_id = obj.sprytile_gridid == -1
+            if sprytile_utils.get_grid(context, obj.sprytile_gridid) is None:
+                use_default_grid_id = True
+
+            if use_default_grid_id:
                 obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
 
             if context.space_data.viewport_shade != 'MATERIAL':
