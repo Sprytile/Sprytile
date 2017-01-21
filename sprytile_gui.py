@@ -184,8 +184,11 @@ class SprytileGui(bpy.types.Operator):
             return
 
         if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            zoom_shift = 1 if event.type == 'WHEELUPMOUSE' else -1
-            self.set_zoom_level(context, zoom_shift)
+            if event.ctrl is False:
+                zoom_shift = 1 if event.type == 'WHEELUPMOUSE' else -1
+                self.set_zoom_level(context, zoom_shift)
+            else:
+                bpy.ops.sprytile.grid_cycle('INVOKE_REGION_WIN', direction=1 if event.type == 'WHEELDOWNMOUSE' else -1)
 
         if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
