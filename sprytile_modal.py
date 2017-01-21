@@ -592,6 +592,17 @@ class SprytileModalTool(bpy.types.Operator):
             right_vector = up_vector.cross(plane_normal)
 
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+
+        self.bmesh.faces[face_index].select = True
+
+        threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
+        bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+
+        for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+            el.index_update()
+            el.ensure_lookup_table()
+        self.bmesh.faces[face_index].select = False
+
         if scene.sprytile_data.cursor_flow:
             self.flow_cursor(context, face_index, plane_cursor)
 
@@ -626,8 +637,9 @@ class SprytileModalTool(bpy.types.Operator):
         face = self.bmesh.faces.new(face_order)
         face.normal_update()
 
-        self.bmesh.faces.index_update()
-        self.bmesh.faces.ensure_lookup_table()
+        for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+            el.index_update()
+            el.ensure_lookup_table()
 
         bmesh.update_edit_mesh(context.object.data, True, True)
 
