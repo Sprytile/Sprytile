@@ -849,8 +849,10 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
+            # print("No undo flag is on", event.type, event.value)
             clear_types = {'LEFTMOUSE', 'RIGHTMOUSE', 'INBETWEEN_MOUSEMOVE', 'MOUSEMOVE'}
             if event.type in clear_types and event.value == 'RELEASE':
+                # print("Clearing no undo")
                 self.refresh_mesh = True
                 self.no_undo = False
             return {'PASS_THROUGH'} if self.no_undo else {'RUNNING_MODAL'}
@@ -875,11 +877,13 @@ class SprytileModalTool(bpy.types.Operator):
             in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
             if in_region and not gui_use_mouse:
                 return {'PASS_THROUGH'}
-            print("Right mouse did not pass")
         return None
 
     def handle_keys(self, context, event):
         """Process keyboard presses"""
+        if event.type not in self.is_keyboard_list:
+            return None
+
         def keymap_is_evt(kmi, evt):
             is_mapped_key = kmi.type == event.type and \
                             kmi.value in {event.value, 'ANY'} and \
@@ -888,15 +892,7 @@ class SprytileModalTool(bpy.types.Operator):
                             kmi.shift is event.shift
             return is_mapped_key
 
-        # Check if the event matches any of the keymap
-        # entries we're interested in. If it is, pass the event through
-        for keymap_item in self.user_keys:
-            if keymap_is_evt(keymap_item, event):
-                # If intercepted undo/redo, will want to refresh mesh
-                self.refresh_mesh = True
-                return {'PASS_THROUGH'}
-
-        # Now process intercepts for special keymaps
+        # Process intercepts for special keymaps
         for key_intercept in self.intercept_keys:
             key = key_intercept[0]
             arg = key_intercept[1]
@@ -905,6 +901,7 @@ class SprytileModalTool(bpy.types.Operator):
             # print("Special key is", arg)
             if arg == 'move_sel':
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
+                # print("Setting no undo, moving")
                 self.no_undo = True
                 return None
             if arg == 'sel_mesh':
@@ -912,6 +909,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         sprytile_data = context.scene.sprytile_data
         # Hack to use modal keymap
+        used_key = False
         for keymap, kmi_list in self.keymaps.items():
             if not keymap.is_modal:
                 continue
@@ -921,21 +919,29 @@ class SprytileModalTool(bpy.types.Operator):
                     print(event.type, modal_evt)
                     if modal_evt == 'Cancel':
                         context.scene.sprytile_data.is_running = False
-                        # self.exit_modal(context)
-                        # return {'CANCELLED'}
+                        used_key = True
                     elif modal_evt == 'Cursor Snap':
                         last_snap = context.scene.sprytile_data.is_snapping
                         new_snap = event.value == 'PRESS'
                         sprytile_data.is_snapping = new_snap
                         # Ask UI to redraw snapping changed
                         context.scene.sprytile_ui.is_dirty = last_snap != new_snap
+                        used_key = True
                     elif modal_evt == 'Cursor Focus':
                         bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
+                        used_key = True
                     elif modal_evt == 'Rotate Left':
                         bpy.ops.sprytile.rotate_left()
+                        used_key = True
                     elif modal_evt == 'Rotate Right':
                         bpy.ops.sprytile.rotate_right()
-        return None
+                        used_key = True
+        # Key event used by fake modal map, return none
+        if used_key:
+            return None
+        # Pass through every key event we don't handle ourselves
+        self.refresh_mesh = True
+        return {'PASS_THROUGH'}
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -992,7 +998,20 @@ class SprytileModalTool(bpy.types.Operator):
 
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
-        self.user_keys = []
+        self.is_keyboard_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+                                'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
+                                'SIX', 'SEVEN', 'EIGHT', 'NINE', 'LEFT_CTRL', 'LEFT_ALT', 'LEFT_SHIFT', 'RIGHT_ALT',
+                                'RIGHT_CTRL', 'RIGHT_SHIFT', 'OSKEY', 'GRLESS', 'ESC', 'TAB', 'RET', 'SPACE',
+                                'LINE_FEED', 'BACK_SPACE', 'DEL', 'SEMI_COLON', 'PERIOD', 'COMMA', 'QUOTE',
+                                'ACCENT_GRAVE', 'MINUS', 'SLASH', 'BACK_SLASH', 'EQUAL', 'LEFT_BRACKET',
+                                'RIGHT_BRACKET', 'LEFT_ARROW', 'DOWN_ARROW', 'RIGHT_ARROW', 'UP_ARROW',
+                                'NUMPAD_2', 'NUMPAD_4', 'NUMPAD_6', 'NUMPAD_8', 'NUMPAD_1', 'NUMPAD_3', 'NUMPAD_5',
+                                'NUMPAD_7', 'NUMPAD_9', 'NUMPAD_PERIOD', 'NUMPAD_SLASH', 'NUMPAD_ASTERIX', 'NUMPAD_0',
+                                'NUMPAD_MINUS', 'NUMPAD_ENTER', 'NUMPAD_PLUS',
+                                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13',
+                                'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'PAUSE', 'INSERT', 'HOME', 'PAGE_UP',
+                                'PAGE_DOWN', 'END', 'MEDIA_PLAY', 'MEDIA_STOP', 'MEDIA_FIRST', 'MEDIA_LAST']
+
         self.intercept_keys = []
 
         user_keymaps = context.window_manager.keyconfigs.user.keymaps
@@ -1007,57 +1026,7 @@ class SprytileModalTool(bpy.types.Operator):
                 return True, None
             return True, key_list[cmd_idx]
 
-        # These keymaps are passed through blender
-        keymap_pass_through = {
-            'Screen': {
-                "ids": ['ed.undo', 'ed.redo']
-            },
-            'Mesh': {
-                "ids": [
-                    'mesh.split',
-                    'mesh.select_all',
-                    'mesh.hide',
-                    'mesh.reveal',
-                    'mesh.edge_face_add',
-                    'mesh.knife_tool',
-                    'mesh.loopcut_slide',
-                    'view3d.edit_mesh_extrude_move_normal',
-                ],
-                "prop": [
-                    'VIEW3D_MT_edit_mesh_select_mode',
-                    'VIEW3D_MT_edit_mesh_delete',
-                    'VIEW3D_MT_edit_mesh_edges'
-                ]
-            },
-            '3D View': {
-                "ids": ['view3d.select_circle', 'transform.rotate'],
-                "prop": ['VIEW3D_MT_snap']
-            },
-            'Object Non-modal': {
-                "ids": ['object.mode_set']
-            }
-        }
-        for keymap_id in keymap_pass_through:
-            keymap = user_keymaps[keymap_id]
-            if keymap is None:
-                continue
-            cmd_list = keymap_pass_through[keymap_id]
-            for kmi in keymap.keymap_items.values():
-                if "ids" in cmd_list:
-                    if kmi.idname in cmd_list["ids"]:
-                        self.user_keys.append(kmi)
-                        continue
-                if "prop" not in cmd_list:
-                    continue
-                if kmi.properties is None:
-                    continue
-                if 'name' not in kmi.properties:
-                    continue
-                if kmi.properties.name in cmd_list["prop"]:
-                    self.user_keys.append(kmi)
-
-        # These keymaps intercept existing shortcuts
-        # and repurpose them
+        # These keymaps intercept existing shortcuts and repurpose them
         keymap_intercept = {
             '3D View': [
                 ('view3d.select_circle', 'sel_mesh'),
