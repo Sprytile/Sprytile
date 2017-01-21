@@ -1010,6 +1010,7 @@ class SprytileModalTool(bpy.types.Operator):
             },
             'Mesh': {
                 "ids": [
+                    'mesh.split',
                     'mesh.select_all',
                     'mesh.hide',
                     'mesh.reveal',
