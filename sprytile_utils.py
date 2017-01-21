@@ -603,7 +603,7 @@ class SprytileGridTranslate(bpy.types.Operator):
         # Countdown the frames passed through the timer. For some reason
         # the translate tool will not use the new grid scale if we switch
         # over immediately to translate.
-        self.exec_counter = 2
+        self.exec_counter = 10
 
         # Save the bmesh, and reference position
         self.bmesh = None
