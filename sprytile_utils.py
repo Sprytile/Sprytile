@@ -218,10 +218,10 @@ class SprytileGridMove(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
-        self.cycle_grid(context)
+        self.move_grid(context)
         return {'FINISHED'}
 
-    def cycle_grid(self, context):
+    def move_grid(self, context):
         obj = context.object
         curr_grid = get_grid(context, obj.sprytile_gridid)
         if curr_grid is None:
@@ -240,11 +240,12 @@ class SprytileGridMove(bpy.types.Operator):
         old_idx = idx
         idx = old_idx + self.direction
         if idx < 0:
-            return
+            idx = len(curr_mat.grids)-1
         if idx >= len(curr_mat.grids):
-            return
+            idx = 0
 
         curr_mat.grids.move(old_idx, idx)
+        obj.sprytile_gridid = curr_mat.grids[idx].id
         bpy.ops.sprytile.build_grid_list()
 
 
