@@ -112,6 +112,9 @@ class SprytilePanel(bpy.types.Panel):
         col.operator("sprytile.grid_add", icon='ZOOMIN', text="")
         col.operator("sprytile.grid_remove", icon='ZOOMOUT', text="")
         col.menu("SPRYTILE_grid_drop", icon='DOWNARROW_HLT', text="")
+        col.separator()
+        col.operator("sprytile.grid_move", icon='TRIA_UP', text="").direction = -1
+        col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="").direction = 1
 
         if len(scene.sprytile_mats) == 0:
             return
@@ -119,8 +122,6 @@ class SprytilePanel(bpy.types.Panel):
         selected_grid = sprytile_utils.get_grid(context, obj.sprytile_gridid)
         if selected_grid is None:
             return
-
-        # layout.label("Tile Grid Settings", icon='GRID')
 
         layout.prop(selected_grid, "grid", text="Grid Size")
 

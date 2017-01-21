@@ -208,6 +208,45 @@ class SprytileGridCycle(bpy.types.Operator):
         obj.sprytile_gridid = curr_mat.grids[idx].id
         bpy.ops.sprytile.build_grid_list()
 
+class SprytileGridMove(bpy.types.Operator):
+    bl_idname = "sprytile.grid_move"
+    bl_label = "Move Grid"
+
+    direction = bpy.props.IntProperty(default=1)
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.cycle_grid(context)
+        return {'FINISHED'}
+
+    def cycle_grid(self, context):
+        obj = context.object
+        curr_grid = get_grid(context, obj.sprytile_gridid)
+        if curr_grid is None:
+            return
+
+        curr_mat = get_mat_data(context, curr_grid.mat_id)
+        if curr_mat is None:
+            return
+
+        idx = -1
+        for grid in curr_mat.grids:
+            idx += 1
+            if grid.id == curr_grid.id:
+                break
+
+        old_idx = idx
+        idx = old_idx + self.direction
+        if idx < 0:
+            return
+        if idx >= len(curr_mat.grids):
+            return
+
+        curr_mat.grids.move(old_idx, idx)
+        bpy.ops.sprytile.build_grid_list()
+
 
 class SprytileNewMaterial(bpy.types.Operator):
     bl_idname = "sprytile.add_new_material"
