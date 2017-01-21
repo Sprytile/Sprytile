@@ -22,6 +22,7 @@ class SprytileGui(bpy.types.Operator):
     bl_label = "Sprytile GUI"
 
     mouse_pt = None
+    label_frames = 50
 
     # ================
     # Modal functions
@@ -33,8 +34,13 @@ class SprytileGui(bpy.types.Operator):
     def modal(self, context, event):
         if context.scene.sprytile_data.is_running is False:
             SprytileGui.handler_remove(self, context)
+            context.window_manager.event_timer_remove(self.timer)
             context.area.tag_redraw()
             return {'CANCELLED'}
+
+        if event.type == 'TIMER':
+            if self.label_counter > 0:
+                self.label_counter -= 1
 
         # Check if current_grid is different from current sprytile grid
         if context.object.sprytile_gridid != SprytileGui.current_grid:
@@ -65,11 +71,14 @@ class SprytileGui(bpy.types.Operator):
             self.get_zoom_level(context)
             self.prev_in_region = False
             self.handle_ui(context, event)
+            self.label_counter = 0
 
             SprytileGui.handler_add(self, context)
             if context.area:
                 context.area.tag_redraw()
-            context.window_manager.modal_handler_add(self)
+            win_mgr = context.window_manager
+            self.timer = win_mgr.event_timer_add(0.1, context.window)
+            win_mgr.modal_handler_add(self)
             return {'RUNNING_MODAL'}
         else:
             return {'CANCELLED'}
@@ -188,7 +197,9 @@ class SprytileGui(bpy.types.Operator):
                 zoom_shift = 1 if event.type == 'WHEELUPMOUSE' else -1
                 self.set_zoom_level(context, zoom_shift)
             else:
-                bpy.ops.sprytile.grid_cycle('INVOKE_REGION_WIN', direction=1 if event.type == 'WHEELDOWNMOUSE' else -1)
+                direction = 1 if 'DOWN' in event.type else -1
+                bpy.ops.sprytile.grid_cycle('INVOKE_REGION_WIN', direction=direction)
+                self.label_counter = SprytileGui.label_frames
 
         if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
@@ -278,9 +289,10 @@ class SprytileGui(bpy.types.Operator):
         """Callback handler"""
         sprytile_data = context.scene.sprytile_data
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
+        tilegrid = sprytile_utils.get_selected_grid(context)
 
         SprytileGui.draw_offscreen(self, context)
-        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra)
+        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra, self.label_counter, tilegrid)
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -370,24 +382,24 @@ class SprytileGui(bpy.types.Operator):
         offscreen.unbind()
 
     @staticmethod
-    def draw_to_viewport(min, max, show_extra):
+    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid):
         """Draw the offscreen texture into the viewport"""
+
+        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
+        view_size = int(max.x - min.x), int(max.y - min.y)
         # Save the original scissor box, and then set new scissor setting
         scissor_box = bgl.Buffer(bgl.GL_INT, [4])
         bgl.glGetIntegerv(bgl.GL_SCISSOR_BOX, scissor_box)
-        view_size = int(max.x - min.x), int(max.y - min.y)
         bgl.glScissor(int(min.x) + scissor_box[0], int(min.y) + scissor_box[1], view_size[0], view_size[1])
 
-        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         # Draw the texture in first
         bgl.glBegin(bgl.GL_QUADS)
         uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        # vtx = [(0, 0), (0, view_size[1]), view_size, (view_size[0], 0)]
         vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
         for i in range(4):
             glTexCoord2f(uv[i][0], uv[i][1])
@@ -440,6 +452,50 @@ class SprytileGui(bpy.types.Operator):
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
         bgl.glLineWidth(1)
+
+        if label_counter > 0:
+            import math
+            def easeOutCirc(t, b, c, d):
+                t /= d;
+                t -= 1
+                return c * math.sqrt(1 - t * t) + b
+
+            font_id = 0
+            font_size = 16
+            pad = 5
+            box_pad = font_size + (pad * 2)
+            fade = label_counter
+            fade = easeOutCirc(fade, 0, SprytileGui.label_frames, SprytileGui.label_frames)
+            fade /= SprytileGui.label_frames
+
+            bgl.glColor4f(0.0, 0.0, 0.0, 0.75 * fade)
+            bgl.glBegin(bgl.GL_QUADS)
+            uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
+            vtx = [(min.x, max.y), (min.x, max.y + box_pad), (max.x, max.y + +box_pad), (max.x, max.y)]
+            for i in range(4):
+                glTexCoord2f(uv[i][0], uv[i][1])
+                glVertex2f(vtx[i][0], vtx[i][1])
+            bgl.glEnd()
+
+            bgl.glColor4f(1.0, 1.0, 1.0, 1.0 * fade)
+            blf.size(font_id, font_size, 72)
+
+            x_pos = min.x + pad
+            y_pos = max.y + pad
+
+            label_string = "%dx%d" % (tilegrid.grid[0], tilegrid.grid[1])
+            if tilegrid.name != "":
+                label_string = "%s - %s" % (label_string, tilegrid.name)
+            blf.position(font_id, x_pos, y_pos, 0)
+            blf.draw(font_id, label_string)
+
+            # if tilegrid.name != "":
+            #     x_pos = max.x - pad
+            #     name_size = blf.dimensions(font_id, tilegrid.name)
+            #     x_pos -= name_size[0]
+            #     blf.position(font_id, x_pos, y_pos, 0)
+            #     blf.draw(font_id, tilegrid.name)
+
         bgl.glDisable(bgl.GL_BLEND)
         bgl.glDisable(bgl.GL_TEXTURE_2D)
         bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
