@@ -75,8 +75,10 @@ class SprytilePanel(bpy.types.Panel):
         row.prop(sprytile_data, "mesh_rotate")
         row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
 
-        if sprytile_data.paint_mode == 'PAINT':
+        if sprytile_data.paint_mode == 'MAKE_FACE':
+            layout.prop(sprytile_data, "auto_merge", toggle=True)
 
+        if sprytile_data.paint_mode == 'PAINT':
             row = layout.row(align=False)
             split = row.split(percentage=0.65)
 

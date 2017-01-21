@@ -283,6 +283,11 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Show Grid Overlay",
         default=True
     )
+    auto_merge = BoolProperty(
+        name="Auto Merge",
+        description="Automatically merge vertices when creating faces",
+        default=True
+    )
 
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
