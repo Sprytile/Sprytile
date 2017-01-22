@@ -477,14 +477,18 @@ def setup_keymap():
         km_items.new_modal('SNAP', 'S', 'ANY'),
         km_items.new_modal('FOCUS', 'W', 'PRESS'),
         km_items.new_modal('ROTATE_LEFT', 'ONE', 'PRESS'),
-        km_items.new_modal('ROTATE_RIGHT', 'TWO', 'PRESS')
+        km_items.new_modal('ROTATE_RIGHT', 'TWO', 'PRESS'),
+        km_items.new_modal('FLIP_X', 'THREE', 'PRESS'),
+        km_items.new_modal('FLIP_Y', 'FOUR', 'PRESS')
     ]
     sprytile_modal.SprytileModalTool.modal_values = [
         'Cancel',
         'Cursor Snap',
         'Cursor Focus',
         'Rotate Left',
-        'Rotate Right'
+        'Rotate Right',
+        'Flip X',
+        'Flip Y'
     ]
 
 

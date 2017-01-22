@@ -917,26 +917,26 @@ class SprytileModalTool(bpy.types.Operator):
             for kmi_idx, keymap_item in enumerate(kmi_list):
                 if keymap_is_evt(keymap_item, event):
                     modal_evt = self.modal_values[kmi_idx]
-                    print(event.type, modal_evt)
+                    # print(event.type, modal_evt)
                     if modal_evt == 'Cancel':
                         context.scene.sprytile_data.is_running = False
-                        used_key = True
                     elif modal_evt == 'Cursor Snap':
                         last_snap = context.scene.sprytile_data.is_snapping
                         new_snap = event.value == 'PRESS'
                         sprytile_data.is_snapping = new_snap
                         # Ask UI to redraw snapping changed
                         context.scene.sprytile_ui.is_dirty = last_snap != new_snap
-                        used_key = True
                     elif modal_evt == 'Cursor Focus':
                         bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
-                        used_key = True
                     elif modal_evt == 'Rotate Left':
                         bpy.ops.sprytile.rotate_left()
-                        used_key = True
                     elif modal_evt == 'Rotate Right':
                         bpy.ops.sprytile.rotate_right()
-                        used_key = True
+                    elif modal_evt == 'Flip X':
+                        sprytile_data.uv_flip_x = not sprytile_data.uv_flip_x
+                    elif modal_evt == 'Flip Y':
+                        sprytile_data.uv_flip_y = not sprytile_data.uv_flip_y
+                    used_key = True
         # Key event used by fake modal map, return none
         if used_key:
             return None
