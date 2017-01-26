@@ -1,10 +1,11 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "blender": (2, 7, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
+    "wiki_url": "https://chemikhazi.github.io/Sprytile/",
     "tracker_url": "https://github.com/ChemiKhazi/Sprytile/issues",
     "category": "Paint"
 }
@@ -450,15 +451,19 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="This is a preferences view for our addon")
+
+        kc = bpy.context.window_manager.keyconfigs.user
+        km = kc.keymaps['Mesh']
+        kmi_idx = km.keymap_items.find('sprytile.modal_tool')
+        if kmi_idx < 0:
+            return
+        layout.label(text="Tile Mode Shortcut")
         col = layout.column()
-        kc = bpy.context.window_manager.keyconfigs.addon
-        for km, kmi_list in sprytile_modal.SprytileModalTool.keymaps.items():
-            col.label(km.name)
-            km = km.active()
-            for kmi in kmi_list:
-                col.context_pointer_set("keymap", km)
-                rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+
+        kmi = km.keymap_items[kmi_idx]
+        km = km.active()
+        col.context_pointer_set("keymap", km)
+        rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
 def setup_keymap():
     km_array = sprytile_modal.SprytileModalTool.keymaps
