@@ -1,0 +1,5 @@
+.gitattributes export-ignore
+.gitignore export-ignore
+references.txt export-ignore
+sprytile-logo.png export-ignore
+readme.md export-ignore
