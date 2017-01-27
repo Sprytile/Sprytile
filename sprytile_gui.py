@@ -412,11 +412,12 @@ class SprytileGui(bpy.types.Operator):
 
             # Translate the gl context by grid matrix
             tex_size = SprytileGui.tex_size
-            scale_factor = view_size[0] / tex_size[1]
+            scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
+            print(view_size, tex_size)
 
             offset_matrix = Matrix.Translation((min.x, min.y, 0))
             grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
-            grid_matrix = Matrix.Scale(scale_factor, 4) * grid_matrix
+            grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) * Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) * grid_matrix
             calc_matrix = offset_matrix * grid_matrix
             matrix_vals = [calc_matrix[j][i] for i in range(4) for j in range(4)]
             grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
