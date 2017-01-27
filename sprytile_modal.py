@@ -480,8 +480,14 @@ class SprytileModalTool(bpy.types.Operator):
         location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj)
         if face_index is None:
             return None, None, None, None
-        if self.bmesh.faces[face_index].hide:
-            return self.raycast_object(obj, location + ray_direction.normalized() * 0.001, ray_direction)
+
+        face = self.bmesh.faces[face_index]
+        shift_vec = ray_direction.normalized() * 0.001
+        if face.normal.dot(ray_direction) > 0:
+            return self.raycast_object(obj, location + shift_vec, ray_direction)
+        if face.hide:
+            return self.raycast_object(obj, location + shift_vec, ray_direction)
+
         # Translate location back to world space
         location = matrix * location
         return location, normal, face_index, distance
