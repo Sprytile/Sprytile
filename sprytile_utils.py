@@ -686,7 +686,7 @@ class SprytileGridTranslate(bpy.types.Operator):
                 bpy.ops.transform.translate(value=offset)
 
         # Loop through the selected of the bmesh
-        if context.scene.sprytile_data.snap_translate:
+        if context.object.mode == 'EDIT' and context.scene.sprytile_data.snap_translate:
             for sel in self.bmesh.select_history:
                 vert_list = []
                 if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
