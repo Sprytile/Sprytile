@@ -646,7 +646,12 @@ class SprytileGridTranslate(bpy.types.Operator):
         # Countdown the frames passed through the timer. For some reason
         # the translate tool will not use the new grid scale if we switch
         # over immediately to translate.
-        self.exec_counter = 10
+        self.exec_counter = 5
+
+        if context.object.mode == 'OBJECT':
+            view_axis = sprytile_modal.SprytileModalTool.find_view_axis(context)
+            if view_axis is not None:
+                context.scene.sprytile_data.normal_mode = view_axis
 
         # Save the bmesh, and reference position
         self.bmesh = None

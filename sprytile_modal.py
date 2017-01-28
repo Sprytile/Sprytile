@@ -336,7 +336,8 @@ class SprytileModalTool(bpy.types.Operator):
     keymaps = {}
     modal_values = []
 
-    def find_view_axis(self, context):
+    @staticmethod
+    def find_view_axis(context):
         scene = context.scene
         if scene.sprytile_data.lock_normal is True:
             return
@@ -371,9 +372,7 @@ class SprytileModalTool(bpy.types.Operator):
         else:
             new_mode = 'Z'
 
-        if new_mode != scene.sprytile_data.normal_mode:
-            self.virtual_cursor.clear()
-        scene.sprytile_data.normal_mode = new_mode
+        return new_mode
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
@@ -819,7 +818,11 @@ class SprytileModalTool(bpy.types.Operator):
             return {'CANCELLED'}
 
         if event.type == 'TIMER':
-            self.find_view_axis(context)
+            view_axis = self.find_view_axis(context)
+            if view_axis is not None:
+                if view_axis != context.scene.sprytile_data.normal_mode:
+                    self.virtual_cursor.clear()
+                context.scene.sprytile_data.normal_mode = view_axis
             return {'PASS_THROUGH'}
 
         if self.refresh_mesh:
