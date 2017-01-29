@@ -287,7 +287,9 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
                 if abs(uv.y - tile_max.y) < threshold.y:
                     uv.y = tile_max.y
         # Pixel snap now, because alignment step depends on it
-        if data.paint_uv_snap and pixel_uv.x > 0 and pixel_uv.y > 0:
+        if data.paint_uv_snap and\
+                pixel_uv.x > 0 and pixel_uv.y > 0\
+                and uv.x > 0 and uv.y > 0:
             uv_pixel_x = int(round(uv.x / pixel_uv.x))
             uv_pixel_y = int(round(uv.y / pixel_uv.y))
             uv.x = uv_pixel_x * pixel_uv.x
@@ -601,7 +603,8 @@ class SprytileModalTool(bpy.types.Operator):
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
         if scene.sprytile_data.auto_merge:
-            self.bmesh.faces[face_index].select = True
+            face = self.bmesh.faces[face_index]
+            face.select = True
 
             threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
             bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
@@ -609,7 +612,7 @@ class SprytileModalTool(bpy.types.Operator):
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
-            self.bmesh.faces[face_index].select = False
+            face.select = False
 
         if scene.sprytile_data.cursor_flow:
             self.flow_cursor(context, face_index, plane_cursor)
