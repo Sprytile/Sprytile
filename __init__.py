@@ -157,7 +157,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             ('CENTER', "Center", "", 5),
             ('RIGHT', "Right", "", 6),
             ('BOTTOM_LEFT', "Bottom Left", "", 7),
-            ('BOTTOM_LEFT', "Bottom", "", 8),
+            ('BOTTOM', "Bottom", "", 8),
             ('BOTTOM_RIGHT', "Bottom Right", "", 9),
         ],
         name="Paint Align",
