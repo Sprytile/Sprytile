@@ -186,6 +186,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         else:
             return
         self["paint_align"] = row_val + col_val
+        #print("Set align toggle. Row", row_val, "Col", col_val, "Value", self.paint_align)
 
     def set_align_top(self, value):
         self.set_align_toggle(value, "top")

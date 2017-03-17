@@ -214,26 +214,90 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     # Save the grid and tile ID to the face
     grid_layer_id = mesh.faces.layers.int.get('grid_index')
     grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
+    paint_settings_id = mesh.faces.layers.int.get('paint_settings')
 
     if grid_layer_id is None:
         grid_layer_id = mesh.faces.layers.int.new('grid_index')
     if grid_layer_tileid is None:
         grid_layer_tileid = mesh.faces.layers.int.new('grid_tile_id')
+    if paint_settings_id is None:
+        paint_settings_id = mesh.faces.layers.int.new('paint_settings')
 
     face = mesh.faces[face_index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
 
+    paint_settings = get_paint_settings(data)
+
     face[grid_layer_id] = grid_id
     face[grid_layer_tileid] = tile_id
+    face[paint_settings_id] = paint_settings
 
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
 
 
+def get_paint_settings(data):
+    # Rotation and UV flip are always included
+    paint_settings = 0
+    # Flip x/y are toggles
+    paint_settings += (1 if data.uv_flip_x else 0) << 9
+    paint_settings += (1 if data.uv_flip_y else 0) << 8
+    # Rotation is encoded as 0-3 clockwise, bit shifted by 10
+    degree_rotation = round(math.degrees(data.mesh_rotate), 0)
+    if degree_rotation < 0:
+        degree_rotation += 360
+    rot_val = 0
+    if degree_rotation <= 1:
+        rot_val = 0
+    elif degree_rotation <= 90:
+        rot_val = 3
+    elif degree_rotation <= 180:
+        rot_val = 2
+    elif degree_rotation <= 270:
+        rot_val = 1
+    paint_settings += rot_val << 10
+
+    if data.paint_mode == 'MAKE_FACE':
+        paint_settings += 5  # Default center align
+        for x in range(4, 8):  # All toggles on
+            paint_settings += 1 << x
+    if data.paint_mode == 'PAINT':
+        paint_settings += data["paint_align"]
+        paint_settings += (1 if data.paint_uv_snap else 0) << 7
+        paint_settings += (1 if data.paint_edge_snap else 0) << 6
+        paint_settings += (1 if data.paint_stretch_x else 0) << 5
+        paint_settings += (1 if data.paint_stretch_y else 0) << 4
+    return paint_settings
+
+
+def from_paint_settings(data, settings):
+    if settings == 0:
+        return
+    align_value = settings & 15  # First four bits
+    rot_value = (settings & 3072) >> 10  # 11th and 12th bit, shifted back
+    rot_radian = 0
+    if rot_value == 1:
+        rot_radian = math.radians(270)
+    if rot_value == 2:
+        rot_radian = math.radians(180)
+    if rot_value == 3:
+        rot_radian = math.radians(90)
+
+    data["paint_align"] = align_value
+    data.mesh_rotate = rot_radian
+    data.uv_flip_x = (settings & 1 << 9) > 0
+    data.uv_flip_y = (settings & 1 << 8) > 0
+    data.paint_uv_snap = (settings & 1 << 7) > 0
+    data.paint_edge_snap = (settings & 1 << 6) > 0
+    data.paint_stretch_x = (settings & 1 << 5) > 0
+    data.paint_stretch_y = (settings & 1 << 4) > 0
+
+
 def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
     paint_align = data.paint_align
+    #print("UV map paint mod, align:", paint_align)
     # Stretching will change how the tile will be aligned
     if data.paint_stretch_x:
         if paint_align in {'TOP_LEFT', 'TOP_RIGHT'}:
@@ -315,6 +379,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
             uv_offset.y = tile_max.y - uv_max.y
         if paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
             uv_offset.y = tile_min.y - uv_min.y
+        #print("paint align:", paint_align, "offset:", uv_offset)
         for loop in face.loops:
             loop[uv_layer].uv += uv_offset
 
@@ -410,6 +475,11 @@ class SprytileModalTool(bpy.types.Operator):
         texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
         if texture is None:
             return
+
+        paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
+        if paint_setting_layer is not None:
+            paint_setting = face[paint_setting_layer]
+            from_paint_settings(context.scene.sprytile_data, paint_setting)
 
         row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
         tile_y = math.floor(tile_packed_id / row_size)
