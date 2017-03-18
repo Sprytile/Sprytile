@@ -495,6 +495,14 @@ class SprytileReloadImages(bpy.types.Operator):
             img.reload()
         return {'FINISHED'}
 
+class SprytileUpdateCheck(bpy.types.Operator):
+    bl_idname = "sprytile.update_check"
+    bl_label = "Check for Update"
+
+    def invoke(self, context, event):
+        print("Check itch.io API")
+        return {'FINISHED'}
+
 
 class SprytileMakeDoubleSided(bpy.types.Operator):
     bl_idname = "sprytile.make_double_sided"

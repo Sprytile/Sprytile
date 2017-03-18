@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
-    "version": (0, 2, 1),
+    "version": (0, 2, 2),
     "blender": (2, 7, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
@@ -452,6 +452,8 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+        # Uncomment when done
+        # layout.operator('sprytile.update_check')
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
