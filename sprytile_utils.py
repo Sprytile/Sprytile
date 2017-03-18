@@ -501,6 +501,14 @@ class SprytileUpdateCheck(bpy.types.Operator):
 
     def invoke(self, context, event):
         print("Check itch.io API")
+        import urllib.request
+        import json
+        url = "https://itch.io/api/1/x/wharf/latest?game_id=98966&channel_name=addon"
+        response = urllib.request.urlopen(url)
+        data = response.read()
+        encoding = response.info().get_content_charset('utf-8')
+        json_data = json.loads(data.decode(encoding))
+        print(json_data)
         return {'FINISHED'}
 
 
