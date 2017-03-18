@@ -495,12 +495,15 @@ class SprytileReloadImages(bpy.types.Operator):
             img.reload()
         return {'FINISHED'}
 
+
 class SprytileUpdateCheck(bpy.types.Operator):
     bl_idname = "sprytile.update_check"
     bl_label = "Check for Update"
 
     def invoke(self, context, event):
         print("Check itch.io API")
+        import sys
+        print(sys.modules['sprytile'].bl_info.get('version', (-1, -1, -1)))
         import urllib.request
         import json
         url = "https://itch.io/api/1/x/wharf/latest?game_id=98966&channel_name=addon"
