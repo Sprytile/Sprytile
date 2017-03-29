@@ -4,5 +4,6 @@ Sprytile Painter
 
 A Blender addon for creating tile based low spec 3D scenes, inspired by [Crocotile3D](http://www.crocotile3d.com/).
 
-![Timelapse](https://img.itch.io/aW1hZ2UvOTg5NjYvNTE3NTczLmdpZg==/250x600/mDFwN0.gif)
+Download - [itch.io](https://chemikhazi.itch.io/sprytile)
 
+![Timelapse](https://img.itch.io/aW1hZ2UvOTg5NjYvNTE3NTczLmdpZg==/250x600/mDFwN0.gif)
