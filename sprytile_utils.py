@@ -286,7 +286,7 @@ class SprytileSetupMaterial(bpy.types.Operator):
         mat = bpy.data.materials[context.object.active_material_index]
         mat.use_shadeless = True
         mat.use_transparency = True
-        mat.transparency_method = 'MASK'
+        mat.transparency_method = 'Z_TRANSPARENCY'
         mat.alpha = 0.0
         return {'FINISHED'}
 
@@ -331,7 +331,7 @@ class SprytileSetupTexture(bpy.types.Operator):
         target_texture.use_interpolation = False
         target_texture.use_mipmap = False
         target_texture.filter_type = 'BOX'
-
+        target_texture.filter_size = 0.10
         target_img.use_alpha = True
 
         target_slot.use_map_color_diffuse = True
