@@ -129,8 +129,6 @@ class SprytilePanel(bpy.types.Panel):
         if selected_grid is None:
             return
 
-        bpy.ops.sprytile.validate_grids()
-
         layout.prop(selected_grid, "grid", text="Grid Size")
 
         row = layout.row()
