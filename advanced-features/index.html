@@ -9,7 +9,7 @@
         <meta name="description" content="A tile map editor for Blender">
       
       
-        <link rel="canonical" href="https://chemikhazi.itch.io/sprytile/workflow-concepts/">
+        <link rel="canonical" href="https://chemikhazi.itch.io/sprytile/advanced-features/">
       
       
         <meta name="author" content="Jeiel Aranal">
@@ -21,7 +21,7 @@
     
     
       
-        <title>Workflow Concepts - Sprytile Docs</title>
+        <title>Advanced Features - Sprytile Docs</title>
       
     
     
@@ -82,12 +82,8 @@
           
             
               
-                <span class="md-header-nav__parent">
-                  Topics
-                </span>
-              
             
-            Workflow Concepts
+            Advanced Features
           
         </span>
       </div>
@@ -206,9 +202,120 @@
       
   <li class="md-nav__item">
     
-      <a href="../advanced-features/" title="Advanced Features" class="md-nav__link">
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
         Advanced Features
-      </a>
+      </label>
+    
+    <a href="./" title="Advanced Features" class="md-nav__link md-nav__link--active">
+      Advanced Features
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#paint-panel" title="Paint Panel" class="md-nav__link">
+    Paint Panel
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-off-axis" title="Building Off Axis" class="md-nav__link">
+    Building Off Axis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axis-lock" title="Axis Lock" class="md-nav__link">
+    Axis Lock
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-materials" title="Multiple Materials" class="md-nav__link">
+    Multiple Materials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-uv-grid-settings" title="Additional UV Grid Settings" class="md-nav__link">
+    Additional UV Grid Settings
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#offset" title="Offset" class="md-nav__link">
+    Offset
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-rotation" title="UV Rotation" class="md-nav__link">
+    UV Rotation
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow-panel" title="Workflow Panel" class="md-nav__link">
+    Workflow Panel
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cursor-flow" title="Cursor Flow" class="md-nav__link">
+    Cursor Flow
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#make-double-sided" title="Make Double Sided" class="md-nav__link">
+    Make Double Sided
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -217,7 +324,7 @@
       
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
     <label class="md-nav__link" for="nav-4">
       Topics
@@ -233,67 +340,9 @@
           
   <li class="md-nav__item">
     
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
-    
-      
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="toc">
+      <a href="../workflow-concepts/" title="Workflow Concepts" class="md-nav__link">
         Workflow Concepts
-      </label>
-    
-    <a href="./" title="Workflow Concepts" class="md-nav__link md-nav__link--active">
-      Workflow Concepts
-    </a>
-    
-      
-<nav class="md-nav md-nav--secondary">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="toc">Table of contents</label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#view-axis" title="View Axis" class="md-nav__link">
-    View Axis
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pixel-density" title="Pixel Density" class="md-nav__link">
-    Pixel Density
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#blender-3d-cursor" title="Blender 3D Cursor" class="md-nav__link">
-    Blender 3D Cursor
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cursor-snap" title="Cursor Snap" class="md-nav__link">
-    Cursor Snap
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cursor-flow" title="Cursor Flow" class="md-nav__link">
-    Cursor Flow
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
+      </a>
     
   </li>
 
@@ -357,37 +406,90 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#view-axis" title="View Axis" class="md-nav__link">
-    View Axis
+  <a href="#paint-panel" title="Paint Panel" class="md-nav__link">
+    Paint Panel
   </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-off-axis" title="Building Off Axis" class="md-nav__link">
+    Building Off Axis
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axis-lock" title="Axis Lock" class="md-nav__link">
+    Axis Lock
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-materials" title="Multiple Materials" class="md-nav__link">
+    Multiple Materials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-uv-grid-settings" title="Additional UV Grid Settings" class="md-nav__link">
+    Additional UV Grid Settings
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#offset" title="Offset" class="md-nav__link">
+    Offset
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uv-rotation" title="UV Rotation" class="md-nav__link">
+    UV Rotation
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#pixel-density" title="Pixel Density" class="md-nav__link">
-    Pixel Density
+  <a href="#workflow-panel" title="Workflow Panel" class="md-nav__link">
+    Workflow Panel
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#blender-3d-cursor" title="Blender 3D Cursor" class="md-nav__link">
-    Blender 3D Cursor
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cursor-snap" title="Cursor Snap" class="md-nav__link">
-    Cursor Snap
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#cursor-flow" title="Cursor Flow" class="md-nav__link">
     Cursor Flow
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#make-double-sided" title="Make Double Sided" class="md-nav__link">
+    Make Double Sided
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -402,16 +504,65 @@
           <div class="md-content">
             <article class="md-content__inner md-typeset">
                
-                 <a href="https://github.com/ChemiKhazi/Sprytile/edit/master/docs/workflow-concepts.md" title="Edit this page" class="md-icon md-content__edit">edit</a>
+                 <a href="https://github.com/ChemiKhazi/Sprytile/edit/master/docs/advanced-features.md" title="Edit this page" class="md-icon md-content__edit">edit</a>
                
               
                 
-                <h1 id="workflow-concepts">Workflow Concepts<a class="headerlink" href="#workflow-concepts" title="Permanent link">&para;</a></h1>
-<h2 id="view-axis">View Axis<a class="headerlink" href="#view-axis" title="Permanent link">&para;</a></h2>
-<h2 id="pixel-density">Pixel Density<a class="headerlink" href="#pixel-density" title="Permanent link">&para;</a></h2>
-<h2 id="blender-3d-cursor">Blender 3D Cursor<a class="headerlink" href="#blender-3d-cursor" title="Permanent link">&para;</a></h2>
-<h2 id="cursor-snap">Cursor Snap<a class="headerlink" href="#cursor-snap" title="Permanent link">&para;</a></h2>
-<h2 id="cursor-flow">Cursor Flow<a class="headerlink" href="#cursor-flow" title="Permanent link">&para;</a></h2>
+                <h1 id="advanced-features">Advanced Features<a class="headerlink" href="#advanced-features" title="Permanent link">&para;</a></h1>
+<p>This tutorial covers additional Sprytile features not covered in the quick start guide.</p>
+<h2 id="paint-panel">Paint Panel<a class="headerlink" href="#paint-panel" title="Permanent link">&para;</a></h2>
+<h3 id="building-off-axis">Building Off Axis<a class="headerlink" href="#building-off-axis" title="Permanent link">&para;</a></h3>
+<p>The build tool is not limited to the global X/Y/Z axis. The <code>Set Normal</code> button lets you to pick a face normal to use the build tool with.</p>
+<p>Paint ground tiles like shown below, with one tile sticking out, and move the 3D cursor to the indicated vertex.</p>
+<p><img alt="Step 1" src="../img/set-normal-1.png" /></p>
+<p>Set the pivot point mode to 3D cursor, and rotate the tile that is sticking out so that its not oriented on the x/y/z axis anymore.</p>
+<p><img alt="Step 2" src="../img/set-normal-2.png" />
+<img alt="Step 3" src="../img/set-normal-3.png" /></p>
+<p>In the Sprytile paint tools, press the <code>Set Normal</code> button.</p>
+<p><img alt="Step 4" src="../img/set-normal-4.png" /></p>
+<p>Move the mouse cursor back into the scene. The cursor is now a cross, indicating that Sprytile is in Set Normal mode. Left click on the rotated tile.</p>
+<p><img alt="Step 5" src="../img/set-normal-5.png" /></p>
+<p>The axis indicator in the Sprytile panel now shows that it is locked, and Sprytile's tool mode goes back to Build.</p>
+<p><img alt="Step 6" src="../img/set-normal-6.png" /></p>
+<p>Use the build tool. The faces are now being created on the chosen normal.</p>
+<p><img alt="Step 7" src="../img/set-normal-7.png" /></p>
+<p>To go back to using the global X/Y/Z axis for the build tool, deselect the <code>Lock</code> button.</p>
+<h3 id="axis-lock">Axis Lock<a class="headerlink" href="#axis-lock" title="Permanent link">&para;</a></h3>
+<p>The <code>Lock</code> button can also be pressed without using the <code>Set Normal</code> mode.</p>
+<p>When pressed, Sprytile's build mode will be locked to the currently view axis, allowing you to change the viewing angle while painting on the same axis.</p>
+<h3 id="multiple-materials">Multiple Materials<a class="headerlink" href="#multiple-materials" title="Permanent link">&para;</a></h3>
+<p>Sprytile accommodates multiple materials so that different textures can be used in the scene.</p>
+<p>In the tile grid section of the Sprytile panel select the dropdown and press the <code>New Shadeless Material</code> option.</p>
+<p><img alt="Create New Material" src="../img/new-material.png" /></p>
+<div class="admonition bug">
+<p class="admonition-title">Material Renaming</p>
+<p>If the material name is edited in the Material tab, the tild grid display may say "Invalid Data". Use the <code>Validate Material Grids</code> option in the dropdown if this happens.</p>
+</div>
+<p>In Blender's property panel, select the newly created material in the <code>Material</code> tab, and then switch to the <code>Texture</code> tab to set the texture file.</p>
+<p><img alt="Material Setup" src="../img/mat-setup.png" /></p>
+<p>Go back to the Sprytile tile grid dropdown and select <code>Setup Pixel Texture</code> to apply pixel art settings to the texture.</p>
+<p>There is now a new tile grid entry in Sprytile's tile grid section for the material. Create, edit, and use tile grids for the new material as usual.</p>
+<p><img alt="New Material" src="../img/new-material-grid.png" /></p>
+<h3 id="additional-uv-grid-settings">Additional UV Grid Settings<a class="headerlink" href="#additional-uv-grid-settings" title="Permanent link">&para;</a></h3>
+<p>Expanding <code>Extra UV Grid Settings</code> will allow you to change extra options for each tile grid.</p>
+<h4 id="offset">Offset<a class="headerlink" href="#offset" title="Permanent link">&para;</a></h4>
+<p>Offset will change the origin of the tile grid in the tileset texture. This allows for grids of different sizes to be used in one texture without having to find a common denominator.</p>
+<h4 id="uv-rotation">UV Rotation<a class="headerlink" href="#uv-rotation" title="Permanent link">&para;</a></h4>
+<p>This applies a rotation on the tile grids. If you can figure out a cool use for this, let me know!</p>
+<h2 id="workflow-panel">Workflow Panel<a class="headerlink" href="#workflow-panel" title="Permanent link">&para;</a></h2>
+<h3 id="cursor-flow">Cursor Flow<a class="headerlink" href="#cursor-flow" title="Permanent link">&para;</a></h3>
+<p>While using Sprytile's build tool the 3D cursor will normally stay in place. Turning on cursor flow will make the 3D cursor follow the direction you are building in.</p>
+<p>This can be helpful for roughing in structure in an intuitive manner.</p>
+<p><img alt="Cursor Flow Demo" src="../img/cursor-flow-demo.gif" /></p>
+<h3 id="make-double-sided">Make Double Sided<a class="headerlink" href="#make-double-sided" title="Permanent link">&para;</a></h3>
+<p>This is only recommended as a step for finishing your model. If your model will be used in a context where double sided faces is not possible or will not be used, certain details may not look right.</p>
+<p>This is best demonstrated by turning on backface culling in Blender.</p>
+<p><img alt="Backface Culling" src="../img/backface-culling.png" /></p>
+<p>Sprytile has a utility that duplicates faces and flips the normals, effectively turning the face into a double sided face.</p>
+<p>This is only recommended as a finishing step because it creates more faces and makes editing the model more difficult.</p>
+<p>Select the faces that you want to make double sided, and then go to the Sprytile Utilities dropdown and select <code>Make Double Sided</code>.</p>
+<p><img alt="Make Double Sided" src="../img/make-double.png" /></p>
+<p><img alt="Double Sided Fence" src="../img/double-sided.png" /></p>
               
             </article>
           </div>
@@ -424,7 +575,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../advanced-features/" title="Advanced Features" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../quick-start/" title="Quick Start" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -433,19 +584,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Advanced Features
+                Quick Start
               </span>
             </div>
           </a>
         
         
-          <a href="../paint-mode/" title="Paint and Build" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../workflow-concepts/" title="Workflow Concepts" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Paint and Build
+                Workflow Concepts
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">

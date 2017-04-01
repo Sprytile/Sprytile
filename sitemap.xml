@@ -4,7 +4,7 @@
     
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -12,7 +12,15 @@
     
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/quick-start/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>https://chemikhazi.itch.io/sprytile/advanced-features/</loc>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -21,19 +29,19 @@
         
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/workflow-concepts/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/paint-mode/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/tile-grids/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -42,7 +50,7 @@
     
     <url>
      <loc>https://chemikhazi.itch.io/sprytile/bugs/</loc>
-     <lastmod>2017-01-26</lastmod>
+     <lastmod>2017-04-02</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
