@@ -2,10 +2,14 @@ import bpy
 from . import sprytile_utils
 from bpy.types import Panel, UIList
 
+
 class SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
+            if mat_data is None or item.mat_id not in bpy.data.materials:
+                layout.label("Invalid Data")
+                return
             material = bpy.data.materials[item.mat_id]
             if material is None:
                 layout.label("Invalid Data")
@@ -125,6 +129,8 @@ class SprytilePanel(bpy.types.Panel):
         if selected_grid is None:
             return
 
+        bpy.ops.sprytile.validate_grids()
+
         layout.prop(selected_grid, "grid", text="Grid Size")
 
         row = layout.row()
@@ -132,7 +138,6 @@ class SprytilePanel(bpy.types.Panel):
 
         show_icon = "TRIA_DOWN" if sprytile_data.show_extra else "TRIA_RIGHT"
         row.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)
-
 
         if not sprytile_data.show_extra:
             return

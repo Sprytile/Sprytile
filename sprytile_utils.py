@@ -365,16 +365,18 @@ class SprytileValidateGridList(bpy.types.Operator):
             mat_idx = mat_list.find(check_mat_data.mat_id)
             if mat_idx > -1:
                 continue
+
             # This mat data id not found in materials
             # Loop through materials looking for one
             # that doesn't appear in sprytile_mats list
             for check_mat in mat_list:
-                found_unused = False
+                mat_unused = True
                 for mat_data in mat_data_list:
-                    if mat_data.mat_id != check_mat.name:
-                        found_unused = True
+                    if mat_data.mat_id == check_mat.name:
+                        mat_unused = False
                         break
-                if found_unused:
+
+                if mat_unused:
                     target_mat_id = check_mat_data.mat_id
                     check_mat_data.mat_id = check_mat.name
                     for grid in check_mat_data.grids:
