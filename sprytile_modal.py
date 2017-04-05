@@ -686,7 +686,7 @@ class SprytileModalTool(bpy.types.Operator):
             face.select = True
             # Find the face center, to raycast from later
             face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for raycasting
+            # Move face center back a little for ray casting
             face_center -= shift_vec
 
             threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
@@ -703,7 +703,7 @@ class SprytileModalTool(bpy.types.Operator):
             if new_face_idx is not None:
                 self.bmesh.faces[new_face_idx].select = False
 
-        # Auto merge refreshes the mesh on its own
+        # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not scene.sprytile_data.auto_merge
 
         if scene.sprytile_data.cursor_flow:
@@ -921,7 +921,6 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         if self.refresh_mesh:
-            print("Refreshed mesh")
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
