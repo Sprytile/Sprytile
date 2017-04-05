@@ -297,7 +297,7 @@ def from_paint_settings(data, settings):
 
 def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
     paint_align = data.paint_align
-    #print("UV map paint mod, align:", paint_align)
+    # print("UV map paint mod, align:", paint_align)
     # Stretching will change how the tile will be aligned
     if data.paint_stretch_x:
         if paint_align in {'TOP_LEFT', 'TOP_RIGHT'}:
@@ -351,8 +351,8 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
                 if abs(uv.y - tile_max.y) < threshold.y:
                     uv.y = tile_max.y
         # Pixel snap now, because alignment step depends on it
-        if data.paint_uv_snap and\
-                pixel_uv.x > 0 and pixel_uv.y > 0\
+        if data.paint_uv_snap and \
+                        pixel_uv.x > 0 and pixel_uv.y > 0 \
                 and uv.x > 0 and uv.y > 0:
             uv_pixel_x = int(round(uv.x / pixel_uv.x))
             uv_pixel_y = int(round(uv.y / pixel_uv.y))
@@ -379,7 +379,7 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
             uv_offset.y = tile_max.y - uv_max.y
         if paint_align in {'BOTTOM_LEFT', 'BOTTOM', 'BOTTOM_RIGHT'}:
             uv_offset.y = tile_min.y - uv_min.y
-        #print("paint align:", paint_align, "offset:", uv_offset)
+        # print("paint align:", paint_align, "offset:", uv_offset)
         for loop in face.loops:
             loop[uv_layer].uv += uv_offset
 
@@ -497,7 +497,7 @@ class SprytileModalTool(bpy.types.Operator):
             self.virtual_cursor.append(cursor_pos)
             return
 
-        last_pos = self.virtual_cursor[cursor_len-1]
+        last_pos = self.virtual_cursor[cursor_len - 1]
         last_vector = cursor_pos - last_pos
         if last_vector.magnitude < 0.1:
             return
@@ -627,15 +627,21 @@ class SprytileModalTool(bpy.types.Operator):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
         hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(context.object, ray_origin, ray_vector)
 
-        # If raycast on the mesh, check that the hit face isn't facing
+        # Used to move raycast slightly along ray vector
+        shift_vec = ray_vector.normalized() * 0.001
+
+        # If raycast hit the mesh, check that the hit face isn't facing
         # the same way as the plane_normal and not coplanar to target plane
         if face_index is not None:
+            # The face is valid for painting if hit face
+            # is facing same way as plane normal and is coplanar to target plane
             check_dot = abs(plane_normal.dot(hit_normal))
             check_dot -= 1
             check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
+            # Hit a face that is valid for painting
             if check_dot and check_coplanar:
                 self.add_virtual_cursor(hit_loc)
                 # Change UV of this face instead
@@ -645,10 +651,13 @@ class SprytileModalTool(bpy.types.Operator):
                     face_up = Matrix.Rotation(data.mesh_rotate, 4, hit_normal) * face_up
                     up_vector = face_up
                     right_vector = up_vector.cross(hit_normal)
-                # print("up", up_vector, "right", right_vector)
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
+                return
+            # Didn't hit a valid painting face, move raycast forward and try again
+            else:
+                self.execute_build(context, scene, hit_loc + shift_vec, ray_vector)
                 return
 
         face_position, x_vector, y_vector, plane_cursor = raycast_grid(
@@ -675,6 +684,10 @@ class SprytileModalTool(bpy.types.Operator):
         if scene.sprytile_data.auto_merge:
             face = self.bmesh.faces[face_index]
             face.select = True
+            # Find the face center, to raycast from later
+            face_center = context.object.matrix_world * face.calc_center_bounds()
+            # Move face center back a little for raycasting
+            face_center -= shift_vec
 
             threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
             bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
@@ -682,7 +695,16 @@ class SprytileModalTool(bpy.types.Operator):
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
-            face.select = False
+
+            # Modified the mesh, refresh and raycast to find the new face index
+            self.bmesh = bmesh.from_edit_mesh(context.object.data)
+            self.tree = BVHTree.FromBMesh(self.bmesh)
+            loc, norm, new_face_idx, hit_dist = self.raycast_object(context.object, face_center, ray_vector)
+            if new_face_idx is not None:
+                self.bmesh.faces[new_face_idx].select = False
+
+        # Auto merge refreshes the mesh on its own
+        self.refresh_mesh = not scene.sprytile_data.auto_merge
 
         if scene.sprytile_data.cursor_flow:
             self.flow_cursor(context, face_index, plane_cursor)
@@ -899,6 +921,7 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         if self.refresh_mesh:
+            print("Refreshed mesh")
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
@@ -1083,19 +1106,20 @@ class SprytileModalTool(bpy.types.Operator):
 
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
-        self.is_keyboard_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-                                'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
-                                'SIX', 'SEVEN', 'EIGHT', 'NINE', 'LEFT_CTRL', 'LEFT_ALT', 'LEFT_SHIFT', 'RIGHT_ALT',
-                                'RIGHT_CTRL', 'RIGHT_SHIFT', 'OSKEY', 'GRLESS', 'ESC', 'TAB', 'RET', 'SPACE',
-                                'LINE_FEED', 'BACK_SPACE', 'DEL', 'SEMI_COLON', 'PERIOD', 'COMMA', 'QUOTE',
-                                'ACCENT_GRAVE', 'MINUS', 'SLASH', 'BACK_SLASH', 'EQUAL', 'LEFT_BRACKET',
-                                'RIGHT_BRACKET', 'LEFT_ARROW', 'DOWN_ARROW', 'RIGHT_ARROW', 'UP_ARROW',
-                                'NUMPAD_2', 'NUMPAD_4', 'NUMPAD_6', 'NUMPAD_8', 'NUMPAD_1', 'NUMPAD_3', 'NUMPAD_5',
-                                'NUMPAD_7', 'NUMPAD_9', 'NUMPAD_PERIOD', 'NUMPAD_SLASH', 'NUMPAD_ASTERIX', 'NUMPAD_0',
-                                'NUMPAD_MINUS', 'NUMPAD_ENTER', 'NUMPAD_PLUS',
-                                'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13',
-                                'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'PAUSE', 'INSERT', 'HOME', 'PAGE_UP',
-                                'PAGE_DOWN', 'END', 'MEDIA_PLAY', 'MEDIA_STOP', 'MEDIA_FIRST', 'MEDIA_LAST']
+        self.is_keyboard_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+                                 'R',
+                                 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
+                                 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'LEFT_CTRL', 'LEFT_ALT', 'LEFT_SHIFT', 'RIGHT_ALT',
+                                 'RIGHT_CTRL', 'RIGHT_SHIFT', 'OSKEY', 'GRLESS', 'ESC', 'TAB', 'RET', 'SPACE',
+                                 'LINE_FEED', 'BACK_SPACE', 'DEL', 'SEMI_COLON', 'PERIOD', 'COMMA', 'QUOTE',
+                                 'ACCENT_GRAVE', 'MINUS', 'SLASH', 'BACK_SLASH', 'EQUAL', 'LEFT_BRACKET',
+                                 'RIGHT_BRACKET', 'LEFT_ARROW', 'DOWN_ARROW', 'RIGHT_ARROW', 'UP_ARROW',
+                                 'NUMPAD_2', 'NUMPAD_4', 'NUMPAD_6', 'NUMPAD_8', 'NUMPAD_1', 'NUMPAD_3', 'NUMPAD_5',
+                                 'NUMPAD_7', 'NUMPAD_9', 'NUMPAD_PERIOD', 'NUMPAD_SLASH', 'NUMPAD_ASTERIX', 'NUMPAD_0',
+                                 'NUMPAD_MINUS', 'NUMPAD_ENTER', 'NUMPAD_PLUS',
+                                 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12', 'F13',
+                                 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'PAUSE', 'INSERT', 'HOME', 'PAGE_UP',
+                                 'PAGE_DOWN', 'END', 'MEDIA_PLAY', 'MEDIA_STOP', 'MEDIA_FIRST', 'MEDIA_LAST']
 
         self.intercept_keys = []
 
