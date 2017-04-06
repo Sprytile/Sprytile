@@ -630,8 +630,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
 
-        # If raycast hit the mesh, check that the hit face isn't facing
-        # the same way as the plane_normal and not coplanar to target plane
+        # If raycast hit the mesh...
         if face_index is not None:
             # The face is valid for painting if hit face
             # is facing same way as plane normal and is coplanar to target plane
@@ -654,16 +653,17 @@ class SprytileModalTool(bpy.types.Operator):
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
-                return
-            # Didn't hit a valid painting face, move raycast forward and try again
-            else:
-                self.execute_build(context, scene, hit_loc + shift_vec, ray_vector)
-                return
 
+            # Hit a face, if it was going to be painted, already done
+            # Now just stop executing so no building behind
+            return
+
+        # Raycast did not hit the mesh, raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = raycast_grid(
             scene, context,
             up_vector, right_vector, plane_normal,
             ray_origin, ray_vector)
+        # Failed to hit the grid
         if face_position is None:
             return
 
