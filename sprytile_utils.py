@@ -836,6 +836,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         layout = self.layout
         data = context.scene.sprytile_data
 
+        layout.prop(data, "axis_plane_display", expand=True)
+
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)

@@ -309,6 +309,17 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_reload
     )
 
+    axis_plane_display = EnumProperty(
+        items=[
+            ('OFF', "Off", "", 1),
+            ('ON', "On", "", 2),
+            ('MIDDLE_MOUSE', "Middle Mouse", "", 3)
+        ],
+        name="Axis Indicator",
+        description="Display mode of axis indicator",
+        default='MIDDLE_MOUSE'
+    )
+
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = StringProperty(

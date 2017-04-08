@@ -1,6 +1,7 @@
 import bpy
 import bgl
 import blf
+from bpy_extras import view3d_utils
 from math import floor, ceil, copysign
 from bgl import *
 from bpy.props import *
@@ -292,8 +293,13 @@ class SprytileGui(bpy.types.Operator):
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
 
+        region = context.region
+        rv3d = context.region_data
+
         SprytileGui.draw_offscreen(self, context)
-        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra, self.label_counter, tilegrid)
+        SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
+                                     self.label_counter, tilegrid, sprytile_data,
+                                     context.scene.cursor_location, region, rv3d)
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -383,14 +389,62 @@ class SprytileGui(bpy.types.Operator):
         offscreen.unbind()
 
     @staticmethod
-    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid):
+    def draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d):
+        # Decide if should draw, only draw if middle mouse?
+
+        # First, draw the world grid size overlay
+        paint_up_vector = sprytile_data.paint_up_vector
+        paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
+
+        pixel_unit = 1 / sprytile_data.world_pixels
+        paint_up_vector = paint_up_vector * pixel_unit * grid_size[1]
+        paint_right_vector = paint_right_vector * pixel_unit * grid_size[0]
+
+        p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector - paint_up_vector)
+        p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector + paint_up_vector)
+        p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector + paint_up_vector)
+        p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector - paint_up_vector)
+
+        horiz_min = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector)
+        horiz_max = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector)
+
+        vert_min = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_up_vector)
+        vert_max = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_up_vector)
+
+        # glColor4f(0.906, 0.953, 0.257, 1.0)
+        glColor4f(1, 1, 1, 1.0)
+        glLineWidth(2)
+
+        glBegin(GL_LINE_STRIP)
+        glVertex2f(p0.x, p0.y)
+        glVertex2f(p1.x, p1.y)
+        glVertex2f(p2.x, p2.y)
+        glVertex2f(p3.x, p3.y)
+        glVertex2f(p0.x, p0.y)
+        glEnd()
+        glBegin(GL_LINES)
+        glVertex2f(horiz_min.x, horiz_min.y)
+        glVertex2f(horiz_max.x, horiz_max.y)
+        glEnd()
+        glBegin(GL_LINES)
+        glVertex2f(vert_min.x, vert_min.y)
+        glVertex2f(vert_max.x, vert_max.y)
+        glEnd()
+
+    @staticmethod
+    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid, sprytile_data, cursor_loc, region, rv3d):
         """Draw the offscreen texture into the viewport"""
+
+        # Prepare some data that will be used for drawing
+        grid_size = SprytileGui.loaded_grid.grid
 
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
+
+        SprytileGui.draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d)
 
         view_size = int(max.x - min.x), int(max.y - min.y)
         # Save the original scissor box, and then set new scissor setting
@@ -402,6 +456,7 @@ class SprytileGui(bpy.types.Operator):
         bgl.glBegin(bgl.GL_QUADS)
         uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
         vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
+        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         for i in range(4):
             glTexCoord2f(uv[i][0], uv[i][1])
             glVertex2f(vtx[i][0], vtx[i][1])
@@ -428,7 +483,6 @@ class SprytileGui(bpy.types.Operator):
             glColor4f(0.0, 0.0, 0.0, 0.5)
             glLineWidth(1)
             # Draw the grid
-            grid_size = SprytileGui.loaded_grid.grid
             x_divs = ceil(tex_size[0] / grid_size[0])
             y_divs = ceil(tex_size[1] / grid_size[1])
             # x_size = (grid_size[0] / tex_size[0]) * (max.x - min.x)
@@ -456,8 +510,9 @@ class SprytileGui(bpy.types.Operator):
 
         if label_counter > 0:
             import math
-            def easeOutCirc(t, b, c, d):
-                t /= d;
+
+            def ease_out_circ(t, b, c, d):
+                t /= d
                 t -= 1
                 return c * math.sqrt(1 - t * t) + b
 
@@ -466,7 +521,7 @@ class SprytileGui(bpy.types.Operator):
             pad = 5
             box_pad = font_size + (pad * 2)
             fade = label_counter
-            fade = easeOutCirc(fade, 0, SprytileGui.label_frames, SprytileGui.label_frames)
+            fade = ease_out_circ(fade, 0, SprytileGui.label_frames, SprytileGui.label_frames)
             fade /= SprytileGui.label_frames
 
             bgl.glColor4f(0.0, 0.0, 0.0, 0.75 * fade)
@@ -489,13 +544,6 @@ class SprytileGui(bpy.types.Operator):
                 label_string = "%s - %s" % (label_string, tilegrid.name)
             blf.position(font_id, x_pos, y_pos, 0)
             blf.draw(font_id, label_string)
-
-            # if tilegrid.name != "":
-            #     x_pos = max.x - pad
-            #     name_size = blf.dimensions(font_id, tilegrid.name)
-            #     x_pos -= name_size[0]
-            #     blf.position(font_id, x_pos, y_pos, 0)
-            #     blf.draw(font_id, tilegrid.name)
 
         bgl.glDisable(bgl.GL_BLEND)
         bgl.glDisable(bgl.GL_TEXTURE_2D)
