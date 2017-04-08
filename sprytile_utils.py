@@ -5,6 +5,7 @@ import bmesh
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector
 from . import sprytile_modal
+from . import addon_updater_ops
 
 
 def get_grid_matrix(sprytile_grid):
@@ -833,6 +834,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
             return context.object.mode == 'EDIT'
 
     def draw(self, context):
+        addon_updater_ops.check_for_update_background(context)
+
         layout = self.layout
         data = context.scene.sprytile_data
 
@@ -864,6 +867,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         split = layout.split(percentage=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
+
+        addon_updater_ops.update_notice_box_ui(self, context)
 
 
 def register():
