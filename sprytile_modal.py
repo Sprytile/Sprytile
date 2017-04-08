@@ -653,10 +653,7 @@ class SprytileModalTool(bpy.types.Operator):
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
-
-            # Hit a face, if it was going to be painted, already done
-            # Now just stop executing so no building behind
-            return
+                return
 
         # Raycast did not hit the mesh, raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = raycast_grid(
