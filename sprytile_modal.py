@@ -664,6 +664,13 @@ class SprytileModalTool(bpy.types.Operator):
         if face_position is None:
             return
 
+        # If raycast hit mesh, compare distance of grid hit and mesh hit
+        if hit_loc is not None:
+            grid_hit_dist = (face_position - ray_origin).magnitude
+            # Mesh hit closer than grid hit, don't do anything
+            if hit_dist < grid_hit_dist:
+                return
+
         # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
         self.add_virtual_cursor(plane_cursor)
         # Build face and UV map it
