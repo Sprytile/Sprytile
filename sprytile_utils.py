@@ -834,6 +834,8 @@ class SprytileWorkflowPanel(bpy.types.Panel):
             return context.object.mode == 'EDIT'
 
     def draw(self, context):
+        addon_updater_ops.check_for_update_background(context)
+
         layout = self.layout
         data = context.scene.sprytile_data
 
