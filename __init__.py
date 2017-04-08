@@ -291,6 +291,24 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=True
     )
 
+    def set_reload(self, value):
+        if value is True:
+            bpy.ops.sprytile.reload_auto('INVOKE_DEFAULT')
+        self["auto_reload"] = value
+
+    def get_reload(self):
+        if "auto_reload" not in self.keys():
+            self["auto_reload"] = False
+        return self["auto_reload"]
+
+    auto_reload = BoolProperty(
+        name="Auto",
+        description="Automatically reload images every few seconds",
+        default=False,
+        set=set_reload,
+        get=get_reload
+    )
+
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = StringProperty(

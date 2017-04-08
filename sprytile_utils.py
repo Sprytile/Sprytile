@@ -498,6 +498,31 @@ class SprytileReloadImages(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileReloadImagesAuto(bpy.types.Operator):
+    bl_idname = "sprytile.reload_auto"
+    bl_label = "Reload All Images (Auto)"
+
+    _timer = None
+
+    def modal(self, context, event):
+        if event.type == 'TIMER':
+            if context.scene.sprytile_data.auto_reload is False:
+                self.cancel(context)
+                return {'CANCELLED'}
+            bpy.ops.sprytile.reload_imgs('INVOKE_DEFAULT')
+        return {'PASS_THROUGH'}
+
+    def execute(self, context):
+        wm = context.window_manager
+        self._timer = wm.event_timer_add(2, context.window)
+        wm.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def cancel(self, context):
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
+
+
 class SprytileUpdateCheck(bpy.types.Operator):
     bl_idname = "sprytile.update_check"
     bl_label = "Check for Update"
@@ -743,6 +768,7 @@ class SprytileResetData(bpy.types.Operator):
     bl_description = "In case sprytile breaks…"
 
     def invoke(self, context, event):
+        context.scene.sprytile_data.auto_reload = False
         context.scene.sprytile_data.is_running = False
         return {'FINISHED'}
 
@@ -821,7 +847,10 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         layout.prop(data, "snap_translate", toggle=True)
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
-        layout.operator("sprytile.reload_imgs")
+
+        split = layout.split(percentage=0.3, align=True)
+        split.prop(data, "auto_reload", toggle=True)
+        split.operator("sprytile.reload_imgs")
 
 
 def register():
