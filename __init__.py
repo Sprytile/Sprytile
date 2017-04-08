@@ -311,13 +311,21 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     axis_plane_display = EnumProperty(
         items=[
-            ('OFF', "Off", "", 1),
-            ('ON', "On", "", 2),
-            ('MIDDLE_MOUSE', "Middle Mouse", "", 3)
+            ('OFF', "Off", "Always Off", "RADIOBUT_OFF", 1),
+            ('ON', "On", "Always On", "RADIOBUT_ON", 2),
+            ('MIDDLE_MOUSE', " ", "Only when changing view", "CAMERA_DATA", 3)
         ],
         name="Axis Indicator",
         description="Display mode of axis indicator",
         default='MIDDLE_MOUSE'
+    )
+
+    axis_plane_color = FloatVectorProperty(
+        name="Axis Plane Color",
+        description="Color Axis Plane is drawn with",
+        size=4,
+        default=(0.7, 0.7, 0.7, 1),
+        subtype='COLOR'
     )
 
 

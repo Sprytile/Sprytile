@@ -15,6 +15,7 @@ class SprytileGuiData(bpy.types.PropertyGroup):
         default=1.0
     )
     use_mouse = BoolProperty(name="GUI use mouse")
+    middle_btn = BoolProperty(name="GUI middle mouse")
     is_dirty = BoolProperty(name="Srpytile GUI redraw flag")
 
 
@@ -167,6 +168,11 @@ class SprytileGui(bpy.types.Operator):
         if event is None or reject_region:
             return
 
+        if event.type == 'MIDDLEMOUSE':
+            context.scene.sprytile_ui.middle_btn = True
+        if context.scene.sprytile_ui.middle_btn and event.value == 'RELEASE':
+            context.scene.sprytile_ui.middle_btn = False
+
         if mouse_pt is not None and event.type in {'MOUSEMOVE'}:
             mouse_in_region = 0 <= mouse_pt.x <= region.width and 0 <= mouse_pt.y <= region.height
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
@@ -298,10 +304,12 @@ class SprytileGui(bpy.types.Operator):
         region = context.region
         rv3d = context.region_data
 
+        middle_btn = context.scene.sprytile_ui.middle_btn
+
         SprytileGui.draw_offscreen(self, context)
         SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
-                                     context.scene.cursor_location, region, rv3d)
+                                     context.scene.cursor_location, region, rv3d, middle_btn)
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -391,8 +399,13 @@ class SprytileGui(bpy.types.Operator):
         offscreen.unbind()
 
     @staticmethod
-    def draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d):
+    def draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
         # Decide if should draw, only draw if middle mouse?
+        if sprytile_data.axis_plane_display == 'OFF':
+            return
+        if sprytile_data.axis_plane_display == 'MIDDLE_MOUSE':
+            if middle_btn is False and sprytile_data.is_snapping is False:
+                return
 
         # First, draw the world grid size overlay
         paint_up_vector = sprytile_data.paint_up_vector
@@ -413,8 +426,8 @@ class SprytileGui(bpy.types.Operator):
         vert_min = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_up_vector)
         vert_max = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_up_vector)
 
-        # glColor4f(0.906, 0.953, 0.257, 1.0)
-        glColor4f(1, 1, 1, 1.0)
+        plane_col = sprytile_data.axis_plane_color
+        glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
         glLineWidth(2)
 
         glBegin(GL_LINE_STRIP)
@@ -434,19 +447,22 @@ class SprytileGui(bpy.types.Operator):
         glEnd()
 
     @staticmethod
-    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid, sprytile_data, cursor_loc, region, rv3d):
+    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid, sprytile_data,
+                         cursor_loc, region, rv3d, middle_btn):
         """Draw the offscreen texture into the viewport"""
 
         # Prepare some data that will be used for drawing
         grid_size = SprytileGui.loaded_grid.grid
 
+        # Draw world space axis plane
+        SprytileGui.draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
+
+        # Setup GL for drawing offscreen texture
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
-
-        SprytileGui.draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d)
 
         view_size = int(max.x - min.x), int(max.y - min.y)
         # Save the original scissor box, and then set new scissor setting
@@ -458,7 +474,6 @@ class SprytileGui(bpy.types.Operator):
         bgl.glBegin(bgl.GL_QUADS)
         uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
         vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
-        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         for i in range(4):
             glTexCoord2f(uv[i][0], uv[i][1])
             glVertex2f(vtx[i][0], vtx[i][1])

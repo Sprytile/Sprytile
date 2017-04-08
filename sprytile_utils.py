@@ -836,7 +836,12 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         layout = self.layout
         data = context.scene.sprytile_data
 
-        layout.prop(data, "axis_plane_display", expand=True)
+        row = layout.row(align=False)
+        row.label("", icon="VIEW3D_VEC")
+        
+        sub_row = row.row(align=True)
+        sub_row.prop(data, "axis_plane_display", expand=True)
+        sub_row.prop(data, "axis_plane_color", expand=False, text="")
 
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
