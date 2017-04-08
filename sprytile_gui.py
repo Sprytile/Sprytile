@@ -74,7 +74,7 @@ class SprytileGui(bpy.types.Operator):
             self.handle_ui(context, event)
             self.label_counter = 0
 
-            SprytileGui.handler_add(self, context)
+            SprytileGui.handler_add(self, context, context.region)
             if context.area:
                 context.area.tag_redraw()
             win_mgr = context.window_manager
@@ -275,8 +275,8 @@ class SprytileGui(bpy.types.Operator):
         SprytileGui.texture = None
 
     @staticmethod
-    def handler_add(self, context):
-        SprytileGui.draw_callback = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_handler, (self, context),
+    def handler_add(self, context, region):
+        SprytileGui.draw_callback = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_handler, (self, context, region),
                                                                            'WINDOW', 'POST_PIXEL')
 
     @staticmethod
@@ -287,8 +287,10 @@ class SprytileGui(bpy.types.Operator):
         SprytileGui.draw_callback = None
 
     @staticmethod
-    def draw_callback_handler(self, context):
+    def draw_callback_handler(self, context, region):
         """Callback handler"""
+        if region.id is not context.region.id:
+            return
         sprytile_data = context.scene.sprytile_data
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
