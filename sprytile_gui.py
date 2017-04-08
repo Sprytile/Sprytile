@@ -411,24 +411,51 @@ class SprytileGui(bpy.types.Operator):
         paint_up_vector = sprytile_data.paint_up_vector
         paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
 
+        indicator_x = sprytile_data.axis_plane_size[0]
+        indicator_y = sprytile_data.axis_plane_size[1]
+
         pixel_unit = 1 / sprytile_data.world_pixels
         paint_up_vector = paint_up_vector * pixel_unit * grid_size[1]
         paint_right_vector = paint_right_vector * pixel_unit * grid_size[0]
+
+        x_min = cursor_loc - paint_right_vector * indicator_x
+        x_max = cursor_loc + paint_right_vector * indicator_x
+
+        y_min = cursor_loc - paint_up_vector * indicator_y
+        y_max = cursor_loc + paint_up_vector * indicator_y
+
+        def draw_world_line(world_start, world_end):
+            start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
+            end = view3d_utils.location_3d_to_region_2d(region, rv3d, world_end)
+            glBegin(GL_LINES)
+            glVertex2f(start.x, start.y)
+            glVertex2f(end.x, end.y)
+            glEnd()
+
+        def draw_interior_grid(start_loc, x_vec, y_vec, size_x, size_y):
+            for x_dir in [-1, 1]:
+                for grid_x in range(1, size_x):
+                    start_pos = start_loc + (x_vec * x_dir * grid_x)
+                    end_pos = start_pos + y_vec * size_y * 2
+                    draw_world_line(start_pos, end_pos)
+
+        plane_col = sprytile_data.axis_plane_color
+        glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
+        glLineWidth(2)
+
+        draw_interior_grid(y_min, paint_right_vector, paint_up_vector, indicator_x, indicator_y)
+        draw_interior_grid(x_min, paint_up_vector, paint_right_vector, indicator_y, indicator_x)
+        # Origin lines
+        draw_world_line(x_min, x_max)
+        draw_world_line(y_min, y_max)
+
+        paint_right_vector *= sprytile_data.axis_plane_size[0]
+        paint_up_vector *= sprytile_data.axis_plane_size[1]
 
         p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector - paint_up_vector)
         p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector + paint_up_vector)
         p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector + paint_up_vector)
         p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector - paint_up_vector)
-
-        horiz_min = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector)
-        horiz_max = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector)
-
-        vert_min = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_up_vector)
-        vert_max = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_up_vector)
-
-        plane_col = sprytile_data.axis_plane_color
-        glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
-        glLineWidth(2)
 
         glBegin(GL_LINE_STRIP)
         glVertex2f(p0.x, p0.y)
@@ -436,14 +463,6 @@ class SprytileGui(bpy.types.Operator):
         glVertex2f(p2.x, p2.y)
         glVertex2f(p3.x, p3.y)
         glVertex2f(p0.x, p0.y)
-        glEnd()
-        glBegin(GL_LINES)
-        glVertex2f(horiz_min.x, horiz_min.y)
-        glVertex2f(horiz_max.x, horiz_max.y)
-        glEnd()
-        glBegin(GL_LINES)
-        glVertex2f(vert_min.x, vert_min.y)
-        glVertex2f(vert_max.x, vert_max.y)
         glEnd()
 
     @staticmethod

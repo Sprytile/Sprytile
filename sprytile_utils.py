@@ -838,10 +838,16 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
         row = layout.row(align=False)
         row.label("", icon="VIEW3D_VEC")
-        
+
+        dropdown_icon = "TRIA_DOWN" if data.axis_plane_settings else "TRIA_RIGHT"
+
         sub_row = row.row(align=True)
+        sub_row.prop(data, "axis_plane_settings", icon=dropdown_icon, emboss=False, text="")
         sub_row.prop(data, "axis_plane_display", expand=True)
-        sub_row.prop(data, "axis_plane_color", expand=False, text="")
+
+        if data.axis_plane_settings:
+            layout.prop(data, "axis_plane_color")
+            layout.prop(data, "axis_plane_size")
 
         row = layout.row(align=False)
         row.label("", icon="SNAP_ON")
