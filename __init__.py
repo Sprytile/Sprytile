@@ -12,7 +12,7 @@ bl_info = {
 
 if "bpy" in locals():
     import imp
-
+    imp.reload(addon_updater_ops)
     imp.reload(sprytile_gui)
     imp.reload(sprytile_modal)
     imp.reload(sprytile_panel)
@@ -21,6 +21,7 @@ else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
 
 import bpy
+from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
 
@@ -502,23 +503,55 @@ def teardown_props():
 class SprytileAddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __name__
 
+    # addon updater preferences
+    auto_check_update = bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=False,
+    )
+    updater_intrval_months = bpy.props.IntProperty(
+        name='Months',
+        description="Number of months between checking for updates",
+        default=0,
+        min=0
+    )
+    updater_intrval_days = bpy.props.IntProperty(
+        name='Days',
+        description="Number of days between checking for updates",
+        default=7,
+        min=0,
+    )
+    updater_intrval_hours = bpy.props.IntProperty(
+        name='Hours',
+        description="Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23
+    )
+    updater_intrval_minutes = bpy.props.IntProperty(
+        name='Minutes',
+        description="Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59
+    )
+
     def draw(self, context):
         layout = self.layout
-        # Uncomment when done
-        # layout.operator('sprytile.update_check')
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
         kmi_idx = km.keymap_items.find('sprytile.modal_tool')
-        if kmi_idx < 0:
-            return
-        layout.label(text="Tile Mode Shortcut")
-        col = layout.column()
+        if kmi_idx >= 0:
+            layout.label(text="Tile Mode Shortcut")
+            col = layout.column()
 
-        kmi = km.keymap_items[kmi_idx]
-        km = km.active()
-        col.context_pointer_set("keymap", km)
-        rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            kmi = km.keymap_items[kmi_idx]
+            km = km.active()
+            col.context_pointer_set("keymap", km)
+            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+
+        addon_updater_ops.update_settings_ui(self, context)
 
 def setup_keymap():
     km_array = sprytile_modal.SprytileModalTool.keymaps
@@ -561,6 +594,7 @@ def teardown_keymap():
 
 
 def register():
+    addon_updater_ops.register(bl_info)
     bpy.utils.register_class(sprytile_panel.SprytilePanel)
     bpy.utils.register_module(__name__)
     setup_props()
