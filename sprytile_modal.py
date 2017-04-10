@@ -861,6 +861,12 @@ class SprytileModalTool(bpy.types.Operator):
 
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
 
+        if event.value == 'PRESS' and event.shift:
+            if scene.sprytile_data.cursor_snap == 'GRID':
+                scene.sprytile_data.cursor_snap = 'VERTEX'
+            else:
+                scene.sprytile_data.cursor_snap = 'GRID'
+
         # Snap cursor, depending on setting
         if scene.sprytile_data.cursor_snap == 'GRID':
             location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
@@ -1049,6 +1055,9 @@ class SprytileModalTool(bpy.types.Operator):
                     used_key = True
         # Key event used by fake modal map, return none
         if used_key:
+            return None
+        if event.shift and context.scene.sprytile_data.is_snapping:
+            self.cursor_snap(context, event)
             return None
         # Pass through every key event we don't handle ourselves
         self.refresh_mesh = True
