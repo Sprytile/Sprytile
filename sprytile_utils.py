@@ -820,15 +820,78 @@ class SprytileObjectPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.menu("SPRYTILE_object_drop")
-        layout.label("Material Setup")
-        layout.operator("sprytile.material_setup")
-        layout.operator("sprytile.texture_setup")
+
+        box = layout.box()
+        box.label("Material Setup")
+        box.operator("sprytile.material_setup")
+        box.operator("sprytile.texture_setup")
+        box.operator("sprytile.add_new_material")
+
         layout.separator()
-        layout.operator("sprytile.add_new_material")
+        self.wrap(layout.column(), "Enter edit mode to use Sprytile Paint Tools")
+
         layout.separator()
-        layout.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
-        layout.label("Image Utilities")
-        layout.operator("sprytile.reload_imgs")
+        box = layout.box()
+        box.label("Pixel Translate Options")
+        box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
+
+        layout.separator()
+        box = layout.box()
+        box.label("Image Utilities")
+        split = box.split(percentage=0.3, align=True)
+        split.prop(context.scene.sprytile_data, "auto_reload", toggle=True)
+        split.operator("sprytile.reload_imgs")
+
+    def wrap(self, col, text, area="VIEW_3D", type="TOOL_PROPS", TabStr="    ", scaleY=0.55):
+        aID = -1
+        rID = -1
+        newLine = "\n"
+        tab = "\t"
+        tabbing = False
+        nLine = False
+        col.scale_y = scaleY
+        areas = bpy.context.screen.areas
+        for i, a in enumerate(areas):
+            if (a.type == area):
+                aID = i
+            reg = a.regions
+            for ir, r in enumerate(reg):
+                if (r.type == type):
+                    rID = ir
+        if ((aID >= 0) and (rID >= 0)):
+            pWidth = areas[aID].regions[rID].width
+
+            charWidth = 7  # approximate width of each character
+            LineLength = int(pWidth / charWidth)
+            LastSpace = LineLength  # current position of last space character in text
+            while LastSpace > 0:
+                splitPoint = LineLength  # where to split the text
+                if (splitPoint > len(text)):
+                    splitPoint = len(text) - 1
+
+                cr = text.find(newLine, 0, len(text))
+
+                if ((cr > 0) and (cr <= splitPoint)):
+                    nLine = True
+                    LastSpace = cr  # Position of new line symbol, if found
+                else:
+                    tabp = text.find("\t", 0, splitPoint)
+                    if (tabp >= 0):
+                        text = text.replace(tab, "", 1)
+                        tabbing = True
+                        nLine = False
+                    LastSpace = text.rfind(" ", 0, splitPoint)  # Position of last space character in text
+
+                if ((LastSpace == -1) or (
+                    len(text) <= LineLength)):  # No more spaces found, or its the last line of text
+                    LastSpace = len(text)
+                line = text[0:LastSpace]
+                if (tabbing):
+                    line = TabStr + line
+                col.label(line)
+                if (nLine):
+                    tabbing = False
+                text = text[LastSpace + 1:len(text)]
 
 
 class SprytileWorkDropDown(bpy.types.Menu):
