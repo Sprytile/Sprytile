@@ -209,6 +209,27 @@ class SprytileGridCycle(bpy.types.Operator):
         obj.sprytile_gridid = curr_mat.grids[idx].id
         bpy.ops.sprytile.build_grid_list()
 
+
+class SprytileStartTool(bpy.types.Operator):
+    bl_idname = "sprytile.start_tool"
+    bl_label = "Start Sprytile Paint"
+
+    mode = bpy.props.IntProperty(default=3)
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        if self.mode is 0:
+            context.scene.sprytile_data.paint_mode = 'SET_NORMAL'
+        if self.mode is 1:
+            context.scene.sprytile_data.paint_mode = 'PAINT'
+        if self.mode is 2:
+            context.scene.sprytile_data.paint_mode = 'MAKE_FACE'
+        bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
+        return {'FINISHED'}
+
+
 class SprytileGridMove(bpy.types.Operator):
     bl_idname = "sprytile.grid_move"
     bl_label = "Move Grid"

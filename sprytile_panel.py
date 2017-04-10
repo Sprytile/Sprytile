@@ -68,7 +68,13 @@ class SprytilePanel(bpy.types.Panel):
         obj = context.object
         sprytile_data = context.scene.sprytile_data
 
-        layout.prop(sprytile_data, "paint_mode", expand=True)
+        if sprytile_data.is_running:
+            layout.prop(sprytile_data, "paint_mode", expand=True)
+        else:
+            row = layout.row(align=True)
+            row.prop(sprytile_data, "set_paint_mode", index=0, text="Set Normal", toggle=True)
+            row.prop(sprytile_data, "set_paint_mode", index=1, text="Paint", toggle=True)
+            row.prop(sprytile_data, "set_paint_mode", index=2, text="Build", toggle=True)
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "uv_flip_x", toggle=True)

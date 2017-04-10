@@ -92,6 +92,28 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_mode
     )
 
+    def set_dummy(self, value):
+        if self['is_running'] is True:
+            return
+        paint_mode = 3
+        if value[0]:
+            paint_mode = 2
+        if value[1]:
+            paint_mode = 1
+        self["paint_mode"] = paint_mode
+        bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
+
+    def get_dummy(self):
+        return False, False, False
+
+    set_paint_mode = BoolVectorProperty(
+        name="Set Paint Mode",
+        description="Set Painting Mode",
+        size=3,
+        set=set_dummy,
+        get=get_dummy
+    )
+
     world_pixels = IntProperty(
         name="World Pixel Density",
         description="How many pixels are displayed in one world unit",
@@ -187,7 +209,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         else:
             return
         self["paint_align"] = row_val + col_val
-        #print("Set align toggle. Row", row_val, "Col", col_val, "Value", self.paint_align)
 
     def set_align_top(self, value):
         self.set_align_toggle(value, "top")
