@@ -80,6 +80,57 @@ def get_mat_data(context, mat_id):
     return None
 
 
+def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="    ", scale_y=0.55):
+    a_id = -1
+    r_id = -1
+    new_line = "\n"
+    tab = "\t"
+    tabbing = False
+    n_line = False
+    col.scale_y = scale_y
+    areas = bpy.context.screen.areas
+    for i, a in enumerate(areas):
+        if a.type == area:
+            a_id = i
+        reg = a.regions
+        for ir, r in enumerate(reg):
+            if r.type == region_type:
+                r_id = ir
+    if a_id < 0 or r_id < 0:
+        return
+
+    p_width = areas[a_id].regions[r_id].width
+    char_width = 7  # approximate width of each character
+    line_length = int(p_width / char_width)
+    last_space = line_length  # current position of last space character in text
+    while last_space > 0:
+        split_point = line_length  # where to split the text
+        if split_point > len(text):
+            split_point = len(text) - 1
+
+        cr = text.find(new_line, 0, len(text))
+
+        if (cr > 0) and (cr <= split_point):
+            n_line = True
+            last_space = cr  # Position of new line symbol, if found
+        else:
+            tabp = text.find("\t", 0, split_point)
+            if tabp >= 0:
+                text = text.replace(tab, "", 1)
+                tabbing = True
+                n_line = False
+            last_space = text.rfind(" ", 0, split_point)  # Position of last space character in text
+
+        if (last_space == -1) or len(text) <= line_length:  # No more spaces found, or its the last line of text
+            last_space = len(text)
+        line = text[0:last_space]
+        if tabbing:
+            line = tab_str + line
+        col.label(line)
+        if n_line:
+            tabbing = False
+        text = text[last_space + 1:len(text)]
+
 class SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
     bl_label = "Add New Grid"
@@ -828,7 +879,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         box.operator("sprytile.add_new_material")
 
         layout.separator()
-        self.wrap(layout.column(), "Enter edit mode to use Sprytile Paint Tools")
+        label_wrap(layout.column(), "Enter edit mode to use Sprytile Paint Tools")
 
         layout.separator()
         box = layout.box()
@@ -841,57 +892,6 @@ class SprytileObjectPanel(bpy.types.Panel):
         split = box.split(percentage=0.3, align=True)
         split.prop(context.scene.sprytile_data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
-
-    def wrap(self, col, text, area="VIEW_3D", type="TOOL_PROPS", TabStr="    ", scaleY=0.55):
-        aID = -1
-        rID = -1
-        newLine = "\n"
-        tab = "\t"
-        tabbing = False
-        nLine = False
-        col.scale_y = scaleY
-        areas = bpy.context.screen.areas
-        for i, a in enumerate(areas):
-            if (a.type == area):
-                aID = i
-            reg = a.regions
-            for ir, r in enumerate(reg):
-                if (r.type == type):
-                    rID = ir
-        if ((aID >= 0) and (rID >= 0)):
-            pWidth = areas[aID].regions[rID].width
-
-            charWidth = 7  # approximate width of each character
-            LineLength = int(pWidth / charWidth)
-            LastSpace = LineLength  # current position of last space character in text
-            while LastSpace > 0:
-                splitPoint = LineLength  # where to split the text
-                if (splitPoint > len(text)):
-                    splitPoint = len(text) - 1
-
-                cr = text.find(newLine, 0, len(text))
-
-                if ((cr > 0) and (cr <= splitPoint)):
-                    nLine = True
-                    LastSpace = cr  # Position of new line symbol, if found
-                else:
-                    tabp = text.find("\t", 0, splitPoint)
-                    if (tabp >= 0):
-                        text = text.replace(tab, "", 1)
-                        tabbing = True
-                        nLine = False
-                    LastSpace = text.rfind(" ", 0, splitPoint)  # Position of last space character in text
-
-                if ((LastSpace == -1) or (
-                    len(text) <= LineLength)):  # No more spaces found, or its the last line of text
-                    LastSpace = len(text)
-                line = text[0:LastSpace]
-                if (tabbing):
-                    line = TabStr + line
-                col.label(line)
-                if (nLine):
-                    tabbing = False
-                text = text[LastSpace + 1:len(text)]
 
 
 class SprytileWorkDropDown(bpy.types.Menu):
