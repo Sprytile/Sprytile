@@ -68,11 +68,17 @@ class SprytilePanel(bpy.types.Panel):
         obj = context.object
         sprytile_data = context.scene.sprytile_data
 
-        col = layout.column(align=True)
+        row = layout.row(align=True) # .split(0.07, True)
 
-        row = col.row(align=True)
-        row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
-        row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
+        dropdown_icon = "TRIA_DOWN" if sprytile_data.show_tools else "TRIA_RIGHT"
+        row.prop(sprytile_data, "show_tools", icon=dropdown_icon, emboss=True, text="")
+
+        col = row.column(align=True)
+
+        if sprytile_data.show_tools:
+            row = col.row(align=True)
+            row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
+            row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
 
         row = col.row(align=True)
         row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)

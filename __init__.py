@@ -62,23 +62,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=True
     )
 
-    def set_mode(self, value):
-        run_modal = True
-        if "is_running" in self.keys():
-            if self["is_running"]:
-                if self["paint_mode"] == value:
-                    self["is_running"] = False
-                    run_modal = False
-
-        if run_modal:
-            bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
-        self["paint_mode"] = value
-
-    def get_mode(self):
-        if "paint_mode" not in self.keys():
-            self["paint_mode"] = 3
-        return self["paint_mode"]
-
     paint_mode = EnumProperty(
         items=[
             ("PAINT", "Paint", "Advanced UV paint tools", 1),
@@ -88,9 +71,29 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         ],
         name="Sprytile Paint Mode",
         description="Paint mode",
-        default='MAKE_FACE',
-        get=get_mode,
-        set=set_mode,
+        default='MAKE_FACE'
+    )
+
+    def set_show_tools(self, value):
+        keys = self.keys()
+        if "show_tools" not in keys:
+            self["show_tools"] = False
+        self["show_tools"] = value
+        if value is False:
+            if "paint_mode" not in keys:
+                self["paint_mode"] = 3
+            if self["paint_mode"] in {2, 4}:
+                self["paint_mode"] = 3
+
+    def get_show_tools(self):
+        if "show_tools" not in self.keys():
+            self["show_tools"] = False
+        return self["show_tools"]
+
+    show_tools = BoolProperty(
+        default=False,
+        set=set_show_tools,
+        get=get_show_tools
     )
 
     def set_dummy(self, value):
