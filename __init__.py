@@ -337,20 +337,20 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             ('ON', "On", "Always On", "RADIOBUT_ON", 2),
             ('MIDDLE_MOUSE', "View", "Only when changing view", "CAMERA_DATA", 3)
         ],
-        name="Axis Indicator",
-        description="Display mode of axis indicator",
+        name="Work Plane Cursor",
+        description="Display mode of Work Plane Cursor",
         default='MIDDLE_MOUSE'
     )
 
     axis_plane_settings = BoolProperty(
         name="Axis Plane Settings",
-        description="Show Axis Plane Settings",
+        description="Show Work Plane Cursor settings",
         default=False
     )
 
     axis_plane_size = IntVectorProperty(
         name="Plane Size",
-        description="Size of the work axis plane",
+        description="Size of the Work Plane Cursor",
         size=2,
         default=(1, 1),
         min=1,
@@ -359,7 +359,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     axis_plane_color = FloatVectorProperty(
         name="Plane Color",
-        description="Color Axis Plane is drawn with",
+        description="Color Work Plane Cursor is drawn with",
         size=3,
         default=(0.7, 0.7, 0.7),
         subtype='COLOR'
