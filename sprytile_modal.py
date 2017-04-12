@@ -861,7 +861,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
 
-        if event.value == 'PRESS' and event.shift:
+        if event.type in self.is_keyboard_list and event.shift and event.value == 'PRESS':
             if scene.sprytile_data.cursor_snap == 'GRID':
                 scene.sprytile_data.cursor_snap = 'VERTEX'
             else:
