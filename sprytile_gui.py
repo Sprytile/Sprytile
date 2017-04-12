@@ -298,6 +298,8 @@ class SprytileGui(bpy.types.Operator):
         if region.id is not context.region.id:
             return
         sprytile_data = context.scene.sprytile_data
+        if sprytile_data.is_running is False:
+            return
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
 

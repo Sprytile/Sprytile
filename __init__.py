@@ -81,35 +81,69 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     paint_mode = EnumProperty(
         items=[
-            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2),
             ("PAINT", "Paint", "Advanced UV paint tools", 1),
             ("MAKE_FACE", "Build", "Only create new faces", 3),
+            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2),
+            ("FILL", "Fill", "Fill the work plane cursor", 4)
         ],
         name="Sprytile Paint Mode",
         description="Paint mode",
         default='MAKE_FACE',
+        get=get_mode,
         set=set_mode,
-        get=get_mode
     )
 
     def set_dummy(self, value):
-        if self['is_running'] is True:
-            return
-        paint_mode = 3
-        if value[0]:
-            paint_mode = 2
-        if value[1]:
-            paint_mode = 1
-        self["paint_mode"] = paint_mode
-        bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
+        current_value = self.get_dummy_actual(True)
+        value = list(value)
+        for idx in range(len(value)):
+            if current_value[idx] and current_value[idx] & value[idx]:
+                value[idx] = False
+
+        mode_value_idx = [1, 3, 2, 4]
+
+        def get_mode_value(arr_value):
+            for i in range(len(arr_value)):
+                if arr_value[i]:
+                    return mode_value_idx[i]
+            return -1
+
+        run_modal = True
+        paint_mode = get_mode_value(value)
+        if paint_mode > 0:
+            self["paint_mode"] = paint_mode
+        else:
+            run_modal = False
+            if "is_running" in self.keys():
+                if self["is_running"]:
+                    self["is_running"] = False
+                else:
+                    run_modal = True
+
+        if run_modal:
+            bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
+
+    def get_dummy_actual(self, force_real):
+        if "paint_mode" not in self.keys():
+            self["paint_mode"] = 3
+
+        out_value = [False, False, False, False]
+        if self["is_running"] or force_real:
+            index_value_lookup = 1, 3, 2, 4
+            set_idx = index_value_lookup.index(self["paint_mode"])
+            out_value[set_idx] = True
+        return out_value
 
     def get_dummy(self):
-        return False, False, False
+        if "is_running" not in self.keys():
+            self["is_running"] = False
+        is_running = self["is_running"]
+        return self.get_dummy_actual(is_running)
 
     set_paint_mode = BoolVectorProperty(
         name="Set Paint Mode",
         description="Set Painting Mode",
-        size=3,
+        size=4,
         set=set_dummy,
         get=get_dummy
     )

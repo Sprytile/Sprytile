@@ -589,7 +589,7 @@ class SprytileModalTool(bpy.types.Operator):
         elif paint_mode == 'MAKE_FACE':
             self.execute_build(context, scene, ray_origin, ray_vector)
         # set normal mode...
-        else:
+        elif paint_mode == 'SET_NORMAL':
             self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
 
     def execute_paint(self, context, ray_origin, ray_vector):
