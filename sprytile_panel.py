@@ -75,14 +75,14 @@ class SprytilePanel(bpy.types.Panel):
 
         col = row.column(align=True)
 
+        row = col.row(align=True)
+        row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)
+        row.prop(sprytile_data, "set_paint_mode", index=1, text="Build", toggle=True)
+
         if sprytile_data.show_tools:
             row = col.row(align=True)
             row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
             row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
-
-        row = col.row(align=True)
-        row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)
-        row.prop(sprytile_data, "set_paint_mode", index=1, text="Build", toggle=True)
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "uv_flip_x", toggle=True)
@@ -116,6 +116,10 @@ class SprytilePanel(bpy.types.Panel):
 
         if sprytile_data.paint_mode == 'SET_NORMAL':
             layout.prop(sprytile_data, "paint_hinting")
+
+        if sprytile_data.paint_mode == 'FILL':
+            layout.prop(sprytile_data, "auto_merge", toggle=True)
+            layout.prop(sprytile_data, "axis_plane_size")
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)

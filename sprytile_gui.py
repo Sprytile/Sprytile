@@ -402,12 +402,14 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
+        force_draw = sprytile_data.paint_mode == 'FILL'
         # Decide if should draw, only draw if middle mouse?
-        if sprytile_data.axis_plane_display == 'OFF':
-            return
-        if sprytile_data.axis_plane_display == 'MIDDLE_MOUSE':
-            if middle_btn is False and sprytile_data.is_snapping is False:
+        if force_draw is False:
+            if sprytile_data.axis_plane_display == 'OFF':
                 return
+            if sprytile_data.axis_plane_display == 'MIDDLE_MOUSE':
+                if middle_btn is False and sprytile_data.is_snapping is False:
+                    return
 
         # First, draw the world grid size overlay
         paint_up_vector = sprytile_data.paint_up_vector
