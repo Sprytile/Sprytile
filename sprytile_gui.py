@@ -466,6 +466,9 @@ class SprytileGui(bpy.types.Operator):
         p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector + paint_up_vector)
         p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector - paint_up_vector)
 
+        if p0 is None or p1 is None or p2 is None or p3 is None:
+            return
+
         glBegin(GL_LINE_STRIP)
         glVertex2f(p0.x, p0.y)
         glVertex2f(p1.x, p1.y)
