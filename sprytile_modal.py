@@ -41,15 +41,16 @@ def snap_vector_to_axis(vector, mirrored=False):
     return snapped_vector
 
 
-def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y):
+def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y, as_coord=False):
     """Snaps a world position to the given grid settings"""
     position_vector = position - grid_center
     pos_vector_normalized = position.normalized()
 
-    if right_vector.dot(pos_vector_normalized) < 0:
-        right_vector *= -1
-    if up_vector.dot(pos_vector_normalized) < 0:
-        up_vector *= -1
+    if not as_coord:
+        if right_vector.dot(pos_vector_normalized) < 0:
+            right_vector *= -1
+        if up_vector.dot(pos_vector_normalized) < 0:
+            up_vector *= -1
 
     x_magnitude = position_vector.dot(right_vector)
     y_magnitude = position_vector.dot(up_vector)
@@ -62,6 +63,9 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 
     right_vector *= x_unit
     up_vector *= y_unit
+
+    if as_coord:
+        return Vector((x_snap, y_snap)), right_vector, up_vector
 
     grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
 
@@ -87,7 +91,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     return grid_position, x_vector, y_vector, plane_pos
 
 
-def get_current_grid_vectors(scene):
+def get_current_grid_vectors(scene, with_rotation=True):
     """Returns the current grid X/Y/Z vectors from scene data
     :rtype: up_vector, right_vector, normal_vector
     """
@@ -101,9 +105,10 @@ def get_current_grid_vectors(scene):
     up_vector.normalize()
     right_vector = up_vector.cross(normal_vector)
 
-    rotation = Quaternion(-normal_vector, scene.sprytile_data.mesh_rotate)
-    up_vector = rotation * up_vector
-    right_vector = rotation * right_vector
+    if with_rotation:
+        rotation = Quaternion(-normal_vector, scene.sprytile_data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
 
     return up_vector, right_vector, normal_vector
 
@@ -636,36 +641,148 @@ class SprytileModalTool(bpy.types.Operator):
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene, with_rotation=False)
+
+        # Intersect on the virtual plane
+        plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+        # Didn't hit the plane exit
+        if plane_hit is None:
+            return
+
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
-        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-
         sprytile_data = scene.sprytile_data
-        grid_size = Vector((grid.grid[0] / sprytile_data.world_pixels,
-                            grid.grid[1] / sprytile_data.world_pixels))
 
-        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
-        grid_right = right_vector * grid_size.x
-        grid_up = up_vector * grid_size.y
+        world_pixels = sprytile_data.world_pixels
+        grid_x = grid.grid[0]
+        grid_y = grid.grid[1]
 
+        # Find the position of the plane hit, in terms of grid coordinates
+        hit_coord, grid_right, grid_up = get_grid_pos(plane_hit, scene.cursor_location,
+                                                      right_vector.copy(), up_vector.copy(),
+                                                      world_pixels, grid_x, grid_y, as_coord=True)
+
+        print("Hit grid coordinate:", int(hit_coord.x), int(hit_coord.y))
+        # Check hit_coord is inside the work plane grid
         plane_size = sprytile_data.axis_plane_size
-        print("Plane size", plane_size[0], plane_size[1])
+        if hit_coord.x < -plane_size[0] or hit_coord.x >= plane_size[0]:
+            return
+        if hit_coord.y < -plane_size[1] or hit_coord.y >= plane_size[1]:
+            return
+
         # Use raycast_grid_coord to build a 2d array of work plane
         fill_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
         for y in range(plane_size[1] * 2):
-            y_index = plane_size[1] - 1 - y
+            y_coord = plane_size[1] - 1 - y
             for x in range(plane_size[0] * 2):
-                x_index = -plane_size[0] + x
-                hit_loc, hit_normal, face_index, hit_dist =\
-                    self.raycast_grid_coord(context, context.object, x_index, y_index,
+                x_coord = -plane_size[0] + x
+                hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                                            context, context.object, x_coord, y_coord,
                                             grid_up, grid_right, plane_normal)
-                print("Tested coord", x_index, y_index, "hit:", hit_loc is not None)
                 if hit_loc is not None:
                     fill_array[y][x] = 1
-                x_index += 1
-            y_index += 1
+                x_coord += 1
+            y_coord += 1
+        # Convert from grid coordinate to map coordinate
+        hit_array_coord = [int(hit_coord.x) + plane_size[0],
+                           int((plane_size[1] * 2) - 1 - (hit_coord.y + plane_size[1]))]
+        print("Converted coord:", hit_array_coord)
+        print("grid coordinate value", fill_array[hit_array_coord[1]][hit_array_coord[0]])
+        print(fill_array)
 
-        # raycast to the virtual grid to find grid position user filled
-        print("End execute fill")
+        # Pre calculate for auto merge
+        shift_vec = plane_normal.normalized() * 0.01
+        threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
+        # In grid coordinates
+        fill_coords = self.flood_fill(fill_array, plane_size, hit_array_coord)
+        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+        # Build the faces and UV map them
+        for grid_coord in fill_coords:
+            # Build face and UV map it
+            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+            face_index = self.build_face(context, face_position,
+                                         grid_right, grid_up,
+                                         up_vector, right_vector)
+
+            face_up = self.get_face_up_vector(context, face_index, plane_normal)
+            if face_up is not None and face_up.dot(up_vector) < 0.95:
+                data = context.scene.sprytile_data
+                face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
+                up_vector = face_up
+                right_vector = up_vector.cross(plane_normal)
+
+            uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+
+            if scene.sprytile_data.auto_merge:
+                face = self.bmesh.faces[face_index]
+                face.select = True
+                # Find the face center, to raycast from later
+                face_center = context.object.matrix_world * face.calc_center_bounds()
+                # Move face center back a little for ray casting
+                face_center += shift_vec
+
+                bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+
+                for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+                    el.index_update()
+                    el.ensure_lookup_table()
+
+                # Modified the mesh, refresh and raycast to find the new face index
+                self.bmesh = bmesh.from_edit_mesh(context.object.data)
+                self.tree = BVHTree.FromBMesh(self.bmesh)
+                loc, norm, new_face_idx, hit_dist = self.raycast_object(context.object, face_center, ray_vector, 0.1)
+                if new_face_idx is not None:
+                    self.bmesh.faces[new_face_idx].select = False
+
+        # Refresh BVHTree collision
+        self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
+
+    def flood_fill(self, fill_map, plane_size, start_coord):
+        fill_stack = [start_coord]
+        flood_stack = []
+
+        def scan_line(test_x, test_y, current):
+            if not current and fill_map[test_y][test_x] < 1:
+                line_coord = [test_x, test_y]
+                fill_stack.append(line_coord)
+                print("Add coord to stack", line_coord)
+                return True
+            elif current and fill_map[test_y][test_x] > 0:
+                return False
+            return current
+
+        height = len(fill_map)
+        # Run scanline fill, adding target grid coords to build stack
+        while len(fill_stack) > 0:
+            coord = fill_stack.pop()
+            x = coord[0]
+            y = coord[1]
+            line = fill_map[y]
+            # Move the x index back in this line until hit a filled tile
+            while x >= 0 and line[x] < 1:
+                x -= 1
+            x += 1
+            span_above = False
+            span_below = False
+            y_coord = plane_size[1] - 1 - y
+            width = len(line)
+            # y axis, 0 is top
+            while x < width and line[x] < 1:
+                # Convert x/y coordinates into grid coordinates
+                x_coord = x - plane_size[0]
+                grid_coord = [x_coord, y_coord]
+                # Add the grid coordinate to this list to build face later
+                flood_stack.append(grid_coord)
+                # Set fill map value
+                fill_map[y][x] = 1
+                # Scan line above
+                if y > 0:
+                    span_above = scan_line(x, y - 1, span_above)
+                # Scan line below
+                if y < height - 1:
+                    span_below = scan_line(x, y + 1, span_below)
+                x += 1
+        return flood_stack
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
@@ -760,7 +877,7 @@ class SprytileModalTool(bpy.types.Operator):
         if scene.sprytile_data.cursor_flow:
             self.flow_cursor(context, face_index, plane_cursor)
 
-    def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector):
+    def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector, selected=False):
         """Build a face at the given position"""
 
         x_dot = right_vector.dot(x_vector.normalized())
@@ -790,6 +907,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = self.bmesh.faces.new(face_order)
         face.normal_update()
+        if selected:
+            face.select = True
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
