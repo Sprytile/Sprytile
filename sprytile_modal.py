@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import math
+import sys
 from bpy_extras import view3d_utils
 from collections import deque
 from mathutils import Vector, Matrix, Quaternion
@@ -541,6 +542,7 @@ class SprytileModalTool(bpy.types.Operator):
             context.scene.cursor_location = closest_pos
 
     def raycast_object(self, obj, ray_origin, ray_direction):
+    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=sys.float_info.max):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
@@ -548,14 +550,16 @@ class SprytileModalTool(bpy.types.Operator):
         ray_target_obj = matrix_inv * (ray_origin + ray_direction)
         ray_direction_obj = ray_target_obj - ray_origin_obj
 
-        location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj)
+        location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj, ray_dist)
         if face_index is None:
             return None, None, None, None
 
         face = self.bmesh.faces[face_index]
         shift_vec = ray_direction.normalized() * 0.001
+        # Shoot through backface
         if face.normal.dot(ray_direction) > 0:
             return self.raycast_object(obj, location + shift_vec, ray_direction)
+        # Shoot through hidden face
         if face.hide:
             return self.raycast_object(obj, location + shift_vec, ray_direction)
 
