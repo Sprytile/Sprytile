@@ -448,6 +448,16 @@ class SprytileModalTool(bpy.types.Operator):
 
         return new_mode
 
+    def get_face_tiledata(self, face):
+        grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
+        tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
+        if grid_id_layer is None or tile_id_layer is None:
+            return None, None
+
+        grid_id = face[grid_id_layer]
+        tile_packed_id = face[tile_id_layer]
+        return grid_id, tile_packed_id
+
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
             return
@@ -465,15 +475,11 @@ class SprytileModalTool(bpy.types.Operator):
         if location is None:
             return
 
-        grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
-        tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
-
-        if grid_id_layer is None or tile_id_layer is None:
-            return
-
         face = self.bmesh.faces[face_index]
-        grid_id = face[grid_id_layer]
-        tile_packed_id = face[tile_id_layer]
+
+        grid_id, tile_packed_id = self.get_face_tiledata(face)
+        if None in {grid_id, tile_packed_id}:
+            return
 
         tilegrid = sprytile_utils.get_grid(context, grid_id)
         if tilegrid is None:
@@ -554,7 +560,7 @@ class SprytileModalTool(bpy.types.Operator):
         ray_origin += normal * 0.01
         ray_direction = -normal
 
-        return self.raycast_object(obj, ray_origin, ray_direction, 0.1)
+        return self.raycast_object(obj, ray_origin, ray_direction, 0.02)
 
     def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=sys.float_info.max):
         matrix = obj.matrix_world.copy()
@@ -588,7 +594,6 @@ class SprytileModalTool(bpy.types.Operator):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
             return
 
-        # print("Execute tool")
         # get the context arguments
         scene = context.scene
         region = context.region
@@ -660,8 +665,7 @@ class SprytileModalTool(bpy.types.Operator):
         hit_coord, grid_right, grid_up = get_grid_pos(plane_hit, scene.cursor_location,
                                                       right_vector.copy(), up_vector.copy(),
                                                       world_pixels, grid_x, grid_y, as_coord=True)
-
-        print("Hit grid coordinate:", int(hit_coord.x), int(hit_coord.y))
+        
         # Check hit_coord is inside the work plane grid
         plane_size = sprytile_data.axis_plane_size
         if hit_coord.x < -plane_size[0] or hit_coord.x >= plane_size[0]:
@@ -671,6 +675,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Use raycast_grid_coord to build a 2d array of work plane
         fill_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
+        face_idx_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
+        face_idx_array.fill(-1)
         for y in range(plane_size[1] * 2):
             y_coord = plane_size[1] - 1 - y
             for x in range(plane_size[0] * 2):
@@ -679,29 +685,61 @@ class SprytileModalTool(bpy.types.Operator):
                                             context, context.object, x_coord, y_coord,
                                             grid_up, grid_right, plane_normal)
                 if hit_loc is not None:
-                    fill_array[y][x] = 1
+                    grid_id, tile_packed_id = self.get_face_tiledata(self.bmesh.faces[face_index])
+                    map_value = 1
+                    if tile_packed_id is not None:
+                        map_value = tile_packed_id
+                    fill_array[y][x] = map_value
+                    face_idx_array[y][x] = face_index
                 x_coord += 1
             y_coord += 1
         # Convert from grid coordinate to map coordinate
         hit_array_coord = [int(hit_coord.x) + plane_size[0],
                            int((plane_size[1] * 2) - 1 - (hit_coord.y + plane_size[1]))]
-        print("Converted coord:", hit_array_coord)
-        print("grid coordinate value", fill_array[hit_array_coord[1]][hit_array_coord[0]])
-        print(fill_array)
+
+        # Calculate the tile index of currently selected tile
+        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+        # For getting paint settings later
+        paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
 
         # Pre calculate for auto merge
         shift_vec = plane_normal.normalized() * 0.01
         threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
-        # In grid coordinates
-        fill_coords = self.flood_fill(fill_array, plane_size, hit_array_coord)
-        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+
+        # Get vectors again, to apply tile rotations in UV stage
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
+
+        # Flood fill targets map cell coordinates
+        hit_coord_content = int(fill_array[hit_array_coord[1]][hit_array_coord[0]])
+        fill_coords = self.flood_fill(fill_array, hit_array_coord, -1, hit_coord_content)
         # Build the faces and UV map them
-        for grid_coord in fill_coords:
-            # Build face and UV map it
-            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
-            face_index = self.build_face(context, face_position,
-                                         grid_right, grid_up,
-                                         up_vector, right_vector)
+        for cell_coord in fill_coords:
+            grid_coord = [-plane_size[0] + cell_coord[0],
+                          plane_size[1] - 1 - cell_coord[1]]
+
+            # Check face index array, if -1, create face
+            face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
+            did_build = False
+            # If no existing face, build it
+            if face_index < 0:
+                did_build = True
+                face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+                face_index = self.build_face(context, face_position,
+                                             grid_right, grid_up,
+                                             up_vector, right_vector)
+            # Face existing...
+            else:
+                # Raycast to get the face index of the face, could have changed
+                hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                                            context, context.object,
+                                            grid_coord[0], grid_coord[1],
+                                            grid_up, grid_right, plane_normal)
+
+                # use the face paint settings for the UV map step
+                face = self.bmesh.faces[face_index]
+                if sprytile_data.fill_lock_transform and paint_setting_layer is not None:
+                    paint_setting = face[paint_setting_layer]
+                    from_paint_settings(context.scene.sprytile_data, paint_setting)
 
             face_up = self.get_face_up_vector(context, face_index, plane_normal)
             if face_up is not None and face_up.dot(up_vector) < 0.95:
@@ -712,7 +750,7 @@ class SprytileModalTool(bpy.types.Operator):
 
             uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
-            if scene.sprytile_data.auto_merge:
+            if did_build and sprytile_data.auto_merge:
                 face = self.bmesh.faces[face_index]
                 face.select = True
                 # Find the face center, to raycast from later
@@ -737,17 +775,18 @@ class SprytileModalTool(bpy.types.Operator):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
-    def flood_fill(self, fill_map, plane_size, start_coord):
-        fill_stack = [start_coord]
+    def flood_fill(self, fill_map, start_coord, new_tile_idx, old_tile_idx):
         flood_stack = []
+        if new_tile_idx == old_tile_idx:
+            return flood_stack
+        fill_stack = [start_coord]
 
         def scan_line(test_x, test_y, current):
-            if not current and fill_map[test_y][test_x] < 1:
+            if not current and fill_map[test_y][test_x] == old_tile_idx:
                 line_coord = [test_x, test_y]
                 fill_stack.append(line_coord)
-                print("Add coord to stack", line_coord)
                 return True
-            elif current and fill_map[test_y][test_x] > 0:
+            elif current and fill_map[test_y][test_x] != old_tile_idx:
                 return False
             return current
 
@@ -759,22 +798,19 @@ class SprytileModalTool(bpy.types.Operator):
             y = coord[1]
             line = fill_map[y]
             # Move the x index back in this line until hit a filled tile
-            while x >= 0 and line[x] < 1:
+            while x >= 0 and line[x] == old_tile_idx:
                 x -= 1
             x += 1
             span_above = False
             span_below = False
-            y_coord = plane_size[1] - 1 - y
             width = len(line)
             # y axis, 0 is top
-            while x < width and line[x] < 1:
-                # Convert x/y coordinates into grid coordinates
-                x_coord = x - plane_size[0]
-                grid_coord = [x_coord, y_coord]
+            while x < width and line[x] == old_tile_idx:
+                cell_coord = [x, y]
                 # Add the grid coordinate to this list to build face later
-                flood_stack.append(grid_coord)
+                flood_stack.append(cell_coord)
                 # Set fill map value
-                fill_map[y][x] = 1
+                fill_map[y][x] = new_tile_idx
                 # Scan line above
                 if y > 0:
                     span_above = scan_line(x, y - 1, span_above)

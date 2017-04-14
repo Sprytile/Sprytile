@@ -368,6 +368,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_reload
     )
 
+    fill_lock_transform = BoolProperty(
+        name="Lock Transforms",
+        description="Filled faces keep current rotations",
+        default=False,
+    )
+
     axis_plane_display = EnumProperty(
         items=[
             ('OFF', "Off", "Always Off", "RADIOBUT_OFF", 1),
