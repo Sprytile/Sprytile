@@ -431,6 +431,8 @@ class SprytileGui(bpy.types.Operator):
         def draw_world_line(world_start, world_end):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
             end = view3d_utils.location_3d_to_region_2d(region, rv3d, world_end)
+            if start is None or end is None:
+                return
             glBegin(GL_LINES)
             glVertex2f(start.x, start.y)
             glVertex2f(end.x, end.y)
