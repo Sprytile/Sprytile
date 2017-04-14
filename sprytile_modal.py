@@ -2,7 +2,6 @@ import bpy
 import bmesh
 import math
 import numpy
-import sys
 from bpy_extras import view3d_utils
 from collections import deque
 from mathutils import Vector, Matrix, Quaternion
@@ -562,7 +561,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         return self.raycast_object(obj, ray_origin, ray_direction, 0.02)
 
-    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=sys.float_info.max):
+    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000000):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
