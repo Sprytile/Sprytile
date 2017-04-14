@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import math
+import numpy
 import sys
 from bpy_extras import view3d_utils
 from collections import deque
@@ -541,7 +542,15 @@ class SprytileModalTool(bpy.types.Operator):
         if closest_idx != -1:
             context.scene.cursor_location = closest_pos
 
-    def raycast_object(self, obj, ray_origin, ray_direction):
+    def raycast_grid_coord(self, context, obj, x, y, up_vector, right_vector, normal):
+        ray_origin = Vector(context.scene.cursor_location)
+        ray_origin += (x + 0.5) * right_vector
+        ray_origin += (y + 0.5) * up_vector
+        ray_origin += normal * 0.01
+        ray_direction = -normal
+
+        return self.raycast_object(obj, ray_origin, ray_direction, 0.1)
+
     def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=sys.float_info.max):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
@@ -595,6 +604,8 @@ class SprytileModalTool(bpy.types.Operator):
         # set normal mode...
         elif paint_mode == 'SET_NORMAL':
             self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
+        elif paint_mode == 'FILL':
+            self.execute_fill(context, scene, ray_origin, ray_vector)
 
     def execute_paint(self, context, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(context.scene)
@@ -623,6 +634,38 @@ class SprytileModalTool(bpy.types.Operator):
             right_vector = up_vector.cross(normal)
 
         face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+
+    def execute_fill(self, context, scene, ray_origin, ray_vector):
+        grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
+        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
+
+        sprytile_data = scene.sprytile_data
+        grid_size = Vector((grid.grid[0] / sprytile_data.world_pixels,
+                            grid.grid[1] / sprytile_data.world_pixels))
+
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
+        grid_right = right_vector * grid_size.x
+        grid_up = up_vector * grid_size.y
+
+        plane_size = sprytile_data.axis_plane_size
+        print("Plane size", plane_size[0], plane_size[1])
+        # Use raycast_grid_coord to build a 2d array of work plane
+        fill_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
+        for y in range(plane_size[1] * 2):
+            y_index = plane_size[1] - 1 - y
+            for x in range(plane_size[0] * 2):
+                x_index = -plane_size[0] + x
+                hit_loc, hit_normal, face_index, hit_dist =\
+                    self.raycast_grid_coord(context, context.object, x_index, y_index,
+                                            grid_up, grid_right, plane_normal)
+                print("Tested coord", x_index, y_index, "hit:", hit_loc is not None)
+                if hit_loc is not None:
+                    fill_array[y][x] = 1
+                x_index += 1
+            y_index += 1
+
+        # raycast to the virtual grid to find grid position user filled
+        print("End execute fill")
 
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
