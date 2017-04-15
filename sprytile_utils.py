@@ -867,6 +867,7 @@ class SprytileObjectPanel(bpy.types.Panel):
     def poll(cls, context):
         if context.object and context.object.type == 'MESH':
             return context.object.mode == 'OBJECT'
+        return True
 
     def draw(self, context):
         layout = self.layout
@@ -879,7 +880,12 @@ class SprytileObjectPanel(bpy.types.Panel):
         box.operator("sprytile.add_new_material")
 
         layout.separator()
-        label_wrap(layout.column(), "Enter edit mode to use Sprytile Paint Tools")
+        help_text = "Enter edit mode to use Sprytile Paint Tools"
+        if context.object is None:
+            help_text = "Select a mesh object to use Sprytile"
+        elif context.object.type != 'MESH':
+            help_text = "Select a mesh object to use Sprytile"
+        label_wrap(layout.column(), help_text)
 
         layout.separator()
         box = layout.box()
