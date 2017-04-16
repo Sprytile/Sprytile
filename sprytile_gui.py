@@ -347,10 +347,13 @@ class SprytileGui(bpy.types.Operator):
             glColor4f(1.0, 1.0, 1.0, 1.0)
             target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
             glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
-            # first draw the texture
+            # We need to backup and restore the MAG_FILTER to avoid messing up the Blender viewport
+            oldMagFilter = Buffer(GL_INT, 1)
+            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, oldMagFilter)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glEnable(GL_TEXTURE_2D)
             draw_full_quad()
+            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, oldMagFilter)
 
         # Translate the gl context by grid matrix
         grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
