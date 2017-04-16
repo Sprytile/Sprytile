@@ -19,27 +19,41 @@ class SprytileGuiData(bpy.types.PropertyGroup):
     is_dirty = BoolProperty(name="Srpytile GUI redraw flag")
 
 
-class SprytileGui(bpy.types.Operator):
+class SprytileGui:
     bl_idname = "sprytile.gui_win"
     bl_label = "Sprytile GUI"
 
     mouse_pt = None
     label_frames = 50
 
-    # ================
-    # Modal functions
-    # ================
-    @classmethod
-    def poll(cls, context):
-        return context.area.type == 'VIEW_3D'
+    def __init__(self, context, event):
+        self.did_setup = False
+
+        if context.space_data.type != 'VIEW_3D':
+            return
+        if context.scene.sprytile_data.is_running is False:
+            return
+        if len(context.scene.sprytile_mats) < 1:
+            return
+
+        # Try to setup offscreen
+        setup_off_return = SprytileGui.setup_offscreen(self, context)
+        if setup_off_return is not None:
+            return
+
+        # Initial setup of variables
+        self.did_setup = True
+        self.get_zoom_level(context)
+        self.prev_in_region = False
+        self.handle_ui(context, event)
+        self.label_counter = 0
+        self.gui_min = Vector((0, 0))
+        self.gui_max = Vector((0, 0))
+
+        # Add the draw handler call back, for drawing into viewport
+        SprytileGui.handler_add(self, context, context.region)
 
     def modal(self, context, event):
-        if context.scene.sprytile_data.is_running is False:
-            SprytileGui.handler_remove(self, context)
-            context.window_manager.event_timer_remove(self.timer)
-            context.area.tag_redraw()
-            return {'CANCELLED'}
-
         if event.type == 'TIMER':
             if self.label_counter > 0:
                 self.label_counter -= 1
@@ -51,42 +65,15 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
             # Skip redrawing on this frame
-            return {'PASS_THROUGH'}
+            return
 
         self.handle_ui(context, event)
         context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
-        return {'PASS_THROUGH'}
 
-    def invoke(self, context, event):
-        if context.space_data.type == 'VIEW_3D':
-            if context.scene.sprytile_data.is_running is False:
-                return {'CANCELLED'}
-            if len(context.scene.sprytile_mats) < 1:
-                return {'CANCELLED'}
-
-            # Try to setup offscreen
-            setup_off_return = SprytileGui.setup_offscreen(self, context)
-            if setup_off_return is not None:
-                return setup_off_return
-
-            # Initial setup of variables
-            self.get_zoom_level(context)
-            self.prev_in_region = False
-            self.handle_ui(context, event)
-            self.label_counter = 0
-
-            # Add the draw handler call back, for drawing into viewport
-            SprytileGui.handler_add(self, context, context.region)
-            if context.area:
-                context.area.tag_redraw()
-            # Add the timer for the modal
-            win_mgr = context.window_manager
-            self.timer = win_mgr.event_timer_add(0.1, context.window)
-            win_mgr.modal_handler_add(self)
-            return {'RUNNING_MODAL'}
-        else:
-            return {'CANCELLED'}
+    def exit(self, context):
+        SprytileGui.handler_remove(self, context)
+        context.area.tag_redraw()
 
     def set_zoom_level(self, context, zoom_shift):
         region = context.region
