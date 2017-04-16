@@ -7,7 +7,7 @@ from collections import deque
 from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
-from . import sprytile_utils
+from . import sprytile_utils, sprytile_gui
 
 
 def snap_vector_to_axis(vector, mirrored=False):
@@ -1123,6 +1123,8 @@ class SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
+        self.gui.modal(context, event)
+
         if event.type == 'TIMER':
             view_axis = self.find_view_axis(context)
             if view_axis is not None:
@@ -1135,6 +1137,8 @@ class SprytileModalTool(bpy.types.Operator):
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
+
+        context.area.tag_redraw()
 
         region = context.region
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
@@ -1154,7 +1158,7 @@ class SprytileModalTool(bpy.types.Operator):
         if mouse_return is not None:
             return mouse_return
 
-        return {'RUNNING_MODAL'}
+        return {'PASS_THROUGH'}
 
     def handle_mouse(self, context, event):
         """"""
@@ -1221,7 +1225,7 @@ class SprytileModalTool(bpy.types.Operator):
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 # print("Setting no undo, moving")
                 self.no_undo = True
-                return None
+                return {'RUNNING_MODAL'}
             if arg == 'sel_mesh':
                 return {'PASS_THROUGH'}
 
@@ -1256,10 +1260,10 @@ class SprytileModalTool(bpy.types.Operator):
                     used_key = True
         # Key event used by fake modal map, return none
         if used_key:
-            return None
+            return {'RUNNING_MODAL'}
         if event.shift and context.scene.sprytile_data.is_snapping:
             self.cursor_snap(context, event)
-            return None
+            return {'RUNNING_MODAL'}
         # Pass through every key event we don't handle ourselves
         self.refresh_mesh = True
         return {'PASS_THROUGH'}
@@ -1309,9 +1313,7 @@ class SprytileModalTool(bpy.types.Operator):
             sprytile_data.is_running = True
             sprytile_data.is_snapping = False
 
-            context.scene.sprytile_ui.is_dirty = True
-
-            bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
+            self.gui = sprytile_gui.SprytileGui(context, event)
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
@@ -1370,7 +1372,11 @@ class SprytileModalTool(bpy.types.Operator):
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
         self.tree = None
-        context.window_manager.event_timer_remove(self.view_axis_timer)
+        if hasattr(self, "gui"):
+            self.gui.exit(context)
+            self.gui = None
+        if hasattr(self, "view_axis_timer"):
+            context.window_manager.event_timer_remove(self.view_axis_timer)
         if context.object.mode == 'EDIT':
             bmesh.update_edit_mesh(context.object.data, True, True)
 

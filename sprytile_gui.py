@@ -50,6 +50,8 @@ class SprytileGui:
         self.gui_min = Vector((0, 0))
         self.gui_max = Vector((0, 0))
 
+        context.scene.sprytile_ui.is_dirty = True
+
         # Add the draw handler call back, for drawing into viewport
         SprytileGui.handler_add(self, context, context.region)
 
