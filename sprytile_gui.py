@@ -70,14 +70,17 @@ class SprytileGui(bpy.types.Operator):
             if setup_off_return is not None:
                 return setup_off_return
 
+            # Initial setup of variables
             self.get_zoom_level(context)
             self.prev_in_region = False
             self.handle_ui(context, event)
             self.label_counter = 0
 
+            # Add the draw handler call back, for drawing into viewport
             SprytileGui.handler_add(self, context, context.region)
             if context.area:
                 context.area.tag_redraw()
+            # Add the timer for the modal
             win_mgr = context.window_manager
             self.timer = win_mgr.event_timer_add(0.1, context.window)
             win_mgr.modal_handler_add(self)
@@ -180,7 +183,7 @@ class SprytileGui(bpy.types.Operator):
             context.scene.sprytile_ui.use_mouse = mouse_in_gui
 
             if mouse_in_gui:
-                context.window.cursor_modal_set('DEFAULT')
+                context.window.cursor_modal_restore()
             elif mouse_in_region or context.scene.sprytile_ui.is_dirty:
                 is_snapping = context.scene.sprytile_data.is_snapping
                 cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
@@ -285,13 +288,15 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def handler_add(self, context, region):
-        SprytileGui.draw_callback = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_handler, (self, context, region),
-                                                                           'WINDOW', 'POST_PIXEL')
+        space = bpy.types.SpaceView3D
+        SprytileGui.draw_callback = space.draw_handler_add(self.draw_callback_handler,
+                                                           (self, context, region),
+                                                           'WINDOW', 'POST_PIXEL')
 
     @staticmethod
     def handler_remove(self, context):
         context.window.cursor_modal_restore()
-        if SprytileGui.draw_callback is not None:
+        if hasattr(SprytileGui, "draw_callback") and SprytileGui.draw_callback is not None:
             bpy.types.SpaceView3D.draw_handler_remove(SprytileGui.draw_callback, 'WINDOW')
         SprytileGui.draw_callback = None
 
@@ -348,12 +353,12 @@ class SprytileGui(bpy.types.Operator):
             target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
             glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
             # We need to backup and restore the MAG_FILTER to avoid messing up the Blender viewport
-            oldMagFilter = Buffer(GL_INT, 1)
-            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, oldMagFilter)
+            old_mag_filter = Buffer(GL_INT, 1)
+            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glEnable(GL_TEXTURE_2D)
             draw_full_quad()
-            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, oldMagFilter)
+            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
         # Translate the gl context by grid matrix
         grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
@@ -367,12 +372,12 @@ class SprytileGui(bpy.types.Operator):
 
         glDisable(GL_TEXTURE_2D)
 
-        def draw_selection(min, max):
+        def draw_selection(sel_min, sel_max):
             sel_vtx = [
-                (min[0] + 1, min[1] + 1),
-                (max[0], min[1]),
-                (max[0], max[1]),
-                (min[0], max[1])
+                (sel_min[0] + 1, sel_min[1] + 1),
+                (sel_max[0], sel_min[1]),
+                (sel_max[0], sel_max[1]),
+                (sel_min[0], sel_max[1])
             ]
             glBegin(GL_LINE_STRIP)
             for vtx in sel_vtx:
