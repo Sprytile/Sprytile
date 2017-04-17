@@ -627,7 +627,7 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        if is_preview:
+        if event.type not in self.is_keyboard_list and is_preview:
             self.build_preview(context, scene, ray_origin, ray_vector)
             return
         else:
