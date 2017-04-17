@@ -627,7 +627,7 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        if event.type not in self.is_keyboard_list and is_preview:
+        if event.type not in self.is_keyboard_list and is_preview and self.refresh_mesh is False:
             self.build_preview(context, scene, ray_origin, ray_vector)
             return
         else:
@@ -1188,6 +1188,9 @@ class SprytileModalTool(bpy.types.Operator):
         if self.refresh_mesh:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
+            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+                el.index_update()
+                el.ensure_lookup_table()
             self.refresh_mesh = False
 
         context.area.tag_redraw()
