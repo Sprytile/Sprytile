@@ -390,11 +390,35 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
             loop[uv_layer].uv += uv_offset
 
 
+def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
+    """Get the world position vertices for a new face, at the given position"""
+    x_dot = right_vector.dot(x_vector.normalized())
+    y_dot = up_vector.dot(y_vector.normalized())
+    x_positive = x_dot > 0
+    y_positive = y_dot > 0
+
+    # These are in world positions
+    vtx1 = position
+    vtx2 = position + y_vector
+    vtx3 = position + x_vector + y_vector
+    vtx4 = position + x_vector
+
+    # Quadrant II, IV
+    face_order = (vtx1, vtx2, vtx3, vtx4)
+    # Quadrant I, III
+    if x_positive == y_positive:
+        face_order = (vtx1, vtx4, vtx3, vtx2)
+
+    return face_order
+
+
 class SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
     bl_label = "Sprytile Paint"
     bl_options = {'REGISTER'}
+
+    world_verts = None
 
     modal_map = bpy.props.EnumProperty(
         items=[
@@ -586,7 +610,7 @@ class SprytileModalTool(bpy.types.Operator):
         location = matrix * location
         return location, normal, face_index, distance
 
-    def execute_tool(self, context, event):
+    def execute_tool(self, context, event, is_preview=False):
         """Run the paint tool"""
         # Don't do anything if nothing to raycast on
         # or the GL GUI is using the mouse
@@ -602,6 +626,12 @@ class SprytileModalTool(bpy.types.Operator):
         # get the ray from the viewport and mouse
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+        if is_preview:
+            self.build_preview(context, scene, ray_origin, ray_vector)
+            return
+        else:
+            SprytileModalTool.world_verts = None
 
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
@@ -819,6 +849,36 @@ class SprytileModalTool(bpy.types.Operator):
                 x += 1
         return flood_stack
 
+    def build_preview(self, context, scene, ray_origin, ray_vector):
+        SprytileModalTool.world_verts = None
+
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
+
+        # Raycast to the virtual grid
+        face_position, x_vector, y_vector, plane_cursor = raycast_grid(
+            scene, context,
+            up_vector, right_vector, plane_normal,
+            ray_origin, ray_vector)
+
+        # Failed to hit the grid
+        if face_position is None:
+            return
+
+        # Raycast the object
+        hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(context.object, ray_origin, ray_vector)
+        # Did hit mesh...
+        if face_index is not None:
+            grid_hit_dist = (face_position - ray_origin).magnitude
+            # Mesh hit closer than grid hit, don't do anything
+            if hit_dist < grid_hit_dist:
+                return
+
+        shift_vec = ray_vector.normalized() * 0.001
+        world_verts = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
+        for vert in world_verts:
+            vert -= shift_vec
+        SprytileModalTool.world_verts = world_verts
+
     def execute_build(self, context, scene, ray_origin, ray_vector):
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
@@ -917,33 +977,21 @@ class SprytileModalTool(bpy.types.Operator):
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector, selected=False):
         """Build a face at the given position"""
-
-        x_dot = right_vector.dot(x_vector.normalized())
-        y_dot = up_vector.dot(y_vector.normalized())
-        x_positive = x_dot > 0
-        y_positive = y_dot > 0
-
         if self.bmesh is None:
             self.refresh_mesh = True
             return None
-        # These are in world positions
-        vtx1 = self.bmesh.verts.new(position)
-        vtx2 = self.bmesh.verts.new(position + y_vector)
-        vtx3 = self.bmesh.verts.new(position + x_vector + y_vector)
-        vtx4 = self.bmesh.verts.new(position + x_vector)
 
-        # Quadrant II, IV
-        face_order = (vtx1, vtx2, vtx3, vtx4)
-        # Quadrant I, III
-        if x_positive == y_positive:
-            face_order = (vtx1, vtx4, vtx3, vtx2)
+        face_positions = get_build_vertices(position, x_vector, y_vector, up_vector, right_vector)
+        face_vertices = []
+        for face_vtx in face_positions:
+            face_vertices.append(self.bmesh.verts.new(face_vtx))
 
         # Convert world space position to object space
         world_inv = context.object.matrix_world.copy().inverted()
-        for vtx in face_order:
+        for vtx in face_vertices:
             vtx.co = world_inv * vtx.co
 
-        face = self.bmesh.faces.new(face_order)
+        face = self.bmesh.faces.new(face_vertices)
         face.normal_update()
         if selected:
             face.select = True
@@ -1199,6 +1247,8 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
+            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE':
+                self.execute_tool(context, event, True)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
         elif event.type == 'RIGHTMOUSE':
