@@ -6,7 +6,7 @@ from math import floor, ceil, copysign
 from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
-from . import sprytile_utils
+from . import sprytile_utils, sprytile_modal
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
@@ -56,6 +56,9 @@ class SprytileGui:
         SprytileGui.handler_add(self, context, context.region)
 
     def modal(self, context, event):
+        if self.did_setup is False:
+            return
+
         if event.type == 'TIMER':
             if self.label_counter > 0:
                 self.label_counter -= 1
@@ -401,7 +404,7 @@ class SprytileGui:
         offscreen.unbind()
 
     @staticmethod
-    def draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
+    def draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
         force_draw = sprytile_data.paint_mode == 'FILL'
         # Decide if should draw, only draw if middle mouse?
         if force_draw is False:
@@ -475,84 +478,98 @@ class SprytileGui:
         glEnd()
 
     @staticmethod
-    def draw_to_viewport(min, max, show_extra, label_counter, tilegrid, sprytile_data,
+    def draw_tile_select_ui(view_min, view_max, view_size, tex_size, grid_size, show_extra):
+        # Draw the texture quad
+        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
+        bgl.glBegin(bgl.GL_QUADS)
+        uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        vtx = [(view_min.x, view_min.y), (view_min.x, view_max.y),
+               (view_max.x, view_max.y), (view_max.x, view_min.y)]
+        for i in range(4):
+            glTexCoord2f(uv[i][0], uv[i][1])
+            glVertex2f(vtx[i][0], vtx[i][1])
+        bgl.glEnd()
+
+        # Not drawing tile grid overlay
+        if show_extra is False:
+            return
+
+        # Translate the gl context by grid matrix
+        scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
+
+        offset_matrix = Matrix.Translation((view_min.x, view_min.y, 0))
+        grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
+        grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) * Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) * grid_matrix
+        calc_matrix = offset_matrix * grid_matrix
+        matrix_vals = [calc_matrix[j][i] for i in range(4) for j in range(4)]
+        grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
+        glPushMatrix()
+        glLoadIdentity()
+        glLoadMatrixf(grid_buff)
+        glDisable(GL_TEXTURE_2D)
+
+        glColor4f(0.0, 0.0, 0.0, 0.5)
+        glLineWidth(1)
+        # Draw the grid
+        x_divs = ceil(tex_size[0] / grid_size[0])
+        y_divs = ceil(tex_size[1] / grid_size[1])
+        x_end = x_divs * grid_size[0]
+        y_end = y_divs * grid_size[1]
+        for x in range(x_divs + 1):
+            x_pos = (x * grid_size[0])
+            glBegin(GL_LINES)
+            glVertex2f(x_pos, 0)
+            glVertex2f(x_pos, y_end)
+            glEnd()
+        for y in range(y_divs + 1):
+            y_pos = (y * grid_size[1])
+            glBegin(GL_LINES)
+            glVertex2f(0, y_pos)
+            glVertex2f(x_end, y_pos)
+            glEnd()
+
+        glPopMatrix()
+
+    @staticmethod
+    def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
                          cursor_loc, region, rv3d, middle_btn):
         """Draw the offscreen texture into the viewport"""
 
         # Prepare some data that will be used for drawing
         grid_size = SprytileGui.loaded_grid.grid
 
-        # Draw world space axis plane
-        SprytileGui.draw_plane_grid(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
+        # Draw work plane
+        SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
 
-        # Setup GL for drawing offscreen texture
+        # Setup GL for drawing the offscreen texture
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
+        # Backup texture filter
+        old_mag_filter = Buffer(bgl.GL_INT, [1])
+        bgl.glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        # Set texture filter
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
-        view_size = int(max.x - min.x), int(max.y - min.y)
+
+        # Calculate actual view size
+        view_size = int(view_max.x - view_min.x), int(view_max.y - view_min.y)
+
         # Save the original scissor box, and then set new scissor setting
         scissor_box = bgl.Buffer(bgl.GL_INT, [4])
         bgl.glGetIntegerv(bgl.GL_SCISSOR_BOX, scissor_box)
-        bgl.glScissor(int(min.x) + scissor_box[0], int(min.y) + scissor_box[1], view_size[0], view_size[1])
+        bgl.glScissor(int(view_min.x) + scissor_box[0], int(view_min.y) + scissor_box[1], view_size[0], view_size[1])
 
-        # Draw the texture in first
-        bgl.glBegin(bgl.GL_QUADS)
-        uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        vtx = [(min.x, min.y), (min.x, max.y), (max.x, max.y), (max.x, min.y)]
-        for i in range(4):
-            glTexCoord2f(uv[i][0], uv[i][1])
-            glVertex2f(vtx[i][0], vtx[i][1])
-        bgl.glEnd()
-
-        if show_extra:
-            # Draw the tile grid overlay
-
-            # Translate the gl context by grid matrix
-            tex_size = SprytileGui.tex_size
-            scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
-
-            offset_matrix = Matrix.Translation((min.x, min.y, 0))
-            grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
-            grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) * Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) * grid_matrix
-            calc_matrix = offset_matrix * grid_matrix
-            matrix_vals = [calc_matrix[j][i] for i in range(4) for j in range(4)]
-            grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
-            glPushMatrix()
-            glLoadIdentity()
-            glLoadMatrixf(grid_buff)
-            glDisable(GL_TEXTURE_2D)
-
-            glColor4f(0.0, 0.0, 0.0, 0.5)
-            glLineWidth(1)
-            # Draw the grid
-            x_divs = ceil(tex_size[0] / grid_size[0])
-            y_divs = ceil(tex_size[1] / grid_size[1])
-            # x_size = (grid_size[0] / tex_size[0]) * (max.x - min.x)
-            # y_size = (grid_size[1] / tex_size[1]) * (max.y - min.y)
-            x_end = x_divs * grid_size[0]
-            y_end = y_divs * grid_size[1]
-            for x in range(x_divs + 1):
-                x_pos = (x * grid_size[0])
-                glBegin(GL_LINES)
-                glVertex2f(x_pos, 0)
-                glVertex2f(x_pos, y_end)
-                glEnd()
-            for y in range(y_divs + 1):
-                y_pos = (y * grid_size[1])
-                glBegin(GL_LINES)
-                glVertex2f(0, y_pos)
-                glVertex2f(x_end, y_pos)
-                glEnd()
-
-            glPopMatrix()
+        # Draw the tile select UI
+        SprytileGui.draw_tile_select_ui(view_min, view_max, view_size, SprytileGui.tex_size, grid_size, show_extra)
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
         bgl.glLineWidth(1)
+        bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter[0])
 
+        # Draw label
         if label_counter > 0:
             import math
 
@@ -572,7 +589,7 @@ class SprytileGui:
             bgl.glColor4f(0.0, 0.0, 0.0, 0.75 * fade)
             bgl.glBegin(bgl.GL_QUADS)
             uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
-            vtx = [(min.x, max.y), (min.x, max.y + box_pad), (max.x, max.y + +box_pad), (max.x, max.y)]
+            vtx = [(view_min.x, view_max.y), (view_min.x, view_max.y + box_pad), (view_max.x, view_max.y + +box_pad), (view_max.x, view_max.y)]
             for i in range(4):
                 glTexCoord2f(uv[i][0], uv[i][1])
                 glVertex2f(vtx[i][0], vtx[i][1])
@@ -581,8 +598,8 @@ class SprytileGui:
             bgl.glColor4f(1.0, 1.0, 1.0, 1.0 * fade)
             blf.size(font_id, font_size, 72)
 
-            x_pos = min.x + pad
-            y_pos = max.y + pad
+            x_pos = view_min.x + pad
+            y_pos = view_max.y + pad
 
             label_string = "%dx%d" % (tilegrid.grid[0], tilegrid.grid[1])
             if tilegrid.name != "":
