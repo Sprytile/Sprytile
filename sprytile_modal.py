@@ -1123,6 +1123,7 @@ class SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
+        # Pass modal events onto GUI
         self.gui.modal(context, event)
 
         if event.type == 'TIMER':
@@ -1166,9 +1167,12 @@ class SprytileModalTool(bpy.types.Operator):
             return None
 
         gui_use_mouse = context.scene.sprytile_ui.use_mouse
-        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'} and not gui_use_mouse:
+        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation, if gui is not using the mouse
-            return {'PASS_THROUGH'}
+            if not gui_use_mouse:
+                return {'PASS_THROUGH'}
+            else:
+                return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
             # print("No undo flag is on", event.type, event.value)
