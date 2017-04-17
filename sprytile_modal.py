@@ -642,7 +642,7 @@ class SprytileModalTool(bpy.types.Operator):
             up_vector = face_up
             right_vector = up_vector.cross(normal)
 
-        face_index, grid = uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+        uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene, with_rotation=False)
@@ -905,11 +905,14 @@ class SprytileModalTool(bpy.types.Operator):
             loc, norm, new_face_idx, hit_dist = self.raycast_object(context.object, face_center, ray_vector)
             if new_face_idx is not None:
                 self.bmesh.faces[new_face_idx].select = False
+                face_index = new_face_idx
+            else:
+                face_index = -1
 
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not scene.sprytile_data.auto_merge
 
-        if scene.sprytile_data.cursor_flow:
+        if scene.sprytile_data.cursor_flow and face_index is not None and face_index > -1:
             self.flow_cursor(context, face_index, plane_cursor)
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector, selected=False):
