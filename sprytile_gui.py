@@ -538,15 +538,21 @@ class SprytileGui:
         if context.scene.sprytile_ui.use_mouse:
             return
 
-        bgl.glColor4f(1.0, 1.0, 1.0, 0.35)
-        bgl.glBegin(bgl.GL_QUADS)
         uv = sprytile_modal.SprytileModalTool.preview_uvs
         world_verts = sprytile_modal.SprytileModalTool.preview_verts
 
         # Turn the world vert positions into screen positions
         screen_verts = []
         for world_vtx in world_verts:
-            screen_verts.append(view3d_utils.location_3d_to_region_2d(region, rv3d, world_vtx))
+            screen_vtx = view3d_utils.location_3d_to_region_2d(region, rv3d, world_vtx)
+            if screen_vtx is None:
+                return
+            screen_verts.append(screen_vtx)
+
+        addon_prefs = context.user_preferences.addons[__package__].preferences
+
+        bgl.glColor4f(1.0, 1.0, 1.0, addon_prefs.preview_transparency)
+        bgl.glBegin(bgl.GL_QUADS)
         for i in range(4):
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])

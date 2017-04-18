@@ -565,7 +565,15 @@ def teardown_props():
 
 
 class SprytileAddonPreferences(bpy.types.AddonPreferences):
-    bl_idname = __name__
+    bl_idname = __package__
+
+    preview_transparency = bpy.props.FloatProperty(
+        name="Preview Alpha",
+        description="Transparency level of build preview cursor",
+        default=0.8,
+        min=0,
+        max=1
+    )
 
     # addon updater preferences
     auto_check_update = bpy.props.BoolProperty(
@@ -602,6 +610,8 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
+
+        layout.prop(self, "preview_transparency")
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
