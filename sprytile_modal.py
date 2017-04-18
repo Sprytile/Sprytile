@@ -1241,6 +1241,7 @@ class SprytileModalTool(bpy.types.Operator):
                 context.scene.sprytile_data.normal_mode = view_axis
             return {'PASS_THROUGH'}
 
+        # Refreshing the mesh, pass on processing this frame
         if self.refresh_mesh:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
@@ -1248,6 +1249,7 @@ class SprytileModalTool(bpy.types.Operator):
                 el.index_update()
                 el.ensure_lookup_table()
             self.refresh_mesh = False
+            return {'PASS_THROUGH'}
 
         context.area.tag_redraw()
 
@@ -1306,7 +1308,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE':
+            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE' and event.value == 'NOTHING':
                 self.execute_tool(context, event, event.type not in self.is_keyboard_list)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
