@@ -159,7 +159,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if face.hide:
         return None, None
 
-    # vert_origin = context.object.matrix_world * face.calc_center_median_weighted()
     vert_origin = context.object.matrix_world * face.calc_center_bounds()
     for loop in face.loops:
         vert = loop.vert
@@ -242,63 +241,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
-
-
-def get_paint_settings(data):
-    # Rotation and UV flip are always included
-    paint_settings = 0
-    # Flip x/y are toggles
-    paint_settings += (1 if data.uv_flip_x else 0) << 9
-    paint_settings += (1 if data.uv_flip_y else 0) << 8
-    # Rotation is encoded as 0-3 clockwise, bit shifted by 10
-    degree_rotation = round(math.degrees(data.mesh_rotate), 0)
-    if degree_rotation < 0:
-        degree_rotation += 360
-    rot_val = 0
-    if degree_rotation <= 1:
-        rot_val = 0
-    elif degree_rotation <= 90:
-        rot_val = 3
-    elif degree_rotation <= 180:
-        rot_val = 2
-    elif degree_rotation <= 270:
-        rot_val = 1
-    paint_settings += rot_val << 10
-
-    if data.paint_mode == 'MAKE_FACE':
-        paint_settings += 5  # Default center align
-        for x in range(4, 8):  # All toggles on
-            paint_settings += 1 << x
-    if data.paint_mode == 'PAINT':
-        paint_settings += data["paint_align"]
-        paint_settings += (1 if data.paint_uv_snap else 0) << 7
-        paint_settings += (1 if data.paint_edge_snap else 0) << 6
-        paint_settings += (1 if data.paint_stretch_x else 0) << 5
-        paint_settings += (1 if data.paint_stretch_y else 0) << 4
-    return paint_settings
-
-
-def from_paint_settings(data, settings):
-    if settings == 0:
-        return
-    align_value = settings & 15  # First four bits
-    rot_value = (settings & 3072) >> 10  # 11th and 12th bit, shifted back
-    rot_radian = 0
-    if rot_value == 1:
-        rot_radian = math.radians(270)
-    if rot_value == 2:
-        rot_radian = math.radians(180)
-    if rot_value == 3:
-        rot_radian = math.radians(90)
-
-    data["paint_align"] = align_value
-    data.mesh_rotate = rot_radian
-    data.uv_flip_x = (settings & 1 << 9) > 0
-    data.uv_flip_y = (settings & 1 << 8) > 0
-    data.paint_uv_snap = (settings & 1 << 7) > 0
-    data.paint_edge_snap = (settings & 1 << 6) > 0
-    data.paint_stretch_x = (settings & 1 << 5) > 0
-    data.paint_stretch_y = (settings & 1 << 4) > 0
 
 
 def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
@@ -390,7 +332,64 @@ def uv_map_paint_modify(data, face, uv_layer, uv_matrix, uv_unit_x, uv_unit_y, u
             loop[uv_layer].uv += uv_offset
 
 
-def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
+def get_paint_settings(data):
+    # Rotation and UV flip are always included
+    paint_settings = 0
+    # Flip x/y are toggles
+    paint_settings += (1 if data.uv_flip_x else 0) << 9
+    paint_settings += (1 if data.uv_flip_y else 0) << 8
+    # Rotation is encoded as 0-3 clockwise, bit shifted by 10
+    degree_rotation = round(math.degrees(data.mesh_rotate), 0)
+    if degree_rotation < 0:
+        degree_rotation += 360
+    rot_val = 0
+    if degree_rotation <= 1:
+        rot_val = 0
+    elif degree_rotation <= 90:
+        rot_val = 3
+    elif degree_rotation <= 180:
+        rot_val = 2
+    elif degree_rotation <= 270:
+        rot_val = 1
+    paint_settings += rot_val << 10
+
+    if data.paint_mode == 'MAKE_FACE':
+        paint_settings += 5  # Default center align
+        for x in range(4, 8):  # All toggles on
+            paint_settings += 1 << x
+    if data.paint_mode == 'PAINT':
+        paint_settings += data["paint_align"]
+        paint_settings += (1 if data.paint_uv_snap else 0) << 7
+        paint_settings += (1 if data.paint_edge_snap else 0) << 6
+        paint_settings += (1 if data.paint_stretch_x else 0) << 5
+        paint_settings += (1 if data.paint_stretch_y else 0) << 4
+    return paint_settings
+
+
+def from_paint_settings(data, settings):
+    if settings == 0:
+        return
+    align_value = settings & 15  # First four bits
+    rot_value = (settings & 3072) >> 10  # 11th and 12th bit, shifted back
+    rot_radian = 0
+    if rot_value == 1:
+        rot_radian = math.radians(270)
+    if rot_value == 2:
+        rot_radian = math.radians(180)
+    if rot_value == 3:
+        rot_radian = math.radians(90)
+
+    data["paint_align"] = align_value
+    data.mesh_rotate = rot_radian
+    data.uv_flip_x = (settings & 1 << 9) > 0
+    data.uv_flip_y = (settings & 1 << 8) > 0
+    data.paint_uv_snap = (settings & 1 << 7) > 0
+    data.paint_edge_snap = (settings & 1 << 6) > 0
+    data.paint_stretch_x = (settings & 1 << 5) > 0
+    data.paint_stretch_y = (settings & 1 << 4) > 0
+
+
+def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector, is_preview=False):
     """Get the world position vertices for a new face, at the given position"""
     x_dot = right_vector.dot(x_vector.normalized())
     y_dot = up_vector.dot(y_vector.normalized())
@@ -870,13 +869,10 @@ class SprytileModalTool(bpy.types.Operator):
         if face_index is not None:
             grid_hit_dist = (face_position - ray_origin).magnitude
             # Mesh hit closer than grid hit, don't do anything
-            if hit_dist < grid_hit_dist:
+            if hit_normal.dot(plane_normal) < 0.9 and hit_dist < grid_hit_dist:
                 return
 
-        shift_vec = ray_vector.normalized() * 0.001
-        world_verts = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
-        for vert in world_verts:
-            vert -= shift_vec
+        world_verts = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector, True)
         SprytileModalTool.world_verts = world_verts
 
     def execute_build(self, context, scene, ray_origin, ray_vector):

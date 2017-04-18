@@ -311,7 +311,8 @@ class SprytileGui:
         SprytileGui.draw_offscreen(self, context)
         SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
-                                     context.scene.cursor_location, region, rv3d, middle_btn)
+                                     context.scene.cursor_location, region, rv3d,
+                                     middle_btn, context)
 
     @staticmethod
     def draw_offscreen(self, context):
@@ -531,8 +532,27 @@ class SprytileGui:
         glPopMatrix()
 
     @staticmethod
+    def draw_preview_tile(sprytile_data, context, tilegrid, region, rv3d):
+        if sprytile_modal.SprytileModalTool.world_verts is None:
+            return
+        if context.scene.sprytile_ui.use_mouse:
+            return
+
+        bgl.glColor4f(1.0, 1.0, 1.0, 0.6)
+        bgl.glBegin(bgl.GL_QUADS)
+        uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        world_verts = sprytile_modal.SprytileModalTool.world_verts
+        screen_verts = []
+        for world_vtx in world_verts:
+            screen_verts.append(view3d_utils.location_3d_to_region_2d(region, rv3d, world_vtx))
+        for i in range(4):
+            glTexCoord2f(uv[i][0], uv[i][1])
+            glVertex2f(screen_verts[i][0], screen_verts[i][1])
+        bgl.glEnd()
+
+    @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
-                         cursor_loc, region, rv3d, middle_btn):
+                         cursor_loc, region, rv3d, middle_btn, context):
         """Draw the offscreen texture into the viewport"""
 
         # Prepare some data that will be used for drawing
@@ -552,6 +572,9 @@ class SprytileGui:
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
+        # Draw the preview tile
+        if middle_btn is False:
+            SprytileGui.draw_preview_tile(sprytile_data, context, tilegrid, region, rv3d)
 
         # Calculate actual view size
         view_size = int(view_max.x - view_min.x), int(view_max.y - view_min.y)
