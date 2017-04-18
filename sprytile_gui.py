@@ -573,8 +573,8 @@ class SprytileGui:
         bgl.glEnable(bgl.GL_BLEND)
 
         # Draw the preview tile
-        if middle_btn is False:
-            SprytileGui.draw_preview_tile(sprytile_data, context, tilegrid, region, rv3d)
+        # if middle_btn is False:
+        #     SprytileGui.draw_preview_tile(sprytile_data, context, tilegrid, region, rv3d)
 
         # Calculate actual view size
         view_size = int(view_max.x - view_min.x), int(view_max.y - view_min.y)
