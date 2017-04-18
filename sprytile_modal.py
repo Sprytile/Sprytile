@@ -877,6 +877,9 @@ class SprytileModalTool(bpy.types.Operator):
         SprytileModalTool.preview_verts = None
         SprytileModalTool.preview_uvs = None
 
+        if self.refresh_mesh:
+            return
+
         scene = context.scene
         obj = context.object
         data = scene.sprytile_data
@@ -1241,15 +1244,19 @@ class SprytileModalTool(bpy.types.Operator):
                 context.scene.sprytile_data.normal_mode = view_axis
             return {'PASS_THROUGH'}
 
-        # Refreshing the mesh, pass on processing this frame
+        # Mouse move triggers preview drawing, need an updated
+        # mesh or bad things happen. This can potentially get expensive
+        if event.type == 'MOUSEMOVE':
+            self.refresh_mesh = True
+
+        # Refreshing the mesh
         if self.refresh_mesh:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
-            self.tree = BVHTree.FromBMesh(self.bmesh)
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
+            self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
-            return {'PASS_THROUGH'}
 
         context.area.tag_redraw()
 
@@ -1308,7 +1315,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE' and event.value == 'NOTHING':
+            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE':
                 self.execute_tool(context, event, event.type not in self.is_keyboard_list)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
@@ -1390,7 +1397,6 @@ class SprytileModalTool(bpy.types.Operator):
             self.cursor_snap(context, event)
             return {'RUNNING_MODAL'}
         # Pass through every key event we don't handle ourselves
-        self.refresh_mesh = True
         return {'PASS_THROUGH'}
 
     def execute(self, context):
@@ -1447,9 +1453,9 @@ class SprytileModalTool(bpy.types.Operator):
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
         self.is_keyboard_list = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
-                                 'R',
-                                 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE',
-                                 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'LEFT_CTRL', 'LEFT_ALT', 'LEFT_SHIFT', 'RIGHT_ALT',
+                                 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+                                 'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE',
+                                 'LEFT_CTRL', 'LEFT_ALT', 'LEFT_SHIFT', 'RIGHT_ALT',
                                  'RIGHT_CTRL', 'RIGHT_SHIFT', 'OSKEY', 'GRLESS', 'ESC', 'TAB', 'RET', 'SPACE',
                                  'LINE_FEED', 'BACK_SPACE', 'DEL', 'SEMI_COLON', 'PERIOD', 'COMMA', 'QUOTE',
                                  'ACCENT_GRAVE', 'MINUS', 'SLASH', 'BACK_SLASH', 'EQUAL', 'LEFT_BRACKET',
