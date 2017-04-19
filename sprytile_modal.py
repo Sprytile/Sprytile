@@ -477,8 +477,6 @@ class SprytileModalTool(bpy.types.Operator):
         # Get the up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
-        # print("view up", view_up_vector)
-        # print("Original forward", rv3d.view_rotation.inverted() * view_vector)
 
         plane_normal = snap_vector_to_axis(view_vector, mirrored=True)
         up_vector = snap_vector_to_axis(view_up_vector)
@@ -1253,7 +1251,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Mouse move triggers preview drawing, need an updated
         # mesh or bad things happen. This can potentially get expensive
-        if event.type == 'MOUSEMOVE':
+        if event.type == 'MOUSEMOVE' and sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}:
             self.refresh_mesh = True
 
         # Refreshing the mesh
@@ -1322,7 +1320,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-            elif context.scene.sprytile_data.paint_mode == 'MAKE_FACE':
+            elif context.scene.sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}:
                 self.execute_tool(context, event, event.type not in self.is_keyboard_list)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
