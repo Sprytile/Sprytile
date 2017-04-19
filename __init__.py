@@ -28,9 +28,17 @@ import rna_keymap_ui
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
     def set_normal(self, value):
-        if self.lock_normal is True:
+        if "lock_normal" not in self.keys():
+            self["lock_normal"] = False
+
+        if self["lock_normal"] is True:
+            return
+        if self["normal_mode"] == value:
+            self["lock_normal"] = not self["lock_normal"]
             return
         self["normal_mode"] = value
+        self["lock_normal"] = True
+        bpy.ops.sprytile.axis_update('INVOKE_REGION_WIN')
 
     def get_normal(self):
         if "normal_mode" not in self.keys():

@@ -1230,7 +1230,8 @@ class SprytileModalTool(bpy.types.Operator):
 
     def modal(self, context, event):
         do_exit = False
-        if context.scene.sprytile_data.is_running is False:
+        sprytile_data = context.scene.sprytile_data
+        if sprytile_data.is_running is False:
             do_exit = True
         if context.object.mode != 'EDIT':
             do_exit = True
@@ -1244,9 +1245,10 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type == 'TIMER':
             view_axis = self.find_view_axis(context)
             if view_axis is not None:
-                if view_axis != context.scene.sprytile_data.normal_mode:
+                if view_axis != sprytile_data.normal_mode:
                     self.virtual_cursor.clear()
-                context.scene.sprytile_data.normal_mode = view_axis
+                    sprytile_data.normal_mode = view_axis
+                    sprytile_data.lock_normal = False
             return {'PASS_THROUGH'}
 
         # Mouse move triggers preview drawing, need an updated

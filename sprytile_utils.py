@@ -2,6 +2,7 @@ import bpy
 import bgl
 import blf
 import bmesh
+from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector
 from . import sprytile_modal
@@ -130,6 +131,52 @@ def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="   
         if n_line:
             tabbing = False
         text = text[last_space + 1:len(text)]
+
+
+class SprytileAxisUpdate(bpy.types.Operator):
+    bl_idname = "sprytile.axis_update"
+    bl_label = "Update Sprytile Axis"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        # Given the normal mode, find the direction of paint_normal_vector, paint_up_vector
+        data = context.scene.sprytile_data
+        region = context.region
+        rv3d = context.region_data
+
+        # Get the view ray from center of screen
+        coord = Vector((int(region.width / 2), int(region.height / 2)))
+        view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+
+        # Get the up vector. The default scene view camera is pointed
+        # downward, with up on Y axis. Apply view rotation to get current up
+        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+
+        view_vector = sprytile_modal.snap_vector_to_axis(view_vector, mirrored=True)
+        view_up_vector = sprytile_modal.snap_vector_to_axis(view_up_vector)
+
+        # implicit X
+        paint_normal = Vector((1.0, 0.0, 0.0))
+        if data.normal_mode == 'Y':
+            paint_normal = Vector((0.0, 1.0, 0.0))
+        elif data.normal_mode == 'Z':
+            paint_normal = Vector((0.0, 0.0, 1.0))
+
+        view_dot = paint_normal.dot(view_up_vector)
+        view_dot = abs(view_dot)
+        paint_up = view_up_vector
+        if view_dot > 0.9:
+            paint_up = view_vector
+
+        # print("View", view_vector, "View Up", view_up_vector)
+        # print("Axis update, view dot:", view_dot)
+        # print("mode", data.normal_mode, "paint normal", paint_normal, "paint up", paint_up)
+        data.paint_normal_vector = paint_normal
+        data.paint_up_vector = paint_up
+
+        return {'FINISHED'}
 
 class SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
