@@ -537,7 +537,7 @@ class SprytileGui:
             return
         if sprytile_modal.SprytileModalTool.preview_uvs is None:
             return
-        if context.scene.sprytile_ui.use_mouse:
+        if context.scene.sprytile_ui.use_mouse or context.scene.sprytile_data.paint_mode == 'PAINT':
             return
 
         uv = sprytile_modal.SprytileModalTool.preview_uvs
