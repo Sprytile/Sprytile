@@ -535,6 +535,8 @@ class SprytileGui:
     def draw_preview_tile(context, region, rv3d):
         if sprytile_modal.SprytileModalTool.preview_verts is None:
             return
+        if sprytile_modal.SprytileModalTool.preview_uvs is None:
+            return
         if context.scene.sprytile_ui.use_mouse:
             return
 

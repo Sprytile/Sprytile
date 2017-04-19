@@ -181,8 +181,12 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
     do_snap = data.paint_mode != 'PAINT'
     if do_snap and pixel_uv_x > 0 and pixel_uv_y > 0:
         for uv_vert in uv_verts:
-            uv_pixel_x = int(round(uv_vert.x / pixel_uv_x))
-            uv_pixel_y = int(round(uv_vert.y / pixel_uv_y))
+            p_x = uv_vert.x / pixel_uv_x
+            p_y = uv_vert.y / pixel_uv_y
+            if math.isnan(p_x) or math.isnan(p_y):
+                return None
+            uv_pixel_x = int(round(p_x))
+            uv_pixel_y = int(round(p_y))
             uv_vert.x = uv_pixel_x * pixel_uv_x
             uv_vert.y = uv_pixel_y * pixel_uv_y
 
@@ -314,6 +318,9 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     uv_verts = get_uv_positions(data, target_img.size, target_grid,
                                 up_vector, right_vector, tile_xy,
                                 verts, vert_origin)
+
+    if uv_verts is None:
+        return None, None
 
     # Apply the UV positions on the face verts
     idx = 0
