@@ -1161,6 +1161,18 @@ class SprytileModalTool(bpy.types.Operator):
         sprytile_data.lock_normal = True
         sprytile_data.paint_mode = 'MAKE_FACE'
 
+    def cursor_move_layer(self, context, direction):
+        scene = context.scene
+        target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
+        grid_x = target_grid.grid[0]
+        grid_y = target_grid.grid[1]
+        layer_move = min(grid_x, grid_y)
+        layer_move *= (1 / context.scene.sprytile_data.world_pixels)
+        plane_normal = scene.sprytile_data.paint_normal_vector.copy()
+        plane_normal *= layer_move * direction
+        grid_position = scene.cursor_location + plane_normal
+        scene.cursor_location = grid_position
+
     def cursor_snap(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
             return
@@ -1296,6 +1308,11 @@ class SprytileModalTool(bpy.types.Operator):
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             # allow navigation, if gui is not using the mouse
             if not gui_use_mouse:
+                if event.type != 'MIDDLEMOUSE' and context.scene.sprytile_data.is_snapping:
+                    direction = -1 if event.type == 'WHEELUPMOUSE' else 1
+                    self.cursor_move_layer(context, direction)
+                    self.execute_tool(context, event, True)
+                    return {'RUNNING_MODAL'}
                 return {'PASS_THROUGH'}
             else:
                 return {'RUNNING_MODAL'}
