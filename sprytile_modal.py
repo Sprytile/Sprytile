@@ -1265,8 +1265,7 @@ class SprytileModalTool(bpy.types.Operator):
                     sprytile_data.lock_normal = False
             return {'PASS_THROUGH'}
 
-        # Mouse move triggers preview drawing, need an updated
-        # mesh or bad things happen. This can potentially get expensive
+        # Mouse move triggers preview drawing
         draw_preview = False
         if event.type == 'MOUSEMOVE':
             draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}
@@ -1279,15 +1278,14 @@ class SprytileModalTool(bpy.types.Operator):
                     if v.select:
                         draw_preview = False
                         break
-            if draw_preview:
-                self.refresh_mesh = True
 
         if not draw_preview and SprytileModalTool.preview_verts is not None:
             SprytileModalTool.preview_verts = None
             SprytileModalTool.preview_uvs = None
 
-        # Refreshing the mesh
-        if self.refresh_mesh:
+        # Refreshing the mesh, preview needs constantly refreshed
+        # mesh or bad things seem to happen. This can potentially get expensive
+        if self.refresh_mesh or draw_preview:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
