@@ -178,6 +178,7 @@ class SprytileAxisUpdate(bpy.types.Operator):
 
         return {'FINISHED'}
 
+
 class SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
     bl_label = "Add New Grid"
@@ -615,6 +616,10 @@ class SprytileReloadImages(bpy.types.Operator):
             if img is None:
                 continue
             img.reload()
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type in {'VIEW_3D', 'IMAGE_EDITOR'}:
+                    area.tag_redraw()
         return {'FINISHED'}
 
 
