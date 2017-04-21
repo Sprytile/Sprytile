@@ -447,6 +447,7 @@ class SprytileModalTool(bpy.types.Operator):
 
     preview_verts = None
     preview_uvs = None
+    has_selection = False
 
     modal_map = bpy.props.EnumProperty(
         items=[
@@ -1266,22 +1267,10 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         # Mouse move triggers preview drawing
-        draw_preview = False
-        if event.type == 'MOUSEMOVE':
-            draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}
-            if draw_preview and (event.alt or context.scene.sprytile_ui.use_mouse):
+        draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}
+        if draw_preview:
+            if (event.alt or context.scene.sprytile_ui.use_mouse) or sprytile_data.is_snapping:
                 draw_preview = False
-            # Another potentially expensive test.
-            # Check if any mesh element is selected, if any don't draw preview
-            if draw_preview:
-                for v in self.bmesh.verts:
-                    if v.select:
-                        draw_preview = False
-                        break
-
-        if not draw_preview and SprytileModalTool.preview_verts is not None:
-            SprytileModalTool.preview_verts = None
-            SprytileModalTool.preview_uvs = None
 
         # Refreshing the mesh, preview needs constantly refreshed
         # mesh or bad things seem to happen. This can potentially get expensive
@@ -1292,6 +1281,20 @@ class SprytileModalTool(bpy.types.Operator):
                 el.ensure_lookup_table()
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
+
+        # # Potentially expensive, test if there is a selected mesh element
+        # if event.type == 'MOUSEMOVE':
+        #     self.has_selection = False
+        #     for v in self.bmesh.verts:
+        #         if v.select:
+        #             print("Has selection")
+        #             self.has_selection = True
+        #             break
+
+        # Clear preview data if not drawing preview
+        if not draw_preview and SprytileModalTool.preview_verts is not None:
+            SprytileModalTool.preview_verts = None
+            SprytileModalTool.preview_uvs = None
 
         context.area.tag_redraw()
 

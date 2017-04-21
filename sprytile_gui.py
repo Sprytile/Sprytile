@@ -550,8 +550,9 @@ class SprytileGui:
             screen_verts.append(screen_vtx)
 
         addon_prefs = context.user_preferences.addons[__package__].preferences
+        preview_alpha = addon_prefs.preview_transparency
 
-        bgl.glColor4f(1.0, 1.0, 1.0, addon_prefs.preview_transparency)
+        bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
         bgl.glBegin(bgl.GL_QUADS)
         for i in range(4):
             glTexCoord2f(uv[i].x, uv[i].y)
