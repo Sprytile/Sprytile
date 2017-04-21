@@ -34,7 +34,6 @@ class SprytileGui(bpy.types.Operator):
         return context.area.type == 'VIEW_3D'
 
     def invoke(self, context, event):
-        print("GUI invoke")
         if context.space_data.type != 'VIEW_3D':
             return {'CANCELLED'}
         if context.scene.sprytile_data.is_running is False:
@@ -66,7 +65,6 @@ class SprytileGui(bpy.types.Operator):
         if context.scene.sprytile_data.is_running is False:
             self.exit(context)
             return {'CANCELLED'}
-        print("GUI modal")
 
         if event.type == 'TIMER':
             if self.label_counter > 0:
@@ -87,7 +85,6 @@ class SprytileGui(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
     def exit(self, context):
-        print("Exit gui")
         SprytileGui.handler_remove(self, context)
         context.area.tag_redraw()
 
@@ -562,8 +559,11 @@ class SprytileGui(bpy.types.Operator):
 
         addon_prefs = context.user_preferences.addons[__package__].preferences
         preview_alpha = addon_prefs.preview_transparency
+        if context.scene.sprytile_data.has_selection:
+            preview_alpha *= 0.25
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
+
         bgl.glBegin(bgl.GL_QUADS)
         for i in range(4):
             glTexCoord2f(uv[i].x, uv[i].y)

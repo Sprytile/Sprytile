@@ -344,6 +344,14 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Is Cursor Snap",
         description="Is cursor snapping currently activated"
     )
+    has_selection = BoolProperty(
+        name="Has selection",
+        description="Is there a mesh element selected"
+    )
+    is_grid_translate = BoolProperty(
+        name="Is Grid Translate",
+        description="Grid translate operator is running"
+    )
     show_extra = BoolProperty(
         name="Extra UV Grid Settings",
         default=False

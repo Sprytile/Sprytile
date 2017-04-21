@@ -834,10 +834,12 @@ class SprytileGridTranslate(bpy.types.Operator):
         win_mgr = context.window_manager
         self.timer = win_mgr.event_timer_add(0.1, context.window)
         win_mgr.modal_handler_add(self)
+        context.scene.sprytile_data.is_grid_translate = True
         # Now go up to modal function to read the rest
         return {'RUNNING_MODAL'}
 
     def exit_modal(self, context):
+        context.scene.sprytile_data.is_grid_translate = False
         pixel_unit = 1 / context.scene.sprytile_data.world_pixels
         # Restore grid settings if changed
         if self.restore_settings is not None:
