@@ -463,6 +463,8 @@ class SprytileModalTool(bpy.types.Operator):
 
     @staticmethod
     def find_view_axis(context):
+        if context.area.type != 'VIEW_3D':
+            return
         scene = context.scene
         if scene.sprytile_data.lock_normal is True:
             return
