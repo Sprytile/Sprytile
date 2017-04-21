@@ -1267,8 +1267,24 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Mouse move triggers preview drawing, need an updated
         # mesh or bad things happen. This can potentially get expensive
-        if event.type == 'MOUSEMOVE' and sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}:
-            self.refresh_mesh = True
+        draw_preview = False
+        if event.type == 'MOUSEMOVE':
+            draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}
+            if draw_preview and (event.alt or context.scene.sprytile_ui.use_mouse):
+                draw_preview = False
+            # Another potentially expensive test.
+            # Check if any mesh element is selected, if any don't draw preview
+            if draw_preview:
+                for v in self.bmesh.verts:
+                    if v.select:
+                        draw_preview = False
+                        break
+            if draw_preview:
+                self.refresh_mesh = True
+
+        if not draw_preview and SprytileModalTool.preview_verts is not None:
+            SprytileModalTool.preview_verts = None
+            SprytileModalTool.preview_uvs = None
 
         # Refreshing the mesh
         if self.refresh_mesh:
@@ -1295,13 +1311,13 @@ class SprytileModalTool(bpy.types.Operator):
         if key_return is not None:
             return key_return
 
-        mouse_return = self.handle_mouse(context, event)
+        mouse_return = self.handle_mouse(context, event, draw_preview)
         if mouse_return is not None:
             return mouse_return
 
         return {'PASS_THROUGH'}
 
-    def handle_mouse(self, context, event):
+    def handle_mouse(self, context, event, draw_preview):
         """"""
         if 'MOUSE' not in event.type:
             return None
@@ -1341,7 +1357,7 @@ class SprytileModalTool(bpy.types.Operator):
             if self.left_down:
                 self.execute_tool(context, event)
                 return {'RUNNING_MODAL'}
-            elif context.scene.sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}:
+            elif draw_preview:
                 self.execute_tool(context, event, event.type not in self.is_keyboard_list)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
