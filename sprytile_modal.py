@@ -7,7 +7,7 @@ from collections import deque
 from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
-from . import sprytile_utils, sprytile_gui
+from . import sprytile_utils
 
 
 def snap_vector_to_axis(vector, mirrored=False):
@@ -1254,9 +1254,6 @@ class SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
-        # Pass modal events onto GUI
-        self.gui.modal(context, event)
-
         if event.type == 'TIMER':
             view_axis = self.find_view_axis(context)
             if view_axis is not None:
@@ -1487,7 +1484,8 @@ class SprytileModalTool(bpy.types.Operator):
             sprytile_data.is_running = True
             sprytile_data.is_snapping = False
 
-            self.gui = sprytile_gui.SprytileGui(context, event)
+            context.scene.sprytile_ui.is_dirty = True
+            bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
             return {'RUNNING_MODAL'}
         else:
             self.report({'WARNING'}, "Active space must be a View3d")
@@ -1546,9 +1544,6 @@ class SprytileModalTool(bpy.types.Operator):
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
         self.tree = None
-        if hasattr(self, "gui"):
-            self.gui.exit(context)
-            self.gui = None
         if hasattr(self, "view_axis_timer"):
             context.window_manager.event_timer_remove(self.view_axis_timer)
         if context.object.mode == 'EDIT':
