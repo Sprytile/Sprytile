@@ -613,7 +613,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         return self.raycast_object(obj, ray_origin, ray_direction, 0.02)
 
-    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000000):
+    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000000, world_normal=False):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
@@ -636,6 +636,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Translate location back to world space
         location = matrix * location
+        if world_normal:
+            normal = matrix * normal
         return location, normal, face_index, distance
 
     def execute_tool(self, context, event, is_preview=False):
@@ -679,7 +681,7 @@ class SprytileModalTool(bpy.types.Operator):
 
     def execute_paint(self, context, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(context.scene)
-        hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector, world_normal=True)
         if face_index is None:
             return
 
@@ -696,7 +698,20 @@ class SprytileModalTool(bpy.types.Operator):
         grid = sprytile_utils.get_grid(context, grid_id)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
+        # normal = normal.normalized()
         face_up = self.get_face_up_vector(context, face_index, normal)
+
+        # sprytile_data = context.scene.sprytile_data
+        # if sprytile_data.paint_hinting:
+        #     selection = self.bmesh.select_history.active
+        #     if isinstance(selection, bmesh.types.BMEdge):
+        #         vtx1 = context.object.matrix_world * selection.verts[0].co.copy()
+        #         vtx2 = context.object.matrix_world * selection.verts[1].co.copy()
+        #         sel_vector = vtx2 - vtx1
+        #         right_vector = sel_vector.normalized()
+        #         face_up = normal.cross(right_vector).normalized()
+        #         print("Hinting on, up {0}, right {1}".format(face_up, right_vector))
+
         if face_up is not None and face_up.dot(up_vector) < 0.95:
             data = context.scene.sprytile_data
             face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
