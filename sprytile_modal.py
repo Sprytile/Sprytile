@@ -1274,11 +1274,12 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Refreshing the mesh, preview needs constantly refreshed
         # mesh or bad things seem to happen. This can potentially get expensive
-        if self.refresh_mesh or draw_preview:
+        if self.refresh_mesh or self.bmesh.is_valid is False:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
+            self.bmesh = bmesh.from_edit_mesh(context.object.data)
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
 
