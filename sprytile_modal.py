@@ -659,12 +659,9 @@ class SprytileModalTool(bpy.types.Operator):
 
         build_preview = is_preview and not self.refresh_mesh
 
+        self.build_preview(build_preview, context, ray_origin, ray_vector)
         if build_preview:
-            self.build_preview(context, ray_origin, ray_vector)
             return
-        else:
-            SprytileModalTool.preview_verts = None
-            SprytileModalTool.preview_uvs = None
 
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
@@ -883,11 +880,12 @@ class SprytileModalTool(bpy.types.Operator):
                 x += 1
         return flood_stack
 
-    def build_preview(self, context, ray_origin, ray_vector):
+    def build_preview(self, do_build, context, ray_origin, ray_vector):
         SprytileModalTool.preview_verts = None
         SprytileModalTool.preview_uvs = None
 
-        if self.refresh_mesh:
+        # Something probably changed upstream, don't build now
+        if self.refresh_mesh or do_build is False:
             return
 
         scene = context.scene
@@ -909,27 +907,41 @@ class SprytileModalTool(bpy.types.Operator):
             up_vector, right_vector, plane_normal,
             ray_origin, ray_vector)
 
-        # Failed to hit the grid
-        if face_position is None:
-            return
+        preview_verts = []
 
         # Raycast the object
         hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(obj, ray_origin, ray_vector)
         # Did hit mesh...
         if face_index is not None:
-            grid_hit_dist = (face_position - ray_origin).magnitude
-            # Mesh hit closer than grid hit, check coplanarity and dot value before rejecting
-            if hit_dist < grid_hit_dist:
-                check_dot = abs(plane_normal.dot(hit_normal))
-                check_dot -= 1
-                check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+            if data.paint_mode == 'PAINT':
+                face = self.bmesh.faces[face_index]
+                for loop in face.loops:
+                    vert = loop.vert
+                    preview_verts.append(context.object.matrix_world * vert.co)
+            elif face_position is not None:
+                grid_hit_dist = (face_position - ray_origin).magnitude
+                # Mesh hit closer than grid hit, check coplanarity and dot value before rejecting
+                if hit_dist < grid_hit_dist:
+                    check_dot = abs(plane_normal.dot(hit_normal))
+                    check_dot -= 1
+                    check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
 
-                check_coplanar = abs(check_coplanar) < 0.05
-                check_dot = abs(check_dot) < 0.05
-                if not check_dot or not check_coplanar:
-                    return
+                    check_coplanar = abs(check_coplanar) < 0.05
+                    check_dot = abs(check_dot) < 0.05
+                    # Hitting the mesh, get the preview verts from the hit face
+                    if not check_dot or not check_coplanar:
+                        return
 
-        preview_verts = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
+        if data.paint_mode == 'MAKE_FACE' and face_position is None:
+            return
+        # Didn't hit mesh in paint mode, do nothing
+        if data.paint_mode == 'PAINT' and len(preview_verts) == 0:
+            return
+
+        # Preview verts still empty, verts will be taken from the grid
+        if len(preview_verts) < 1:
+            preview_verts = get_build_vertices(face_position, x_vector, y_vector,
+                                               up_vector, right_vector)
 
         # Get the center of the preview verts
         vtx_center = Vector((0, 0, 0))
@@ -938,6 +950,12 @@ class SprytileModalTool(bpy.types.Operator):
         vtx_center /= len(preview_verts)
 
         up_vector = data.paint_up_vector
+
+        if data.paint_mode == 'PAINT' and face_index is not None:
+            calc_up_vector = self.get_face_up_vector(context, face_index, hit_normal)
+            if calc_up_vector is not None:
+                up_vector = calc_up_vector
+
         up_vector = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * up_vector
         right_vector = up_vector.cross(plane_normal)
 
@@ -1282,7 +1300,7 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         # Mouse move triggers preview drawing
-        draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL'}
+        draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL', 'PAINT'}
         if draw_preview:
             if (event.alt or context.scene.sprytile_ui.use_mouse) or sprytile_data.is_snapping:
                 draw_preview = False
