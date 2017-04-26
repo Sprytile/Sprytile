@@ -698,21 +698,9 @@ class SprytileModalTool(bpy.types.Operator):
         grid = sprytile_utils.get_grid(context, grid_id)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
-        # normal = normal.normalized()
         face_up = self.get_face_up_vector(context, face_index, normal)
 
-        # sprytile_data = context.scene.sprytile_data
-        # if sprytile_data.paint_hinting:
-        #     selection = self.bmesh.select_history.active
-        #     if isinstance(selection, bmesh.types.BMEdge):
-        #         vtx1 = context.object.matrix_world * selection.verts[0].co.copy()
-        #         vtx2 = context.object.matrix_world * selection.verts[1].co.copy()
-        #         sel_vector = vtx2 - vtx1
-        #         right_vector = sel_vector.normalized()
-        #         face_up = normal.cross(right_vector).normalized()
-        #         print("Hinting on, up {0}, right {1}".format(face_up, right_vector))
-
-        if face_up is not None and face_up.dot(up_vector) < 0.95:
+        if face_up is not None:
             data = context.scene.sprytile_data
             face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
             up_vector = face_up
@@ -1100,20 +1088,32 @@ class SprytileModalTool(bpy.types.Operator):
         if self.bmesh is None or self.bmesh.faces is None:
             self.refresh_mesh = True
             return None
+
+        world_matrix = context.object.matrix_world
         face = self.bmesh.faces[face_index]
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
             selection = self.bmesh.select_history.active
             if isinstance(selection, bmesh.types.BMEdge):
-                vtx1 = context.object.matrix_world * selection.verts[0].co.copy()
-                vtx2 = context.object.matrix_world * selection.verts[1].co.copy()
+                # Figure out which side of the face this edge is on
+                # selected edge is considered the bottom of the face
+                vtx1 = world_matrix * selection.verts[0].co.copy()
+                vtx2 = world_matrix * selection.verts[1].co.copy()
+                edge_center = (vtx1 + vtx2) / 2
+                face_center = world_matrix * face.calc_center_bounds()
+                # Get the rough heading of the up vector
+                estimated_up = face_center - edge_center
+                estimated_up.normalize()
+
                 sel_vector = vtx2 - vtx1
                 sel_vector.normalize()
-                if sel_vector.dot(view_right_vector) < 0:
-                    sel_vector *= -1
 
+                # Cross the edge and face vectors to get the up vector
                 view_up_vector = face_normal.cross(sel_vector)
+                # If the calculated up faces away from rough up, reverse it
+                if view_up_vector.dot(estimated_up) < 0:
+                    view_up_vector *= -1
                 return view_up_vector
 
         # Find the edge of the hit face that most closely matches
@@ -1126,8 +1126,8 @@ class SprytileModalTool(bpy.types.Operator):
         for edge in face.edges:
             idx += 1
             # Move vertices to world space
-            vtx1 = context.object.matrix_world * edge.verts[0].co
-            vtx2 = context.object.matrix_world * edge.verts[1].co
+            vtx1 = world_matrix * edge.verts[0].co
+            vtx2 = world_matrix * edge.verts[1].co
             edge_vec = vtx2 - vtx1
             edge_vec.normalize()
             edge_up_dot = 1 - abs(edge_vec.dot(view_up_vector))
