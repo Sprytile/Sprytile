@@ -367,9 +367,9 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
     def set_reload(self, value):
-        if value is True:
-            bpy.ops.sprytile.reload_auto('INVOKE_DEFAULT')
         self["auto_reload"] = value
+        if value is True:
+            bpy.ops.sprytile.reload_auto('INVOKE_REGION_WIN')
 
     def get_reload(self):
         if "auto_reload" not in self.keys():
