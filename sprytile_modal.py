@@ -695,13 +695,13 @@ class SprytileModalTool(bpy.types.Operator):
         grid = sprytile_utils.get_grid(context, grid_id)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
-        face_up = self.get_face_up_vector(context, face_index, normal)
-
+        face_up, face_right = self.get_face_up_vector(context, face_index, plane_normal)
+        data = context.scene.sprytile_data
+        rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
         if face_up is not None:
-            data = context.scene.sprytile_data
-            face_up = Matrix.Rotation(data.mesh_rotate, 4, normal) * face_up
-            up_vector = face_up
-            right_vector = up_vector.cross(normal)
+            up_vector = rotate_matrix * face_up
+        if face_right is not None:
+            right_vector = rotate_matrix * face_right
 
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
@@ -801,12 +801,12 @@ class SprytileModalTool(bpy.types.Operator):
                     paint_setting = face[paint_setting_layer]
                     from_paint_settings(context.scene.sprytile_data, paint_setting)
 
-            face_up = self.get_face_up_vector(context, face_index, plane_normal)
+            face_up, face_right = self.get_face_up_vector(context, face_index, plane_normal)
             if face_up is not None and face_up.dot(up_vector) < 0.95:
                 data = context.scene.sprytile_data
-                face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
-                up_vector = face_up
-                right_vector = up_vector.cross(plane_normal)
+                rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
+                up_vector = rotate_matrix * face_up
+                right_vector = rotate_matrix * face_right
 
             uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
@@ -952,9 +952,11 @@ class SprytileModalTool(bpy.types.Operator):
         up_vector = data.paint_up_vector
 
         if data.paint_mode == 'PAINT' and face_index is not None:
-            calc_up_vector = self.get_face_up_vector(context, face_index, hit_normal)
+            calc_up_vector, calc_right_vector = self.get_face_up_vector(context, face_index, hit_normal)
             if calc_up_vector is not None:
                 up_vector = calc_up_vector
+            if calc_right_vector is not None:
+                right_vector = calc_right_vector
 
         up_vector = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * up_vector
         right_vector = up_vector.cross(plane_normal)
@@ -991,12 +993,12 @@ class SprytileModalTool(bpy.types.Operator):
             if check_dot and check_coplanar:
                 self.add_virtual_cursor(hit_loc)
                 # Change UV of this face instead
-                face_up = self.get_face_up_vector(context, face_index, hit_normal)
+                face_up, face_right = self.get_face_up_vector(context, face_index, hit_normal)
                 if face_up is not None and face_up.dot(up_vector) < 0.95:
                     data = context.scene.sprytile_data
-                    face_up = Matrix.Rotation(data.mesh_rotate, 4, hit_normal) * face_up
-                    up_vector = face_up
-                    right_vector = up_vector.cross(hit_normal)
+                    rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, hit_normal)
+                    up_vector = rotate_matrix * face_up
+                    right_vector = rotate_matrix * face_right
                 uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
@@ -1023,12 +1025,12 @@ class SprytileModalTool(bpy.types.Operator):
         # Build face and UV map it
         face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
 
-        face_up = self.get_face_up_vector(context, face_index, plane_normal)
+        face_up, face_right = self.get_face_up_vector(context, face_index, plane_normal)
         if face_up is not None and face_up.dot(up_vector) < 0.95:
             data = context.scene.sprytile_data
-            face_up = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * face_up
-            up_vector = face_up
-            right_vector = up_vector.cross(plane_normal)
+            rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
+            up_vector = rotate_matrix * face_up
+            right_vector = rotate_matrix * face_right
 
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
