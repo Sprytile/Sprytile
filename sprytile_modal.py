@@ -1105,7 +1105,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         if self.bmesh is None or self.bmesh.faces is None:
             self.refresh_mesh = True
-            return None
+            return None, None
 
         world_matrix = context.object.matrix_world
         face = self.bmesh.faces[face_index]
@@ -1132,7 +1132,8 @@ class SprytileModalTool(bpy.types.Operator):
                 # If the calculated up faces away from rough up, reverse it
                 if view_up_vector.dot(estimated_up) < 0:
                     view_up_vector *= -1
-                return view_up_vector
+                    sel_vector *= -1
+                return view_up_vector, sel_vector
 
         # Find the edge of the hit face that most closely matches
         # the view up / view right vectors
@@ -1178,7 +1179,7 @@ class SprytileModalTool(bpy.types.Operator):
             chosen_up = face_normal.cross(closest_right)
 
         # print("Chosen up", chosen_up)
-        return chosen_up
+        return chosen_up, closest_right
 
     def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
         hit_loc, hit_normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
