@@ -1202,10 +1202,10 @@ class SprytileModalTool(bpy.types.Operator):
             return
         hit_normal = context.object.matrix_world.to_quaternion() * hit_normal
 
-        face_up_vector = self.get_face_up_vector(context, face_index, hit_normal)
+        face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, hit_normal)
         if face_up_vector is None:
             return
-
+        
         sprytile_data = context.scene.sprytile_data
         sprytile_data.paint_normal_vector = hit_normal
         sprytile_data.paint_up_vector = face_up_vector
