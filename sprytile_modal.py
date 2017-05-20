@@ -126,9 +126,8 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
     # Build the translation matrix
     offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
     rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
-    grid_matrix = offset_matrix * rotate_matrix
     uv_matrix = Matrix.Translation((uv_unit_x * tile_xy[0], uv_unit_y * tile_xy[1], 0))
-    uv_matrix = grid_matrix * uv_matrix
+    uv_matrix = offset_matrix * rotate_matrix * uv_matrix
 
     flip_x = -1 if data.uv_flip_x else 1
     flip_y = -1 if data.uv_flip_y else 1
@@ -149,7 +148,7 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
         # Convert to -0.5 to 0.5 space
         vert_xy.x /= world_convert.x
         vert_xy.y /= world_convert.y
-        # Offset by half, to move it coordinates back into 0-1 range
+        # Offset by half, to move coordinates back into 0-1 range
         vert_xy += Vector((0.5, 0.5, 0))
         # Multiply by the uv unit sizes to get actual UV space
         vert_xy.x *= uv_unit_x
@@ -653,6 +652,9 @@ class SprytileModalTool(bpy.types.Operator):
         rv3d = context.region_data
         coord = event.mouse_region_x, event.mouse_region_y
 
+        if rv3d is None:
+            return
+
         # get the ray from the viewport and mouse
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
@@ -677,16 +679,20 @@ class SprytileModalTool(bpy.types.Operator):
             self.execute_fill(context, scene, ray_origin, ray_vector)
 
     def execute_paint(self, context, ray_origin, ray_vector):
+        print("Exec paint")
         up_vector, right_vector, plane_normal = get_current_grid_vectors(context.scene)
         hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector, world_normal=True)
         if face_index is None:
+            print("No hit")
             return
 
+        normal.normalize()
         # Face that was hit is facing same way as plane normal, don't do anything
         rv3d = context.region_data
         view_vector = rv3d.view_rotation * Vector((0.0, 0.0, -1.0))
         view_dot = view_vector.dot(normal)
         if view_dot > -0.25:
+            print("View dot wrong")
             return
 
         self.add_virtual_cursor(hit_loc)
@@ -697,16 +703,21 @@ class SprytileModalTool(bpy.types.Operator):
 
         face_up, face_right = self.get_face_up_vector(context, face_index, plane_normal)
         data = context.scene.sprytile_data
-        rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
+        rotate_normal = face_up.cross(face_right)
+        rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, rotate_normal)
         if face_up is not None:
             up_vector = rotate_matrix * face_up
         if face_right is not None:
             right_vector = rotate_matrix * face_right
 
+        up_vector.normalize()
+        right_vector.normalize()
+        # print("Up vector:", up_vector, "Right vector:", right_vector)
+        # print("Up mag:", up_vector.magnitude, "Right mag:", right_vector.magnitude)
         uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
-        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene, with_rotation=False)
+        up_vector, right_vector, plane_normal =  get_current_grid_vectors(scene, with_rotation=False)
 
         # Intersect on the virtual plane
         plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
@@ -886,6 +897,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Something probably changed upstream, don't build now
         if self.refresh_mesh or do_build is False:
+            return
+        if context.scene.sprytile_data.paint_mode == 'PAINT':
             return
 
         scene = context.scene
@@ -1310,7 +1323,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Refreshing the mesh, preview needs constantly refreshed
         # mesh or bad things seem to happen. This can potentially get expensive
-        if self.refresh_mesh or self.bmesh.is_valid is False:
+        if self.refresh_mesh or self.bmesh.is_valid is False or draw_preview:
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
