@@ -696,7 +696,11 @@ class SprytileModalTool(bpy.types.Operator):
 
         face_up, face_right = self.get_face_up_vector(context, face_index, plane_normal)
         data = context.scene.sprytile_data
-        rotate_normal = face_up.cross(face_right)
+
+        rotate_normal = plane_normal
+        if face_up is not None and face_right is not None:
+            rotate_normal = face_up.cross(face_right)
+
         rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, rotate_normal)
         if face_up is not None:
             up_vector = rotate_matrix * face_up
