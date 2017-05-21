@@ -687,13 +687,6 @@ class SprytileModalTool(bpy.types.Operator):
             return
 
         normal.normalize()
-        # Face that was hit is facing same way as plane normal, don't do anything
-        rv3d = context.region_data
-        view_vector = rv3d.view_rotation * Vector((0.0, 0.0, -1.0))
-        view_dot = view_vector.dot(normal)
-        if view_dot > -0.25:
-            print("View dot wrong")
-            return
 
         self.add_virtual_cursor(hit_loc)
         # Change the uv of the given face
@@ -1205,7 +1198,7 @@ class SprytileModalTool(bpy.types.Operator):
         face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, hit_normal)
         if face_up_vector is None:
             return
-        
+
         sprytile_data = context.scene.sprytile_data
         sprytile_data.paint_normal_vector = hit_normal
         sprytile_data.paint_up_vector = face_up_vector
