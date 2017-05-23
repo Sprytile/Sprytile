@@ -567,8 +567,8 @@ class SprytileGui(bpy.types.Operator):
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
 
-        bgl.glBegin(bgl.GL_QUADS)
-        for i in range(4):
+        bgl.glBegin(bgl.GL_POLYGON)
+        for i in range(len(uv)):
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])
         bgl.glEnd()
