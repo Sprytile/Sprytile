@@ -679,7 +679,6 @@ class SprytileModalTool(bpy.types.Operator):
             self.execute_fill(context, scene, ray_origin, ray_vector)
 
     def execute_paint(self, context, ray_origin, ray_vector):
-        print("Exec paint")
         up_vector, right_vector, plane_normal = get_current_grid_vectors(context.scene)
         hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector, world_normal=True)
         if face_index is None:
@@ -700,8 +699,8 @@ class SprytileModalTool(bpy.types.Operator):
         rotate_normal = plane_normal
         if face_up is not None and face_right is not None:
             rotate_normal = face_up.cross(face_right)
-
-        rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, rotate_normal)
+        
+        rotate_matrix = Quaternion(-rotate_normal, data.mesh_rotate)
         if face_up is not None:
             up_vector = rotate_matrix * face_up
         if face_right is not None:
@@ -895,8 +894,6 @@ class SprytileModalTool(bpy.types.Operator):
         # Something probably changed upstream, don't build now
         if self.refresh_mesh or do_build is False:
             return
-        if context.scene.sprytile_data.paint_mode == 'PAINT':
-            return
 
         scene = context.scene
         obj = context.object
@@ -909,7 +906,7 @@ class SprytileModalTool(bpy.types.Operator):
         if target_img is None:
             return
 
-        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene, False)
 
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = raycast_grid(
@@ -923,6 +920,7 @@ class SprytileModalTool(bpy.types.Operator):
         hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(obj, ray_origin, ray_vector)
         # Did hit mesh...
         if face_index is not None:
+            # In paint mode, just gather world positions of hit face
             if data.paint_mode == 'PAINT':
                 face = self.bmesh.faces[face_index]
                 for loop in face.loops:
@@ -959,17 +957,26 @@ class SprytileModalTool(bpy.types.Operator):
             vtx_center += vtx
         vtx_center /= len(preview_verts)
 
-        up_vector = data.paint_up_vector
+        rotate_normal = plane_normal
 
+        # In paint mode, recalculate the rotation normal
         if data.paint_mode == 'PAINT' and face_index is not None:
-            calc_up_vector, calc_right_vector = self.get_face_up_vector(context, face_index, hit_normal)
-            if calc_up_vector is not None:
-                up_vector = calc_up_vector
-            if calc_right_vector is not None:
-                right_vector = calc_right_vector
+            face_up, face_right = self.get_face_up_vector(context, face_index)
 
-        up_vector = Matrix.Rotation(data.mesh_rotate, 4, plane_normal) * up_vector
-        right_vector = up_vector.cross(plane_normal)
+            if face_up is not None and face_right is not None:
+                rotate_normal = face_right.cross(face_up)
+
+            if face_up is not None:
+                up_vector = face_up
+            if face_right is not None:
+                right_vector = face_right
+
+        rotation = Quaternion(rotate_normal, data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
+
+        up_vector.normalize()
+        right_vector.normalize()
 
         tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
         preview_uvs = get_uv_positions(data, target_img.size, target_grid,
