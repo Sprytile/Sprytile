@@ -1105,7 +1105,7 @@ class SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index, face_normal):
+    def get_face_up_vector(self, context, face_index):
         """Find the edge of the given face that most closely matches view up vector"""
         # Get the view up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
@@ -1121,6 +1121,10 @@ class SprytileModalTool(bpy.types.Operator):
 
         world_matrix = context.object.matrix_world
         face = self.bmesh.faces[face_index]
+
+        # Convert the face normal to world space
+        normal_inv = context.object.matrix_world.copy().inverted().transposed()
+        face_normal = normal_inv * face.normal.copy()
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
@@ -1139,8 +1143,10 @@ class SprytileModalTool(bpy.types.Operator):
                 sel_vector = vtx2 - vtx1
                 sel_vector.normalize()
 
-                # Cross the edge and face vectors to get the up vector
+                # Cross the face normal and hint vector to get the up vector
                 view_up_vector = face_normal.cross(sel_vector)
+                view_up_vector.normalize()
+
                 # If the calculated up faces away from rough up, reverse it
                 if view_up_vector.dot(estimated_up) < 0:
                     view_up_vector *= -1
