@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
-    "version": (0, 3, 9),
+    "version": (0, 3, 93),
     "blender": (2, 7, 7),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
@@ -367,9 +367,9 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
 
     def set_reload(self, value):
-        if value is True:
-            bpy.ops.sprytile.reload_auto('INVOKE_DEFAULT')
         self["auto_reload"] = value
+        if value is True:
+            bpy.ops.sprytile.reload_auto('INVOKE_REGION_WIN')
 
     def get_reload(self):
         if "auto_reload" not in self.keys():

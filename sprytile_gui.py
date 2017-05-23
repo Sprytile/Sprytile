@@ -559,13 +559,16 @@ class SprytileGui(bpy.types.Operator):
 
         addon_prefs = context.user_preferences.addons[__package__].preferences
         preview_alpha = addon_prefs.preview_transparency
-        if context.scene.sprytile_data.has_selection:
+        sprytile_data = context.scene.sprytile_data
+        if sprytile_data.has_selection:
             preview_alpha *= 0.25
+        if sprytile_data.paint_mode == 'PAINT':
+            preview_alpha = 0.9
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
 
-        bgl.glBegin(bgl.GL_QUADS)
-        for i in range(4):
+        bgl.glBegin(bgl.GL_POLYGON)
+        for i in range(len(uv)):
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])
         bgl.glEnd()

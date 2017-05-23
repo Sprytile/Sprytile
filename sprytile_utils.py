@@ -5,6 +5,9 @@ import bmesh
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector
+from bpy.path import abspath
+from datetime import datetime
+from os import path
 from . import sprytile_modal
 from . import addon_updater_ops
 
@@ -628,16 +631,41 @@ class SprytileReloadImagesAuto(bpy.types.Operator):
     bl_label = "Reload All Images (Auto)"
 
     _timer = None
+    last_check_time = None
 
     def modal(self, context, event):
         if event.type == 'TIMER':
             if context.scene.sprytile_data.auto_reload is False:
                 self.cancel(context)
                 return {'CANCELLED'}
-            bpy.ops.sprytile.reload_imgs('INVOKE_DEFAULT')
+
+            if self.check_files():
+                for window in context.window_manager.windows:
+                    for area in window.screen.areas:
+                        if area.type in {'VIEW_3D', 'IMAGE_EDITOR'}:
+                            area.tag_redraw()
+
         return {'PASS_THROUGH'}
 
+    def check_files(self):
+        did_reload = False
+        for img in bpy.data.images:
+            if img is None:
+                continue
+            filepath = abspath(img.filepath)
+            filetime = datetime.fromtimestamp(path.getmtime(filepath))
+            if self.last_check_time is None or filetime > self.last_check_time:
+                print("Reloading", img.filepath)
+                img.reload()
+                did_reload = True
+        self.last_check_time = datetime.now()
+        return did_reload
+
     def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        self.check_files()
         wm = context.window_manager
         self._timer = wm.event_timer_add(2, context.window)
         wm.modal_handler_add(self)
