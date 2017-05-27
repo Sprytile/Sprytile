@@ -25,6 +25,12 @@ from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
 
+import os, sys, inspect
+# Sprytile directory to paths so rx can be loaded as a module
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
     def set_normal(self, value):
