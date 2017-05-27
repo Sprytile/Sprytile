@@ -10,27 +10,30 @@ bl_info = {
     "category": "Paint"
 }
 
+# Put Sprytile directory is sys.path so modules can be loaded
+import os
+import sys
+import inspect
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+
 if "bpy" in locals():
-    import imp
-    imp.reload(addon_updater_ops)
-    imp.reload(sprytile_gui)
-    imp.reload(sprytile_modal)
-    imp.reload(sprytile_panel)
-    imp.reload(sprytile_utils)
+    from importlib import reload
+    reload(addon_updater_ops)
+    reload(sprytile_gui)
+    reload(sprytile_modal)
+    reload(sprytile_panel)
+    reload(sprytile_utils)
+    reload(tool_build)
 else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
+    from sprytile_tools import tool_build, tool_paint
 
 import bpy
 from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
-
-import os, sys, inspect
-# Sprytile directory to paths so rx can be loaded as a module
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile( inspect.currentframe() ))[0]))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
     def set_normal(self, value):
@@ -702,6 +705,10 @@ def unregister():
     teardown_props()
     bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
+
+    # Unregister self from sys.path as well
+    cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
+    sys.path.remove(cmd_subfolder)
 
 
 if __name__ == "__main__":

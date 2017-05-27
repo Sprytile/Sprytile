@@ -8,6 +8,25 @@ from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
 from . import sprytile_utils
+from rx import Observable
+from sprytile_tools.tool_build import ToolBuild
+
+
+class ObjDict(dict):
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __delattr__(self, name):
+        if name in self:
+            del self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
 
 
 def snap_vector_to_axis(vector, mirrored=False):
@@ -1312,6 +1331,15 @@ class SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
+        if self.rx_observer is not None:
+            self.rx_observer.on_next(
+                ObjDict(
+                    data=sprytile_data,
+                    context=context,
+                    event=event
+                )
+            )
+
         if self.no_undo and sprytile_data.is_grid_translate is False:
             print("no undo on, grid translate off")
             self.no_undo = False
@@ -1506,6 +1534,9 @@ class SprytileModalTool(bpy.types.Operator):
     def execute(self, context):
         return self.invoke(context, None)
 
+    def setup_observer(self, observer):
+        self.rx_observer = observer
+
     def invoke(self, context, event):
         if context.scene.sprytile_data.is_running:
             return {'CANCELLED'}
@@ -1537,7 +1568,15 @@ class SprytileModalTool(bpy.types.Operator):
             self.tree = BVHTree.FromBMesh(self.bmesh)
             self.refresh_mesh = False
 
-            # Set up timer callback
+            self.rx_observer = None
+            self.rx_source = Observable.create(self.setup_observer)
+
+            self.rx_source.publish().auto_connect()
+
+            self.tool_build = ToolBuild(self.rx_source)
+            # self.rx_source.subscribe(on_next=lambda modal: print(modal.data.paint_mode))
+
+            # Set up timer callback, the modal is the source RX events
             win_mgr = context.window_manager
             self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
 
@@ -1607,6 +1646,8 @@ class SprytileModalTool(bpy.types.Operator):
 
     def exit_modal(self, context):
         context.scene.sprytile_data.is_running = False
+        if self.rx_observer is not None:
+            self.rx_observer.on_completed()
         self.tree = None
         if hasattr(self, "view_axis_timer"):
             context.window_manager.event_timer_remove(self.view_axis_timer)
