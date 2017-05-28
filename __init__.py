@@ -26,6 +26,7 @@ if "bpy" in locals():
     reload(sprytile_panel)
     reload(sprytile_utils)
     reload(tool_build)
+    reload(tool_paint)
 else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
     from sprytile_tools import *
