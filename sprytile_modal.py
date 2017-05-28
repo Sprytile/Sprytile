@@ -11,10 +11,11 @@ from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
+from sprytile_tools.tool_paint import ToolPaint
 from . import sprytile_utils
 
 
-class ObjDict(dict):
+class DataObjectDict(dict):
     def __getattr__(self, name):
         if name in self:
             return self[name]
@@ -1236,9 +1237,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         if self.rx_observer is not None:
             self.rx_observer.on_next(
-                ObjDict(
-                    data=sprytile_data,
-                    context=context,
+                DataObjectDict(
+                    paint_mode=sprytile_data.paint_mode,
                     event=event
                 )
             )
@@ -1472,14 +1472,16 @@ class SprytileModalTool(bpy.types.Operator):
             self.refresh_mesh = False
 
             self.rx_observer = None
-            self.rx_source = Observable.create(self.setup_observer)
 
-            self.rx_source.publish().auto_connect()
+            observable_source = Observable.create(self.setup_observer)
+            self.rx_source = observable_source.publish().auto_connect(1)
 
-            self.tool_build = ToolBuild(self.rx_source)
-            # self.rx_source.subscribe(on_next=lambda modal: print(modal.data.paint_mode))
+            self.tools = {
+                "build": ToolBuild(self, self.rx_source),
+                "paint": ToolPaint(self, self.rx_source)
+            }
 
-            # Set up timer callback, the modal is the source RX events
+            # Set up timer callback
             win_mgr = context.window_manager
             self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
 
