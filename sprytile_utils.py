@@ -21,6 +21,12 @@ def get_grid_matrix(sprytile_grid):
 
 
 def get_grid_texture(obj, sprytile_grid):
+    """
+    Returns the texture applied to an object, given the sprytile_grid
+    :param obj: the Blender mesh object
+    :param sprytile_grid: the sprytile grid applied to the object
+    :return: Texture or None
+    """
     mat_idx = obj.material_slots.find(sprytile_grid.mat_id)
     if mat_idx == -1:
         return None
@@ -46,20 +52,28 @@ def get_grid_texture(obj, sprytile_grid):
 
 
 def get_selected_grid(context):
+    """
+    Returns the sprytile_grid currently selected
+    :param context: Blender tool context
+    :return: sprytile_grid or None
+    """
     obj = context.object
     scene = context.scene
 
     mat_list = scene.sprytile_mats
+    # The selected mesh object has the current sprytile_grid id
     grid_id = obj.sprytile_gridid
 
-    for mat_data in mat_list:
-        for grid in mat_data.grids:
-            if grid.id == grid_id:
-                return grid
-    return None
+    return get_grid(context, grid_id)
 
 
 def get_grid(context, grid_id):
+    """
+    Returns the sprytile_grid with the given id
+    :param context: Blender tool context
+    :param grid_id: grid id
+    :return: sprytile_grid or None
+    """
     mat_list = context.scene.sprytile_mats
     for mat_data in mat_list:
         for grid in mat_data.grids:
@@ -125,12 +139,12 @@ def get_paint_settings(sprytile_data):
 
 
 def from_paint_settings(sprytile_data, paint_settings):
-    '''
+    """
     Sets the paint settings of a sprytile_data using the paint settings bitmask
     :param sprytile_data: sprytile_data instance to set
     :param paint_settings: Painting settings bitmask
     :return: None
-    '''
+    """
     if paint_settings == 0:
         return
     align_value = paint_settings & 15  # First four bits
