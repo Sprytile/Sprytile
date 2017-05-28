@@ -18,7 +18,8 @@ cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(i
 if cmd_subfolder not in sys.path:
     sys.path.insert(0, cmd_subfolder)
 
-if "bpy" in locals():
+locals_list = locals()
+if "bpy" in locals_list:
     from importlib import reload
     reload(addon_updater_ops)
     reload(sprytile_gui)
@@ -26,7 +27,8 @@ if "bpy" in locals():
     reload(sprytile_panel)
     reload(sprytile_utils)
     reload(tool_build)
-    reload(tool_paint)
+    if "tool_paint" in locals_list:
+        reload(tool_paint)
 else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
     from sprytile_tools import *
