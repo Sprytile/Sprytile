@@ -2,6 +2,7 @@ import bpy
 import bgl
 import blf
 import bmesh
+import math
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector
@@ -82,6 +83,74 @@ def get_mat_data(context, mat_id):
         if mat_data.mat_id == mat_id:
             return mat_data
     return None
+
+
+def get_paint_settings(sprytile_data):
+    '''
+    Returns the paint settings bitmask from a sprytile_data instance
+    :param sprytile_data: sprytile_data instance
+    :return: A bitmask representing the paint settings in the sprytile_data
+    '''
+    # Rotation and UV flip are always included
+    paint_settings = 0
+    # Flip x/y are toggles
+    paint_settings += (1 if sprytile_data.uv_flip_x else 0) << 9
+    paint_settings += (1 if sprytile_data.uv_flip_y else 0) << 8
+    # Rotation is encoded as 0-3 clockwise, bit shifted by 10
+    degree_rotation = round(math.degrees(sprytile_data.mesh_rotate), 0)
+    if degree_rotation < 0:
+        degree_rotation += 360
+    rot_val = 0
+    if degree_rotation <= 1:
+        rot_val = 0
+    elif degree_rotation <= 90:
+        rot_val = 3
+    elif degree_rotation <= 180:
+        rot_val = 2
+    elif degree_rotation <= 270:
+        rot_val = 1
+    paint_settings += rot_val << 10
+
+    if sprytile_data.paint_mode == 'MAKE_FACE':
+        paint_settings += 5  # Default center align
+        for x in range(4, 8):  # All toggles on
+            paint_settings += 1 << x
+    if sprytile_data.paint_mode == 'PAINT':
+        paint_settings += sprytile_data["paint_align"]
+        paint_settings += (1 if sprytile_data.paint_uv_snap else 0) << 7
+        paint_settings += (1 if sprytile_data.paint_edge_snap else 0) << 6
+        paint_settings += (1 if sprytile_data.paint_stretch_x else 0) << 5
+        paint_settings += (1 if sprytile_data.paint_stretch_y else 0) << 4
+    return paint_settings
+
+
+def from_paint_settings(sprytile_data, paint_settings):
+    '''
+    Sets the paint settings of a sprytile_data using the paint settings bitmask
+    :param sprytile_data: sprytile_data instance to set
+    :param paint_settings: Painting settings bitmask
+    :return: None
+    '''
+    if paint_settings == 0:
+        return
+    align_value = paint_settings & 15  # First four bits
+    rot_value = (paint_settings & 3072) >> 10  # 11th and 12th bit, shifted back
+    rot_radian = 0
+    if rot_value == 1:
+        rot_radian = math.radians(270)
+    if rot_value == 2:
+        rot_radian = math.radians(180)
+    if rot_value == 3:
+        rot_radian = math.radians(90)
+
+    sprytile_data["paint_align"] = align_value
+    sprytile_data.mesh_rotate = rot_radian
+    sprytile_data.uv_flip_x = (paint_settings & 1 << 9) > 0
+    sprytile_data.uv_flip_y = (paint_settings & 1 << 8) > 0
+    sprytile_data.paint_uv_snap = (paint_settings & 1 << 7) > 0
+    sprytile_data.paint_edge_snap = (paint_settings & 1 << 6) > 0
+    sprytile_data.paint_stretch_x = (paint_settings & 1 << 5) > 0
+    sprytile_data.paint_stretch_y = (paint_settings & 1 << 4) > 0
 
 
 def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="    ", scale_y=0.55):
