@@ -1443,61 +1443,63 @@ class SprytileModalTool(bpy.types.Operator):
     def invoke(self, context, event):
         if context.scene.sprytile_data.is_running:
             return {'CANCELLED'}
-        if context.space_data.type == 'VIEW_3D':
-            obj = context.object
-            if obj.hide or obj.type != 'MESH':
-                self.report({'WARNING'}, "Active object must be a visible mesh")
-                return {'CANCELLED'}
-            if len(context.scene.sprytile_mats) < 1:
-                bpy.ops.sprytile.validate_grids()
-            if len(context.scene.sprytile_mats) < 1:
-                self.report({'WARNING'}, "No valid materials")
-                return {'CANCELLED'}
-
-            use_default_grid_id = obj.sprytile_gridid == -1
-            if sprytile_utils.get_grid(context, obj.sprytile_gridid) is None:
-                use_default_grid_id = True
-
-            if use_default_grid_id:
-                obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
-
-            if context.space_data.viewport_shade != 'MATERIAL':
-                context.space_data.viewport_shade = 'MATERIAL'
-
-            self.virtual_cursor = deque([], 3)
-            self.no_undo = False
-            self.left_down = False
-            self.bmesh = bmesh.from_edit_mesh(context.object.data)
-            self.tree = BVHTree.FromBMesh(self.bmesh)
-            self.refresh_mesh = False
-
-            self.rx_observer = None
-
-            observable_source = Observable.create(self.setup_observer)
-            self.rx_source = observable_source.publish().auto_connect(1)
-
-            self.tools = {
-                "build": ToolBuild(self, self.rx_source),
-                "paint": ToolPaint(self, self.rx_source)
-            }
-
-            # Set up timer callback
-            win_mgr = context.window_manager
-            self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
-
-            self.setup_user_keys(context)
-            win_mgr.modal_handler_add(self)
-
-            sprytile_data = context.scene.sprytile_data
-            sprytile_data.is_running = True
-            sprytile_data.is_snapping = False
-
-            context.scene.sprytile_ui.is_dirty = True
-            bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
-            return {'RUNNING_MODAL'}
-        else:
+        if context.space_data.type is not 'VIEW_3D':
             self.report({'WARNING'}, "Active space must be a View3d")
             return {'CANCELLED'}
+        
+        obj = context.object
+        if obj.hide or obj.type != 'MESH':
+            self.report({'WARNING'}, "Active object must be a visible mesh")
+            return {'CANCELLED'}
+        if len(context.scene.sprytile_mats) < 1:
+            bpy.ops.sprytile.validate_grids()
+        if len(context.scene.sprytile_mats) < 1:
+            self.report({'WARNING'}, "No valid materials")
+            return {'CANCELLED'}
+
+        use_default_grid_id = obj.sprytile_gridid == -1
+        if sprytile_utils.get_grid(context, obj.sprytile_gridid) is None:
+            use_default_grid_id = True
+
+        if use_default_grid_id:
+            obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
+
+        if context.space_data.viewport_shade != 'MATERIAL':
+            context.space_data.viewport_shade = 'MATERIAL'
+
+        self.virtual_cursor = deque([], 3)
+        self.no_undo = False
+        self.left_down = False
+        self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
+        self.refresh_mesh = False
+
+        # Setup Rx Observer and Observables
+        self.rx_observer = None
+        observable_source = Observable.create(self.setup_observer)
+        # Setup multi casting Observable
+        self.rx_source = observable_source.publish().auto_connect(1)
+
+        # Tools receive events from the Observable
+        self.tools = {
+            "build": ToolBuild(self, self.rx_source),
+            "paint": ToolPaint(self, self.rx_source)
+        }
+
+        # Set up timer callback
+        win_mgr = context.window_manager
+        self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
+
+        self.setup_user_keys(context)
+        win_mgr.modal_handler_add(self)
+
+        sprytile_data = context.scene.sprytile_data
+        sprytile_data.is_running = True
+        sprytile_data.is_snapping = False
+
+        context.scene.sprytile_ui.is_dirty = True
+        bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
+        return {'RUNNING_MODAL'}
 
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
