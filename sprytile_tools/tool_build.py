@@ -12,7 +12,6 @@ class ToolBuild:
         )
 
     def process_tool(self, modal):
-        print("Duck season {0}".format(modal.data.paint_mode))
         pass
 
     def handle_error(self, err):
