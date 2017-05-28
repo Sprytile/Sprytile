@@ -1,15 +1,17 @@
-import bpy
-import bmesh
 import math
+from collections import deque
+
+import bmesh
+import bpy
 import numpy
 from bpy_extras import view3d_utils
-from collections import deque
 from mathutils import Vector, Matrix, Quaternion
-from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from mathutils.bvhtree import BVHTree
-from . import sprytile_utils
+from mathutils.geometry import intersect_line_plane, distance_point_to_plane
+
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
+from . import sprytile_utils
 
 
 class ObjDict(dict):
@@ -59,59 +61,11 @@ def snap_vector_to_axis(vector, mirrored=False):
     return snapped_vector
 
 
-def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y, as_coord=False):
-    """Snaps a world position to the given grid settings"""
-    position_vector = position - grid_center
-    pos_vector_normalized = position.normalized()
-
-    if not as_coord:
-        if right_vector.dot(pos_vector_normalized) < 0:
-            right_vector *= -1
-        if up_vector.dot(pos_vector_normalized) < 0:
-            up_vector *= -1
-
-    x_magnitude = position_vector.dot(right_vector)
-    y_magnitude = position_vector.dot(up_vector)
-
-    x_unit = grid_x / world_pixels
-    y_unit = grid_y / world_pixels
-
-    x_snap = math.floor(x_magnitude / x_unit)
-    y_snap = math.floor(y_magnitude / y_unit)
-
-    right_vector *= x_unit
-    up_vector *= y_unit
-
-    if as_coord:
-        return Vector((x_snap, y_snap)), right_vector, up_vector
-
-    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
-
-    return grid_pos, right_vector, up_vector
-
-
-def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
-    """Raycast to a normal plane on the scene cursor, and return the grid snapped position"""
-
-    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
-    # Didn't hit the plane exit
-    if plane_pos is None:
-        return None, None, None, None
-
-    world_pixels = scene.sprytile_data.world_pixels
-    target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
-    grid_x = target_grid.grid[0]
-    grid_y = target_grid.grid[1]
-
-    grid_position, x_vector, y_vector = get_grid_pos(plane_pos, scene.cursor_location,
-                                                     right_vector.copy(), up_vector.copy(),
-                                                     world_pixels, grid_x, grid_y)
-    return grid_position, x_vector, y_vector, plane_pos
-
-
 def get_current_grid_vectors(scene, with_rotation=True):
     """Returns the current grid X/Y/Z vectors from scene data
-    :rtype: up_vector, right_vector, normal_vector
+    :param scene: scene data
+    :param with_rotation: bool, rotate the grid vectors by sprytile_data
+    :return: up_vector, right_vector, normal_vector
     """
     data_normal = scene.sprytile_data.paint_normal_vector
     data_up_vector = scene.sprytile_data.paint_up_vector
@@ -691,9 +645,11 @@ class SprytileModalTool(bpy.types.Operator):
         grid_y = grid.grid[1]
 
         # Find the position of the plane hit, in terms of grid coordinates
-        hit_coord, grid_right, grid_up = get_grid_pos(plane_hit, scene.cursor_location,
-                                                      right_vector.copy(), up_vector.copy(),
-                                                      world_pixels, grid_x, grid_y, as_coord=True)
+        hit_coord, grid_right, grid_up = sprytile_utils.get_grid_pos(
+                                                plane_hit, scene.cursor_location,
+                                                right_vector.copy(), up_vector.copy(),
+                                                world_pixels, grid_x, grid_y, as_coord=True
+                                            )
         
         # Check hit_coord is inside the work plane grid
         plane_size = sprytile_data.axis_plane_size
@@ -871,10 +827,11 @@ class SprytileModalTool(bpy.types.Operator):
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene, False)
 
         # Raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = raycast_grid(
-            scene, context,
-            up_vector, right_vector, plane_normal,
-            ray_origin, ray_vector)
+        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
+                                                                scene, context,
+                                                                up_vector, right_vector, plane_normal,
+                                                                ray_origin, ray_vector
+                                                            )
 
         preview_verts = []
 
@@ -984,10 +941,11 @@ class SprytileModalTool(bpy.types.Operator):
                 return
 
         # Raycast did not hit the mesh, raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = raycast_grid(
-            scene, context,
-            up_vector, right_vector, plane_normal,
-            ray_origin, ray_vector)
+        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
+                                                            scene, context,
+                                                            up_vector, right_vector, plane_normal,
+                                                            ray_origin, ray_vector
+                                                        )
         # Failed to hit the grid
         if face_position is None:
             return
@@ -1228,9 +1186,11 @@ class SprytileModalTool(bpy.types.Operator):
             grid_x = target_grid.grid[0]
             grid_y = target_grid.grid[1]
 
-            grid_position, x_vector, y_vector = get_grid_pos(location, scene.cursor_location,
-                                                             right_vector.copy(), up_vector.copy(),
-                                                             world_pixels, grid_x, grid_y)
+            grid_position, x_vector, y_vector = sprytile_utils.get_grid_pos(
+                                                    location, scene.cursor_location,
+                                                    right_vector.copy(), up_vector.copy(),
+                                                    world_pixels, grid_x, grid_y
+                                                )
             scene.cursor_location = grid_position
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':

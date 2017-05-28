@@ -6,11 +6,74 @@ import math
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector
+from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from bpy.path import abspath
 from datetime import datetime
 from os import path
 from . import sprytile_modal
 from . import addon_updater_ops
+
+
+def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y, as_coord=False):
+    """Snaps a world position to the given grid settings"""
+    position_vector = position - grid_center
+    pos_vector_normalized = position.normalized()
+
+    if not as_coord:
+        if right_vector.dot(pos_vector_normalized) < 0:
+            right_vector *= -1
+        if up_vector.dot(pos_vector_normalized) < 0:
+            up_vector *= -1
+
+    x_magnitude = position_vector.dot(right_vector)
+    y_magnitude = position_vector.dot(up_vector)
+
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+
+    x_snap = math.floor(x_magnitude / x_unit)
+    y_snap = math.floor(y_magnitude / y_unit)
+
+    right_vector *= x_unit
+    up_vector *= y_unit
+
+    if as_coord:
+        return Vector((x_snap, y_snap)), right_vector, up_vector
+
+    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
+
+    return grid_pos, right_vector, up_vector
+
+
+def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+    """
+    Raycast to a plane on the scene cursor, and return the grid snapped position
+    :param scene:
+    :param context:
+    :param up_vector:
+    :param right_vector:
+    :param plane_normal:
+    :param ray_origin:
+    :param ray_vector:
+    :return: grid_position, x_vector, y_vector, plane_pos
+    """
+
+    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+    # Didn't hit the plane exit
+    if plane_pos is None:
+        return None, None, None, None
+
+    world_pixels = scene.sprytile_data.world_pixels
+    target_grid = get_grid(context, context.object.sprytile_gridid)
+    grid_x = target_grid.grid[0]
+    grid_y = target_grid.grid[1]
+
+    grid_position, x_vector, y_vector = get_grid_pos(
+                                            plane_pos, scene.cursor_location,
+                                            right_vector.copy(), up_vector.copy(),
+                                            world_pixels, grid_x, grid_y
+                                        )
+    return grid_position, x_vector, y_vector, plane_pos
 
 
 def get_grid_matrix(sprytile_grid):
