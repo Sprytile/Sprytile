@@ -5,13 +5,67 @@ import bmesh
 import math
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from bpy.path import abspath
 from datetime import datetime
 from os import path
 from . import sprytile_modal
 from . import addon_updater_ops
+
+
+def get_current_grid_vectors(scene, with_rotation=True):
+    """Returns the current grid X/Y/Z vectors from scene data
+    :param scene: scene data
+    :param with_rotation: bool, rotate the grid vectors by sprytile_data
+    :return: up_vector, right_vector, normal_vector
+    """
+    data_normal = scene.sprytile_data.paint_normal_vector
+    data_up_vector = scene.sprytile_data.paint_up_vector
+
+    normal_vector = Vector((data_normal[0], data_normal[1], data_normal[2]))
+    up_vector = Vector((data_up_vector[0], data_up_vector[1], data_up_vector[2]))
+
+    normal_vector.normalize()
+    up_vector.normalize()
+    right_vector = up_vector.cross(normal_vector)
+
+    if with_rotation:
+        rotation = Quaternion(-normal_vector, scene.sprytile_data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
+
+    return up_vector, right_vector, normal_vector
+
+
+def snap_vector_to_axis(vector, mirrored=False):
+    """Snaps a vector to the closest world axis"""
+    norm_vector = vector.normalized()
+
+    x = Vector((1.0, 0.0, 0.0))
+    y = Vector((0.0, 1.0, 0.0))
+    z = Vector((0.0, 0.0, 1.0))
+
+    x_dot = 1 - abs(norm_vector.dot(x))
+    y_dot = 1 - abs(norm_vector.dot(y))
+    z_dot = 1 - abs(norm_vector.dot(z))
+    dot_array = [x_dot, y_dot, z_dot]
+    closest = min(dot_array)
+
+    if closest is dot_array[0]:
+        snapped_vector = x
+    elif closest is dot_array[1]:
+        snapped_vector = y
+    else:
+        snapped_vector = z
+
+    vector_dot = norm_vector.dot(snapped_vector)
+    if mirrored is False and vector_dot < 0:
+        snapped_vector *= -1
+    elif mirrored is True and vector_dot > 0:
+        snapped_vector *= -1
+
+    return snapped_vector
 
 
 def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y, as_coord=False):
@@ -303,8 +357,8 @@ class SprytileAxisUpdate(bpy.types.Operator):
         # downward, with up on Y axis. Apply view rotation to get current up
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
 
-        view_vector = sprytile_modal.snap_vector_to_axis(view_vector, mirrored=True)
-        view_up_vector = sprytile_modal.snap_vector_to_axis(view_up_vector)
+        view_vector = snap_vector_to_axis(view_vector, mirrored=True)
+        view_up_vector = snap_vector_to_axis(view_up_vector)
 
         # implicit X
         paint_normal = Vector((1.0, 0.0, 0.0))
@@ -916,8 +970,8 @@ class SprytileGridTranslate(bpy.types.Operator):
 
             if self.exec_counter == 0:
                 self.exec_counter -= 1
-                up_vec, right_vec, norm_vec = sprytile_modal.get_current_grid_vectors(context.scene)
-                norm_vec = sprytile_modal.snap_vector_to_axis(norm_vec)
+                up_vec, right_vec, norm_vec = get_current_grid_vectors(context.scene)
+                norm_vec = snap_vector_to_axis(norm_vec)
                 axis_constraint = [
                     abs(norm_vec.x) == 0,
                     abs(norm_vec.y) == 0,
