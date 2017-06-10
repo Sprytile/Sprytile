@@ -1143,8 +1143,8 @@ class SprytileModalTool(bpy.types.Operator):
     def invoke(self, context, event):
         if context.scene.sprytile_data.is_running:
             return {'CANCELLED'}
-        if context.space_data.type is not 'VIEW_3D':
-            self.report({'WARNING'}, "Active space must be a View3d")
+        if context.space_data.type != 'VIEW_3D':
+            self.report({'WARNING'}, "Active space must be a View3d: {0}".format(context.space_data.type))
             return {'CANCELLED'}
 
         obj = context.object
