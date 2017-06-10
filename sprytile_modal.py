@@ -910,7 +910,6 @@ class SprytileModalTool(bpy.types.Operator):
         self.draw_preview = draw_preview and self.refresh_mesh is False
         # Clear preview data if not drawing preview
         if not self.draw_preview:
-            print("Draw preview is false, clear verts")
             SprytileModalTool.preview_verts = None
             SprytileModalTool.preview_uvs = None
 
