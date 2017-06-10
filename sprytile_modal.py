@@ -12,6 +12,8 @@ from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
+from sprytile_tools.tool_fill import ToolFill
+from sprytile_tools.tool_set_normal import ToolSetNormal
 import sprytile_uv
 import sprytile_utils
 
@@ -1128,7 +1130,9 @@ class SprytileModalTool(bpy.types.Operator):
         # Tools receive events from the Observable
         self.tools = {
             "build": ToolBuild(self, self.rx_source),
-            "paint": ToolPaint(self, self.rx_source)
+            "paint": ToolPaint(self, self.rx_source),
+            "fill": ToolFill(self, self.rx_source),
+            "set_normal": ToolSetNormal(self, self.rx_source)
         }
 
         # Set up timer callback
