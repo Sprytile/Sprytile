@@ -117,7 +117,8 @@ class ToolBuild:
         # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
         self.modal.add_virtual_cursor(plane_cursor)
         # Build face and UV map it
-        face_index = self.modal.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
+        face_vertices = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
+        face_index = self.modal.create_face(context, face_vertices)
 
         face_up, face_right = self.modal.get_face_up_vector(context, face_index)
         if face_up is not None and face_up.dot(up_vector) < 0.95:
