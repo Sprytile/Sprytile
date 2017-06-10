@@ -646,6 +646,30 @@ class SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
+    def create_face(self, context, world_vertices):
+        face_vertices = []
+        # Convert world space position to object space
+        world_inv = context.object.matrix_world.copy().inverted()
+        for face_vtx in world_vertices:
+            vtx = self.bmesh.verts.new(face_vtx)
+            vtx.co = world_inv * vtx.co
+            face_vertices.append(vtx)
+
+        face = self.bmesh.faces.new(face_vertices)
+        face.normal_update()
+        if selected:
+            face.select = True
+
+        for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+            el.index_update()
+            el.ensure_lookup_table()
+
+        bmesh.update_edit_mesh(context.object.data, True, True)
+
+        # Update the collision BVHTree with new data
+        self.refresh_mesh = True
+        return face.index
+
     def get_face_up_vector(self, context, face_index):
         """Find the edge of the given face that most closely matches view up vector"""
         # Get the view up vector. The default scene view camera is pointed
