@@ -256,6 +256,15 @@ class SprytileModalTool(bpy.types.Operator):
             normal = matrix * normal
         return location, normal, face_index, distance
 
+    def update_bmesh_tree(self, context, update_index=False):
+        self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        if update_index:
+            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+                el.index_update()
+                el.ensure_lookup_table()
+            self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
+
     def execute_tool(self, context, event, is_preview=False):
         """Run the paint tool"""
         # Don't do anything if nothing to raycast on
@@ -276,19 +285,16 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        build_preview = is_preview and not self.refresh_mesh
+        # build_preview = is_preview and not self.refresh_mesh
 
-        self.build_preview(build_preview, context, ray_origin, ray_vector)
-        if build_preview:
-            return
+        # self.build_preview(build_preview, context, ray_origin, ray_vector)
+        # if build_preview:
+        #     return
 
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
         if paint_mode == 'PAINT':
             self.execute_paint(context, ray_origin, ray_vector)
-        # if build mode, ray cast on plane and build face
-        elif paint_mode == 'MAKE_FACE':
-            self.execute_build(context, scene, ray_origin, ray_vector)
         # set normal mode...
         elif paint_mode == 'SET_NORMAL':
             self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
@@ -297,7 +303,8 @@ class SprytileModalTool(bpy.types.Operator):
 
     def execute_paint(self, context, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(context.scene)
-        hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector, world_normal=True)
+        hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector,
+                                                                    world_normal=True)
         if face_index is None:
             print("No hit")
             return
@@ -316,7 +323,7 @@ class SprytileModalTool(bpy.types.Operator):
         rotate_normal = plane_normal
         if face_up is not None and face_right is not None:
             rotate_normal = face_up.cross(face_right)
-        
+
         rotate_matrix = Quaternion(-rotate_normal, data.mesh_rotate)
         if face_up is not None:
             up_vector = rotate_matrix * face_up
@@ -347,11 +354,11 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Find the position of the plane hit, in terms of grid coordinates
         hit_coord, grid_right, grid_up = sprytile_utils.get_grid_pos(
-                                                plane_hit, scene.cursor_location,
-                                                right_vector.copy(), up_vector.copy(),
-                                                world_pixels, grid_x, grid_y, as_coord=True
-                                            )
-        
+            plane_hit, scene.cursor_location,
+            right_vector.copy(), up_vector.copy(),
+            world_pixels, grid_x, grid_y, as_coord=True
+        )
+
         # Check hit_coord is inside the work plane grid
         plane_size = sprytile_data.axis_plane_size
         if hit_coord.x < -plane_size[0] or hit_coord.x >= plane_size[0]:
@@ -368,8 +375,8 @@ class SprytileModalTool(bpy.types.Operator):
             for x in range(plane_size[0] * 2):
                 x_coord = -plane_size[0] + x
                 hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                                            context, context.object, x_coord, y_coord,
-                                            grid_up, grid_right, plane_normal)
+                    context, context.object, x_coord, y_coord,
+                    grid_up, grid_right, plane_normal)
                 if hit_loc is not None:
                     grid_id, tile_packed_id = self.get_face_tiledata(self.bmesh.faces[face_index])
                     map_value = 1
@@ -417,9 +424,9 @@ class SprytileModalTool(bpy.types.Operator):
             else:
                 # Raycast to get the face index of the face, could have changed
                 hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                                            context, context.object,
-                                            grid_coord[0], grid_coord[1],
-                                            grid_up, grid_right, plane_normal)
+                    context, context.object,
+                    grid_coord[0], grid_coord[1],
+                    grid_up, grid_right, plane_normal)
 
                 # use the face paint settings for the UV map step
                 face = self.bmesh.faces[face_index]
@@ -451,15 +458,13 @@ class SprytileModalTool(bpy.types.Operator):
                     el.ensure_lookup_table()
 
                 # Modified the mesh, refresh and raycast to find the new face index
-                self.bmesh = bmesh.from_edit_mesh(context.object.data)
-                self.tree = BVHTree.FromBMesh(self.bmesh)
+                self.update_bmesh_tree(context)
                 loc, norm, new_face_idx, hit_dist = self.raycast_object(context.object, face_center, ray_vector, 0.1)
                 if new_face_idx is not None:
                     self.bmesh.faces[new_face_idx].select = False
 
         # Refresh BVHTree collision
-        self.bmesh = bmesh.from_edit_mesh(context.object.data)
-        self.tree = BVHTree.FromBMesh(self.bmesh)
+        self.update_bmesh_tree(context)
 
     def flood_fill(self, fill_map, start_coord, new_tile_idx, old_tile_idx):
         flood_stack = []
@@ -507,6 +512,7 @@ class SprytileModalTool(bpy.types.Operator):
         return flood_stack
 
     def build_preview(self, do_build, context, ray_origin, ray_vector):
+        print("Build preview clear verts")
         SprytileModalTool.preview_verts = None
         SprytileModalTool.preview_uvs = None
 
@@ -529,10 +535,10 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
-                                                                scene, context,
-                                                                up_vector, right_vector, plane_normal,
-                                                                ray_origin, ray_vector
-                                                            )
+            scene, context,
+            up_vector, right_vector, plane_normal,
+            ray_origin, ray_vector
+        )
 
         preview_verts = []
 
@@ -606,102 +612,9 @@ class SprytileModalTool(bpy.types.Operator):
         SprytileModalTool.preview_verts = preview_verts
         SprytileModalTool.preview_uvs = preview_uvs
 
-    def execute_build(self, context, scene, ray_origin, ray_vector):
-        grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
-        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
-        hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(context.object, ray_origin, ray_vector)
-
-        # Used to move raycast slightly along ray vector
-        shift_vec = ray_vector.normalized() * 0.001
-
-        # If raycast hit the mesh...
-        if face_index is not None:
-            # The face is valid for painting if hit face
-            # is facing same way as plane normal and is coplanar to target plane
-            check_dot = abs(plane_normal.dot(hit_normal))
-            check_dot -= 1
-            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-            check_coplanar = abs(check_coplanar) < 0.05
-            check_dot = abs(check_dot) < 0.05
-            # Hit a face that is valid for painting
-            if check_dot and check_coplanar:
-                self.add_virtual_cursor(hit_loc)
-                # Change UV of this face instead
-                face_up, face_right = self.get_face_up_vector(context, face_index)
-                if face_up is not None and face_up.dot(up_vector) < 0.95:
-                    data = context.scene.sprytile_data
-                    rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, hit_normal)
-                    up_vector = rotate_matrix * face_up
-                    right_vector = rotate_matrix * face_right
-                sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
-                if scene.sprytile_data.cursor_flow:
-                    self.flow_cursor(context, face_index, hit_loc)
-                return
-
-        # Raycast did not hit the mesh, raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
-                                                            scene, context,
-                                                            up_vector, right_vector, plane_normal,
-                                                            ray_origin, ray_vector
-                                                        )
-        # Failed to hit the grid
-        if face_position is None:
-            return
-
-        # If raycast hit mesh, compare distance of grid hit and mesh hit
-        if hit_loc is not None:
-            grid_hit_dist = (face_position - ray_origin).magnitude
-            # Mesh hit closer than grid hit, don't do anything
-            if hit_dist < grid_hit_dist:
-                return
-
-        # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
-        self.add_virtual_cursor(plane_cursor)
-        # Build face and UV map it
-        face_index = self.build_face(context, face_position, x_vector, y_vector, up_vector, right_vector)
-
-        face_up, face_right = self.get_face_up_vector(context, face_index)
-        if face_up is not None and face_up.dot(up_vector) < 0.95:
-            data = context.scene.sprytile_data
-            rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
-            up_vector = rotate_matrix * face_up
-            right_vector = rotate_matrix * face_right
-
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
-
-        if scene.sprytile_data.auto_merge:
-            face = self.bmesh.faces[face_index]
-            face.select = True
-            # Find the face center, to raycast from later
-            face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for ray casting
-            face_center -= shift_vec
-
-            threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
-            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
-
-            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
-
-            # Modified the mesh, refresh and raycast to find the new face index
-            self.bmesh = bmesh.from_edit_mesh(context.object.data)
-            self.tree = BVHTree.FromBMesh(self.bmesh)
-            loc, norm, new_face_idx, hit_dist = self.raycast_object(context.object, face_center, ray_vector)
-            if new_face_idx is not None:
-                self.bmesh.faces[new_face_idx].select = False
-                face_index = new_face_idx
-            else:
-                face_index = -1
-
-        # Auto merge refreshes the mesh automatically
-        self.refresh_mesh = not scene.sprytile_data.auto_merge
-
-        if scene.sprytile_data.cursor_flow and face_index is not None and face_index > -1:
-            self.flow_cursor(context, face_index, plane_cursor)
+    def set_preview_data(self, verts, uvs):
+        SprytileModalTool.preview_verts = verts
+        SprytileModalTool.preview_uvs = uvs
 
     def build_face(self, context, position, x_vector, y_vector, up_vector, right_vector, selected=False):
         """Build a face at the given position"""
@@ -888,10 +801,10 @@ class SprytileModalTool(bpy.types.Operator):
             grid_y = target_grid.grid[1]
 
             grid_position, x_vector, y_vector = sprytile_utils.get_grid_pos(
-                                                    location, scene.cursor_location,
-                                                    right_vector.copy(), up_vector.copy(),
-                                                    world_pixels, grid_x, grid_y
-                                                )
+                location, scene.cursor_location,
+                right_vector.copy(), up_vector.copy(),
+                world_pixels, grid_x, grid_y
+            )
             scene.cursor_location = grid_position
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
@@ -929,19 +842,13 @@ class SprytileModalTool(bpy.types.Operator):
         sprytile_data = context.scene.sprytile_data
         if sprytile_data.is_running is False:
             do_exit = True
+        if event.type in {'RIGHTMOUSE', 'ESC'}:
+            do_exit = True
         if context.object.mode != 'EDIT':
             do_exit = True
         if do_exit:
             self.exit_modal(context)
             return {'CANCELLED'}
-
-        if self.rx_observer is not None:
-            self.rx_observer.on_next(
-                DataObjectDict(
-                    paint_mode=sprytile_data.paint_mode,
-                    event=event
-                )
-            )
 
         if self.no_undo and sprytile_data.is_grid_translate is False:
             print("no undo on, grid translate off")
@@ -956,6 +863,10 @@ class SprytileModalTool(bpy.types.Operator):
                     sprytile_data.lock_normal = False
             return {'PASS_THROUGH'}
 
+        # Mouse in Sprytile UI, eat this event without doing anything
+        if context.scene.sprytile_ui.use_mouse:
+            return {'RUNNING_MODAL'}
+
         # Mouse move triggers preview drawing
         draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL', 'PAINT'}
         if draw_preview:
@@ -965,12 +876,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Refreshing the mesh, preview needs constantly refreshed
         # mesh or bad things seem to happen. This can potentially get expensive
         if self.refresh_mesh or self.bmesh.is_valid is False or draw_preview:
-            self.bmesh = bmesh.from_edit_mesh(context.object.data)
-            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
-            self.bmesh = bmesh.from_edit_mesh(context.object.data)
-            self.tree = BVHTree.FromBMesh(self.bmesh)
+            self.update_bmesh_tree(context, True)
             self.refresh_mesh = False
 
         # Potentially expensive, test if there is a selected mesh element
@@ -981,21 +887,15 @@ class SprytileModalTool(bpy.types.Operator):
                     sprytile_data.has_selection = True
                     break
 
-        # Clear preview data if not drawing preview
-        if not draw_preview and SprytileModalTool.preview_verts is not None:
-            SprytileModalTool.preview_verts = None
-            SprytileModalTool.preview_uvs = None
-
         context.area.tag_redraw()
 
+        # Check that the mouse is inside the region
         region = context.region
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
-        # Pass through if outside the region
-        if coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height:
-            # Unless exit events, then exit
-            if event.type in {'RIGHTMOUSE', 'ESC'}:
-                self.exit_modal(context)
-                return {'CANCELLED'}
+        out_of_region = coord.x < 0 or coord.y < 0 \
+            or coord.x > region.width or coord.y > region.height
+        # If outside the region, pass through
+        if out_of_region:
             return {'PASS_THROUGH'}
 
         key_return = self.handle_keys(context, event)
@@ -1006,6 +906,42 @@ class SprytileModalTool(bpy.types.Operator):
         if mouse_return is not None:
             return mouse_return
 
+        self.draw_preview = draw_preview and self.refresh_mesh is False
+        # Clear preview data if not drawing preview
+        if not self.draw_preview:
+            print("Draw preview is false, clear verts")
+            SprytileModalTool.preview_verts = None
+            SprytileModalTool.preview_uvs = None
+
+        # Build the data that will be used by tool observers
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+        no_data = self.tree is None or rv3d is None
+
+        if not no_data:
+            # get the ray from the viewport and mouse
+            ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+            ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+            self.rx_data = DataObjectDict(
+                context=context,
+                ray_vector=ray_vector,
+                ray_origin=ray_origin
+            )
+        else:
+            self.rx_data = None
+
+        # Push the event data out through rx_observer
+        if self.rx_observer is not None:
+            self.rx_observer.on_next(
+                DataObjectDict(
+                    paint_mode=sprytile_data.paint_mode,
+                    event=event,
+                    left_down=self.left_down,
+                    build_preview=self.draw_preview,
+                )
+            )
+
         return {'PASS_THROUGH'}
 
     def handle_mouse(self, context, event, draw_preview):
@@ -1013,18 +949,14 @@ class SprytileModalTool(bpy.types.Operator):
         if 'MOUSE' not in event.type:
             return None
 
-        gui_use_mouse = context.scene.sprytile_ui.use_mouse
         if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            # allow navigation, if gui is not using the mouse
-            if not gui_use_mouse:
-                if event.type != 'MIDDLEMOUSE' and context.scene.sprytile_data.is_snapping:
-                    direction = -1 if event.type == 'WHEELUPMOUSE' else 1
-                    self.cursor_move_layer(context, direction)
-                    self.execute_tool(context, event, True)
-                    return {'RUNNING_MODAL'}
-                return {'PASS_THROUGH'}
-            else:
+            if event.type != 'MIDDLEMOUSE' and context.scene.sprytile_data.is_snapping:
+                direction = -1 if event.type == 'WHEELUPMOUSE' else 1
+                self.cursor_move_layer(context, direction)
+                self.draw_preview = True
+                # self.execute_tool(context, event, True)
                 return {'RUNNING_MODAL'}
+            return {'PASS_THROUGH'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
             print("No undo flag is on", event.type, event.value)
@@ -1036,27 +968,15 @@ class SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'} if self.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS' and event.alt is False
-            if self.left_down:
-                self.tree = BVHTree.FromBMesh(bmesh.from_edit_mesh(context.object.data))
-                self.execute_tool(context, event)
-            elif event.alt is True and event.value == 'PRESS':
+            if event.alt is True and event.value == 'PRESS':
                 self.find_face_tile(context, event)
-            else:  # Mouse up, send undo
-                bpy.ops.ed.undo_push()
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
-            if self.left_down:
-                self.execute_tool(context, event)
-                return {'RUNNING_MODAL'}
-            elif draw_preview and not self.no_undo and event.type not in self.is_keyboard_list:
-                self.execute_tool(context, event, True)
+            if draw_preview and not self.no_undo and event.type not in self.is_keyboard_list:
+                self.draw_preview = True
+                # self.execute_tool(context, event, True)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
-        elif event.type == 'RIGHTMOUSE':
-            region = context.region
-            in_region = 0 <= event.mouse_region_x <= region.width and 0 <= event.mouse_region_y <= region.height
-            if in_region and not gui_use_mouse:
-                return {'PASS_THROUGH'}
         return None
 
     def handle_keys(self, context, event):
@@ -1126,7 +1046,9 @@ class SprytileModalTool(bpy.types.Operator):
         # Key event used by fake modal map, return none
         if used_key:
             if build_preview:
-                self.execute_tool(context, event, True)
+                self.draw_preview = True
+                return None
+                # self.execute_tool(context, event, True)
             return {'RUNNING_MODAL'}
         if event.shift and context.scene.sprytile_data.is_snapping:
             self.cursor_snap(context, event)
@@ -1136,9 +1058,6 @@ class SprytileModalTool(bpy.types.Operator):
 
     def execute(self, context):
         return self.invoke(context, None)
-
-    def setup_observer(self, observer):
-        self.rx_observer = observer
 
     def invoke(self, context, event):
         if context.scene.sprytile_data.is_running:
@@ -1170,13 +1089,12 @@ class SprytileModalTool(bpy.types.Operator):
         self.virtual_cursor = deque([], 3)
         self.no_undo = False
         self.left_down = False
-        self.bmesh = bmesh.from_edit_mesh(context.object.data)
-        self.tree = BVHTree.FromBMesh(self.bmesh)
+        self.update_bmesh_tree(context)
         self.refresh_mesh = False
 
         # Setup Rx Observer and Observables
         self.rx_observer = None
-        observable_source = Observable.create(self.setup_observer)
+        observable_source = Observable.create(self.setup_rx_observer)
         # Setup multi casting Observable
         self.rx_source = observable_source.publish().auto_connect(1)
 
@@ -1200,6 +1118,9 @@ class SprytileModalTool(bpy.types.Operator):
         context.scene.sprytile_ui.is_dirty = True
         bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
         return {'RUNNING_MODAL'}
+
+    def setup_rx_observer(self, observer):
+        self.rx_observer = observer
 
     def setup_user_keys(self, context):
         """Find the keymaps to pass through to Blender"""
