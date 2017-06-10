@@ -865,7 +865,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Mouse in Sprytile UI, eat this event without doing anything
         if context.scene.sprytile_ui.use_mouse:
-            return {'RUNNING_MODAL'}
+            self.set_preview_data(None, None)
+            return {'PASS_THROUGH'}
 
         # Mouse move triggers preview drawing
         draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL', 'PAINT'}
@@ -892,10 +893,10 @@ class SprytileModalTool(bpy.types.Operator):
         # Check that the mouse is inside the region
         region = context.region
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
-        out_of_region = coord.x < 0 or coord.y < 0 \
-            or coord.x > region.width or coord.y > region.height
+        out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
         # If outside the region, pass through
         if out_of_region:
+            self.set_preview_data(None, None)
             return {'PASS_THROUGH'}
 
         key_return = self.handle_keys(context, event)
