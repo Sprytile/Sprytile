@@ -458,6 +458,14 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         subtype='XYZ',
         default=(32, 32)
     )
+    padding = IntVectorProperty(
+        name="Padding",
+        description="Cell padding, in pixels",
+        min=0,
+        size=2,
+        subtype='XYZ',
+        default=(0, 0)
+    )
     offset = IntVectorProperty(
         name="Offset",
         description="Offset of the grid",

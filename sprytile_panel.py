@@ -160,6 +160,7 @@ class SprytilePanel(bpy.types.Panel):
         if not sprytile_data.show_extra:
             return
 
+        layout.prop(selected_grid, "padding")
         layout.prop(selected_grid, "offset")
         layout.prop(selected_grid, "rotate")
 

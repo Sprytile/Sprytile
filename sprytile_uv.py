@@ -8,11 +8,12 @@ import sprytile_utils
 
 def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):
     """Given world vertices, find the UV position for each vert"""
-
+    
     pixel_uv_x = 1.0 / image_size[0]
     pixel_uv_y = 1.0 / image_size[1]
     uv_unit_x = pixel_uv_x * target_grid.grid[0]
     uv_unit_y = pixel_uv_y * target_grid.grid[1]
+
     world_units = data.world_pixels
     world_convert = Vector((target_grid.grid[0] / world_units,
                             target_grid.grid[1] / world_units))
@@ -20,8 +21,18 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
     # Build the translation matrix
     offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
     rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
-    uv_matrix = Matrix.Translation((uv_unit_x * tile_xy[0], uv_unit_y * tile_xy[1], 0))
-    uv_matrix = offset_matrix * rotate_matrix * uv_matrix
+
+    origin_x = ((target_grid.grid[0] + (target_grid.padding[0] * 2)) * tile_xy[0])
+    origin_x += target_grid.padding[0]
+    origin_x = pixel_uv_x * origin_x
+
+    origin_y = ((target_grid.grid[1] + (target_grid.padding[1] * 2)) * tile_xy[1])
+    origin_y += target_grid.padding[1]
+    origin_y = pixel_uv_y * origin_y
+
+    origin_matrix = Matrix.Translation((origin_x, origin_y, 0))
+
+    uv_matrix = offset_matrix * rotate_matrix * origin_matrix
 
     flip_x = -1 if data.uv_flip_x else 1
     flip_y = -1 if data.uv_flip_y else 1
@@ -251,3 +262,15 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     bmesh.update_edit_mesh(obj.data)
     mesh.faces.index_update()
     return face.index, target_grid
+
+
+def register():
+    bpy.utils.register_module(__name__)
+
+
+def unregister():
+    bpy.utils.unregister_module(__name__)
+
+
+if __name__ == '__main__':
+    register()
