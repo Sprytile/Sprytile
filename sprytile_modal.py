@@ -840,9 +840,17 @@ class SprytileModalTool(bpy.types.Operator):
     def modal(self, context, event):
         do_exit = False
         sprytile_data = context.scene.sprytile_data
+
+        # Check that the mouse is inside the region
+        region = context.region
+        coord = Vector((event.mouse_region_x, event.mouse_region_y))
+        out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
+
         if sprytile_data.is_running is False:
             do_exit = True
-        if event.type in {'RIGHTMOUSE', 'ESC'}:
+        if event.type == 'ESC':
+            do_exit = True
+        if event.type == 'RIGHTMOUSE' and out_of_region:
             do_exit = True
         if context.object.mode != 'EDIT':
             do_exit = True
@@ -866,7 +874,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Mouse in Sprytile UI, eat this event without doing anything
         if context.scene.sprytile_ui.use_mouse:
             self.set_preview_data(None, None)
-            return {'PASS_THROUGH'}
+            return {'RUNNING_MODAL'}
 
         # Mouse move triggers preview drawing
         draw_preview = sprytile_data.paint_mode in {'MAKE_FACE', 'FILL', 'PAINT'}
@@ -890,10 +898,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         context.area.tag_redraw()
 
-        # Check that the mouse is inside the region
-        region = context.region
-        coord = Vector((event.mouse_region_x, event.mouse_region_y))
-        out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
         # If outside the region, pass through
         if out_of_region:
             self.set_preview_data(None, None)
@@ -904,8 +908,8 @@ class SprytileModalTool(bpy.types.Operator):
             return key_return
 
         mouse_return = self.handle_mouse(context, event, draw_preview)
-        if mouse_return is not None:
-            return mouse_return
+        if mouse_return is None:
+            mouse_return = {'PASS_THROUGH'}
 
         self.draw_preview = draw_preview and self.refresh_mesh is False
         # Clear preview data if not drawing preview
@@ -942,7 +946,7 @@ class SprytileModalTool(bpy.types.Operator):
                 )
             )
 
-        return {'PASS_THROUGH'}
+        return mouse_return
 
     def handle_mouse(self, context, event, draw_preview):
         """"""
@@ -975,6 +979,7 @@ class SprytileModalTool(bpy.types.Operator):
                 # self.execute_tool(context, event, True)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
+
         return None
 
     def handle_keys(self, context, event):
