@@ -2,7 +2,6 @@ import bpy
 from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import distance_point_to_plane
 
-import sprytile_modal
 import sprytile_utils
 import sprytile_uv
 
