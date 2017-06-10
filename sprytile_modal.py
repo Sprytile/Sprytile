@@ -949,14 +949,12 @@ class SprytileModalTool(bpy.types.Operator):
         if 'MOUSE' not in event.type:
             return None
 
-        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            if event.type != 'MIDDLEMOUSE' and context.scene.sprytile_data.is_snapping:
+        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            if context.scene.sprytile_data.is_snapping:
                 direction = -1 if event.type == 'WHEELUPMOUSE' else 1
                 self.cursor_move_layer(context, direction)
                 self.draw_preview = True
-                # self.execute_tool(context, event, True)
                 return {'RUNNING_MODAL'}
-            return {'PASS_THROUGH'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
             print("No undo flag is on", event.type, event.value)
