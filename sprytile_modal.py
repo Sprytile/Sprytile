@@ -12,8 +12,8 @@ from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
-from . import sprytile_uv
-from . import sprytile_utils
+import sprytile_uv
+import sprytile_utils
 
 
 class DataObjectDict(dict):

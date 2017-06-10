@@ -3,7 +3,7 @@ import math
 import bmesh
 from mathutils import Vector, Matrix
 
-from . import sprytile_utils
+import sprytile_utils
 
 
 def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):

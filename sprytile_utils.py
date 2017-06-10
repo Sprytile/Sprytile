@@ -10,8 +10,8 @@ from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from bpy.path import abspath
 from datetime import datetime
 from os import path
-from . import sprytile_modal
-from . import addon_updater_ops
+import sprytile_modal
+import addon_updater_ops
 
 
 def get_current_grid_vectors(scene, with_rotation=True):
