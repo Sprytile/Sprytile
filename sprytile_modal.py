@@ -223,6 +223,17 @@ class SprytileModalTool(bpy.types.Operator):
             context.scene.cursor_location = closest_pos
 
     def raycast_grid_coord(self, context, obj, x, y, up_vector, right_vector, normal):
+        """
+        Raycast agains the object using grid coordinates around the cursor
+        :param context:
+        :param obj:
+        :param x:
+        :param y:
+        :param up_vector:
+        :param right_vector:
+        :param normal:
+        :return:
+        """
         ray_origin = Vector(context.scene.cursor_location)
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
@@ -615,6 +626,12 @@ class SprytileModalTool(bpy.types.Operator):
         SprytileModalTool.preview_uvs = preview_uvs
 
     def set_preview_data(self, verts, uvs):
+        """
+        Set the preview data for SprytileGUI to draw
+        :param verts:
+        :param uvs:
+        :return:
+        """
         SprytileModalTool.preview_verts = verts
         SprytileModalTool.preview_uvs = uvs
 
@@ -649,6 +666,12 @@ class SprytileModalTool(bpy.types.Operator):
         return face.index
 
     def create_face(self, context, world_vertices):
+        """
+        Create a face in the bmesh using the given world space vertices
+        :param context:
+        :param world_vertices: Vector array of world space positions
+        :return:
+        """
         face_vertices = []
         # Convert world space position to object space
         world_inv = context.object.matrix_world.copy().inverted()
@@ -671,7 +694,12 @@ class SprytileModalTool(bpy.types.Operator):
         return face.index
 
     def get_face_up_vector(self, context, face_index):
-        """Find the edge of the given face that most closely matches view up vector"""
+        """
+        Find the edge of the given face that most closely matches view up vector
+        :param context:
+        :param face_index:
+        :return:
+        """
         # Get the view up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
 
@@ -924,17 +952,23 @@ class SprytileModalTool(bpy.types.Operator):
 
         # If outside the region, pass through
         if out_of_region:
-            self.set_preview_data(None, None)
+            # If preview data exists, clear it
+            if SprytileModalTool.preview_verts is not None:
+                self.set_preview_data(None, None)
             return {'PASS_THROUGH'}
 
+        # Process keyboard events, if returned something end here
         key_return = self.handle_keys(context, event)
         if key_return is not None:
             return key_return
 
+        # Process mouse events
         mouse_return = self.handle_mouse(context, event, draw_preview)
+        # If no return, set to pass through
         if mouse_return is None:
             mouse_return = {'PASS_THROUGH'}
 
+        # Signals tools to draw preview
         self.draw_preview = draw_preview and self.refresh_mesh is False
         # Clear preview data if not drawing preview
         if not self.draw_preview:
@@ -947,7 +981,7 @@ class SprytileModalTool(bpy.types.Operator):
         coord = event.mouse_region_x, event.mouse_region_y
         no_data = self.tree is None or rv3d is None
 
-        if not no_data:
+        if no_data is False:
             # get the ray from the viewport and mouse
             ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
             ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
@@ -959,7 +993,7 @@ class SprytileModalTool(bpy.types.Operator):
         else:
             self.rx_data = None
 
-        # Push the event data out through rx_observer
+        # Push the event data out through rx_observer for tool observers
         if self.rx_observer is not None:
             self.rx_observer.on_next(
                 DataObjectDict(
@@ -981,7 +1015,6 @@ class SprytileModalTool(bpy.types.Operator):
             if context.scene.sprytile_data.is_snapping:
                 direction = -1 if event.type == 'WHEELUPMOUSE' else 1
                 self.cursor_move_layer(context, direction)
-                self.draw_preview = True
                 return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
@@ -1000,7 +1033,6 @@ class SprytileModalTool(bpy.types.Operator):
         elif event.type == 'MOUSEMOVE':
             if draw_preview and not self.no_undo and event.type not in self.is_keyboard_list:
                 self.draw_preview = True
-                # self.execute_tool(context, event, True)
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
 
@@ -1070,12 +1102,13 @@ class SprytileModalTool(bpy.types.Operator):
                         sprytile_data.uv_flip_y = not sprytile_data.uv_flip_y
                         build_preview = True
                     used_key = True
-        # Key event used by fake modal map, return none
+        # Key event used by fake modal map
         if used_key:
+            # If key need to build preview, set flag and return none
             if build_preview:
                 self.draw_preview = True
                 return None
-                # self.execute_tool(context, event, True)
+            # Otherwise, key blocks tools
             return {'RUNNING_MODAL'}
         if event.shift and context.scene.sprytile_data.is_snapping:
             self.cursor_snap(context, event)
