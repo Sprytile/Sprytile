@@ -399,7 +399,7 @@ class SprytileGui(bpy.types.Operator):
         draw_selection(curr_sel_min, curr_sel_max)
 
         # Inside gui, draw box for tile under mouse
-        if context.scene.sprytile_ui.use_mouse is True:
+        if context.scene.sprytile_ui.use_mouse is True and SprytileGui.cursor_grid_pos is not None:
             glColor4f(1.0, 0.0, 0.0, 1.0)
             cursor_pos = SprytileGui.cursor_grid_pos
             cursor_min = int(cursor_pos.x * grid_size[0]), int(cursor_pos.y * grid_size[1])
