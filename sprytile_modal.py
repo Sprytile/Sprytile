@@ -659,8 +659,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = self.bmesh.faces.new(face_vertices)
         face.normal_update()
-        if selected:
-            face.select = True
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
