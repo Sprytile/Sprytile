@@ -12,7 +12,7 @@ from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
-from sprytile_uv import get_uv_positions, uv_map_face
+from . import sprytile_uv
 from . import sprytile_utils
 
 
@@ -327,7 +327,7 @@ class SprytileModalTool(bpy.types.Operator):
         right_vector.normalize()
         # print("Up vector:", up_vector, "Right vector:", right_vector)
         # print("Up mag:", up_vector.magnitude, "Right mag:", right_vector.magnitude)
-        uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, with_rotation=False)
@@ -434,7 +434,7 @@ class SprytileModalTool(bpy.types.Operator):
                 up_vector = rotate_matrix * face_up
                 right_vector = rotate_matrix * face_right
 
-            uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+            sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
             if did_build and sprytile_data.auto_merge:
                 face = self.bmesh.faces[face_index]
@@ -599,9 +599,9 @@ class SprytileModalTool(bpy.types.Operator):
         right_vector.normalize()
 
         tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
-        preview_uvs = get_uv_positions(data, target_img.size, target_grid,
-                                       up_vector, right_vector, tile_xy,
-                                       preview_verts, vtx_center)
+        preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
+                                                   up_vector, right_vector, tile_xy,
+                                                   preview_verts, vtx_center)
 
         SprytileModalTool.preview_verts = preview_verts
         SprytileModalTool.preview_uvs = preview_uvs
@@ -636,7 +636,7 @@ class SprytileModalTool(bpy.types.Operator):
                     rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, hit_normal)
                     up_vector = rotate_matrix * face_up
                     right_vector = rotate_matrix * face_right
-                uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+                sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
                 if scene.sprytile_data.cursor_flow:
                     self.flow_cursor(context, face_index, hit_loc)
                 return
@@ -670,7 +670,7 @@ class SprytileModalTool(bpy.types.Operator):
             up_vector = rotate_matrix * face_up
             right_vector = rotate_matrix * face_right
 
-        uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
         if scene.sprytile_data.auto_merge:
             face = self.bmesh.faces[face_index]
