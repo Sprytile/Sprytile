@@ -90,6 +90,7 @@ class ToolPaint:
         hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
         # Didn't hit a face, do nothing
         if face_index is None:
+            self.modal.set_preview_data(None, None)
             return
 
         preview_verts = []
