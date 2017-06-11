@@ -15,6 +15,32 @@ class ToolSetNormal:
         )
 
     def process_tool(self, modal_evt):
+        if self.modal.rx_data is None:
+            return
+
+        self.modal.set_preview_data(None, None)
+        if modal_evt.left_down is False:
+            return
+
+        # get the context arguments
+        context = self.modal.rx_data.context
+        ray_origin = self.modal.rx_data.ray_origin
+        ray_vector = self.modal.rx_data.ray_vector
+
+        hit_loc, hit_normal, face_index, distance = self.modal.raycast_object(context.object, ray_origin, ray_vector)
+        if hit_loc is None:
+            return
+        hit_normal = context.object.matrix_world.to_quaternion() * hit_normal
+
+        face_up_vector, face_right_vector = self.modal.get_face_up_vector(context, face_index)
+        if face_up_vector is None:
+            return
+
+        sprytile_data = context.scene.sprytile_data
+        sprytile_data.paint_normal_vector = hit_normal
+        sprytile_data.paint_up_vector = face_up_vector
+        sprytile_data.lock_normal = True
+        sprytile_data.paint_mode = 'MAKE_FACE'
         pass
 
     def handle_error(self, err):

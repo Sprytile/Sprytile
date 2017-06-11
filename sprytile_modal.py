@@ -300,10 +300,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
-        # set normal mode...
-        if paint_mode == 'SET_NORMAL':
-            self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
-        elif paint_mode == 'FILL':
+        if paint_mode == 'FILL':
             self.execute_fill(context, scene, ray_origin, ray_vector)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
@@ -647,22 +644,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         # print("Chosen up", chosen_up)
         return chosen_up, closest_right
-
-    def execute_set_normal(self, context, rv3d, ray_origin, ray_vector):
-        hit_loc, hit_normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
-        if hit_loc is None:
-            return
-        hit_normal = context.object.matrix_world.to_quaternion() * hit_normal
-
-        face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index)
-        if face_up_vector is None:
-            return
-
-        sprytile_data = context.scene.sprytile_data
-        sprytile_data.paint_normal_vector = hit_normal
-        sprytile_data.paint_up_vector = face_up_vector
-        sprytile_data.lock_normal = True
-        sprytile_data.paint_mode = 'MAKE_FACE'
 
     def cursor_move_layer(self, context, direction):
         scene = context.scene
