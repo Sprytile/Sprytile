@@ -573,6 +573,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Process keyboard events, if returned something end here
         key_return = self.handle_keys(context, event)
         if key_return is not None:
+            self.set_preview_data(None, None)
             return key_return
 
         # Process mouse events
