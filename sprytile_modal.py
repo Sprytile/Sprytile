@@ -421,12 +421,13 @@ class SprytileModalTool(bpy.types.Operator):
         return chosen_up, closest_right
 
     @staticmethod
-    def cursor_move_layer(self, context, direction):
+    def cursor_move_layer(context, direction):
         scene = context.scene
         target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         grid_x = target_grid.grid[0]
         grid_y = target_grid.grid[1]
         layer_move = min(grid_x, grid_y)
+        layer_move = int(layer_move/2)
         layer_move *= (1 / context.scene.sprytile_data.world_pixels)
         plane_normal = scene.sprytile_data.paint_normal_vector.copy()
         plane_normal *= layer_move * direction
@@ -570,17 +571,18 @@ class SprytileModalTool(bpy.types.Operator):
                 self.set_preview_data(None, None)
             return {'PASS_THROUGH'}
 
+        modal_return = {'PASS_THROUGH'}
+
         # Process keyboard events, if returned something end here
         key_return = self.handle_keys(context, event)
         if key_return is not None:
             self.set_preview_data(None, None)
-            return key_return
-
-        # Process mouse events
-        mouse_return = self.handle_mouse(context, event, draw_preview)
-        # If no return, set to pass through
-        if mouse_return is None:
-            mouse_return = {'PASS_THROUGH'}
+            modal_return = key_return
+        # Didn't process keyboard, process mouse now
+        else:
+            mouse_return = self.handle_mouse(context, event, draw_preview)
+            if mouse_return is not None:
+                modal_return = mouse_return
 
         # Signals tools to draw preview
         self.draw_preview = draw_preview and self.refresh_mesh is False
@@ -618,7 +620,7 @@ class SprytileModalTool(bpy.types.Operator):
                 )
             )
 
-        return mouse_return
+        return modal_return
 
     def handle_mouse(self, context, event, draw_preview):
         """"""
@@ -721,8 +723,6 @@ class SprytileModalTool(bpy.types.Operator):
             # If key need to build preview, set flag and return none
             if build_preview:
                 self.draw_preview = True
-                return None
-            # Otherwise, key blocks tools
             return {'RUNNING_MODAL'}
         if event.shift and context.scene.sprytile_data.is_snapping:
             self.cursor_snap(context, event)
