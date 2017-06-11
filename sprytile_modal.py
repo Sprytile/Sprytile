@@ -69,6 +69,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         region = context.region
         rv3d = context.region_data
+        if rv3d is None:
+            return
 
         # Get the view ray from center of screen
         coord = Vector((int(region.width / 2), int(region.height / 2)))
