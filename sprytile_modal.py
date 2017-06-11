@@ -278,7 +278,7 @@ class SprytileModalTool(bpy.types.Operator):
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
-    def execute_tool(self, context, event, is_preview=False):
+    def execute_tool(self, context, event):
         """Run the paint tool"""
         # Don't do anything if nothing to raycast on
         # or the GL GUI is using the mouse
@@ -298,56 +298,13 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        # build_preview = is_preview and not self.refresh_mesh
-
-        # self.build_preview(build_preview, context, ray_origin, ray_vector)
-        # if build_preview:
-        #     return
-
         # if paint mode, ray cast against object
         paint_mode = scene.sprytile_data.paint_mode
-        if paint_mode == 'PAINT':
-            self.execute_paint(context, ray_origin, ray_vector)
         # set normal mode...
-        elif paint_mode == 'SET_NORMAL':
+        if paint_mode == 'SET_NORMAL':
             self.execute_set_normal(context, rv3d, ray_origin, ray_vector)
         elif paint_mode == 'FILL':
             self.execute_fill(context, scene, ray_origin, ray_vector)
-
-    def execute_paint(self, context, ray_origin, ray_vector):
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(context.scene)
-        hit_loc, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector,
-                                                                    world_normal=True)
-        if face_index is None:
-            print("No hit")
-            return
-
-        normal.normalize()
-
-        self.add_virtual_cursor(hit_loc)
-        # Change the uv of the given face
-        grid_id = context.object.sprytile_gridid
-        grid = sprytile_utils.get_grid(context, grid_id)
-        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-
-        face_up, face_right = self.get_face_up_vector(context, face_index)
-        data = context.scene.sprytile_data
-
-        rotate_normal = plane_normal
-        if face_up is not None and face_right is not None:
-            rotate_normal = face_up.cross(face_right)
-
-        rotate_matrix = Quaternion(-rotate_normal, data.mesh_rotate)
-        if face_up is not None:
-            up_vector = rotate_matrix * face_up
-        if face_right is not None:
-            right_vector = rotate_matrix * face_right
-
-        up_vector.normalize()
-        right_vector.normalize()
-        # print("Up vector:", up_vector, "Right vector:", right_vector)
-        # print("Up mag:", up_vector.magnitude, "Right mag:", right_vector.magnitude)
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
     def execute_fill(self, context, scene, ray_origin, ray_vector):
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, with_rotation=False)
@@ -523,107 +480,6 @@ class SprytileModalTool(bpy.types.Operator):
                     span_below = scan_line(x, y + 1, span_below)
                 x += 1
         return flood_stack
-
-    def build_preview(self, do_build, context, ray_origin, ray_vector):
-        print("Build preview clear verts")
-        SprytileModalTool.preview_verts = None
-        SprytileModalTool.preview_uvs = None
-
-        # Something probably changed upstream, don't build now
-        if self.refresh_mesh or do_build is False:
-            return
-
-        scene = context.scene
-        obj = context.object
-        data = scene.sprytile_data
-
-        grid_id = obj.sprytile_gridid
-        target_grid = sprytile_utils.get_grid(context, grid_id)
-
-        target_img = sprytile_utils.get_grid_texture(obj, target_grid)
-        if target_img is None:
-            return
-
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
-
-        # Raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
-            scene, context,
-            up_vector, right_vector, plane_normal,
-            ray_origin, ray_vector
-        )
-
-        preview_verts = []
-
-        # Raycast the object
-        hit_loc, hit_normal, face_index, hit_dist = self.raycast_object(obj, ray_origin, ray_vector)
-        # Did hit mesh...
-        if face_index is not None:
-            # In paint mode, just gather world positions of hit face
-            if data.paint_mode == 'PAINT':
-                face = self.bmesh.faces[face_index]
-                for loop in face.loops:
-                    vert = loop.vert
-                    preview_verts.append(context.object.matrix_world * vert.co)
-            elif face_position is not None:
-                grid_hit_dist = (face_position - ray_origin).magnitude
-                # Mesh hit closer than grid hit, check coplanarity and dot value before rejecting
-                if hit_dist < grid_hit_dist:
-                    check_dot = abs(plane_normal.dot(hit_normal))
-                    check_dot -= 1
-                    check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-                    check_coplanar = abs(check_coplanar) < 0.05
-                    check_dot = abs(check_dot) < 0.05
-                    # Hitting the mesh, get the preview verts from the hit face
-                    if not check_dot or not check_coplanar:
-                        return
-
-        if data.paint_mode == 'MAKE_FACE' and face_position is None:
-            return
-        # Didn't hit mesh in paint mode, do nothing
-        if data.paint_mode == 'PAINT' and len(preview_verts) == 0:
-            return
-
-        # Preview verts still empty, verts will be taken from the grid
-        if len(preview_verts) < 1:
-            preview_verts = get_build_vertices(face_position, x_vector, y_vector,
-                                               up_vector, right_vector)
-
-        # Get the center of the preview verts
-        vtx_center = Vector((0, 0, 0))
-        for vtx in preview_verts:
-            vtx_center += vtx
-        vtx_center /= len(preview_verts)
-
-        rotate_normal = plane_normal
-
-        # In paint mode, recalculate the rotation normal
-        if data.paint_mode == 'PAINT' and face_index is not None:
-            face_up, face_right = self.get_face_up_vector(context, face_index)
-
-            if face_up is not None and face_right is not None:
-                rotate_normal = face_right.cross(face_up)
-
-            if face_up is not None:
-                up_vector = face_up
-            if face_right is not None:
-                right_vector = face_right
-
-        rotation = Quaternion(rotate_normal, data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
-
-        up_vector.normalize()
-        right_vector.normalize()
-
-        tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
-        preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
-                                                   up_vector, right_vector, tile_xy,
-                                                   preview_verts, vtx_center)
-
-        SprytileModalTool.preview_verts = preview_verts
-        SprytileModalTool.preview_uvs = preview_uvs
 
     def set_preview_data(self, verts, uvs):
         """
