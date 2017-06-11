@@ -723,7 +723,6 @@ def register():
     for i in range(0, len(icon_names)):
         icon_path = os.path.join(dirname, "icons")
         icon_path = os.path.join(icon_path, icon_paths[i])
-        print("Icon {0}, path: {1}".format(icon_names[i], icon_path))
         sprytile_panel.icons.load(icon_names[i], icon_path, 'IMAGE')
 
     bpy.utils.register_class(sprytile_panel.SprytilePanel)
