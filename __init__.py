@@ -36,6 +36,7 @@ else:
     from sprytile_tools import *
 
 import bpy
+import bpy.utils.previews
 from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
@@ -167,7 +168,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     set_paint_mode = BoolVectorProperty(
         name="Set Paint Mode",
-        description="Set Painting Mode",
+        description="Set Sprytile Tool Mode",
         size=4,
         set=set_dummy,
         get=get_dummy
@@ -707,6 +708,24 @@ def teardown_keymap():
 
 def register():
     addon_updater_ops.register(bl_info)
+
+    sprytile_panel.icons = bpy.utils.previews.new()
+    dirname = os.path.dirname(__file__)
+    icon_names = ('SPRYTILE_ICON_BUILD',
+                  'SPRYTILE_ICON_PAINT',
+                  'SPRYTILE_ICON_FILL',
+                  'SPRYTILE_ICON_NORMAL')
+    icon_paths = ('icon-build.png',
+                  'icon-paint.png',
+                  'icon-fill.png',
+                  'icon-setnormal.png')
+
+    for i in range(0, len(icon_names)):
+        icon_path = os.path.join(dirname, "icons")
+        icon_path = os.path.join(icon_path, icon_paths[i])
+        print("Icon {0}, path: {1}".format(icon_names[i], icon_path))
+        sprytile_panel.icons.load(icon_names[i], icon_path, 'IMAGE')
+
     bpy.utils.register_class(sprytile_panel.SprytilePanel)
     bpy.utils.register_module(__name__)
     setup_props()
@@ -718,6 +737,8 @@ def unregister():
     teardown_props()
     bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
+
+    bpy.utils.previews.remove(sprytile_panel.icons)
 
     # Unregister self from sys.path as well
     cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))

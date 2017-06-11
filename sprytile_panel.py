@@ -2,6 +2,8 @@ import bpy
 from . import sprytile_utils
 from bpy.types import Panel, UIList
 
+icons = None
+
 
 class SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -68,21 +70,39 @@ class SprytilePanel(bpy.types.Panel):
         obj = context.object
         sprytile_data = context.scene.sprytile_data
 
-        row = layout.row(align=True) # .split(0.07, True)
+        if icons is not None:
+            icon_build = icons['SPRYTILE_ICON_BUILD'].icon_id
+            icon_paint = icons['SPRYTILE_ICON_PAINT'].icon_id
+            icon_fill = icons['SPRYTILE_ICON_FILL'].icon_id
+            icon_normal = icons['SPRYTILE_ICON_NORMAL'].icon_id
+            row = layout.row(align=True)
+            row.alignment = 'CENTER'
+            row.scale_y = 1.3
+            row.scale_x = 10
+            row.prop(sprytile_data, "set_paint_mode", index=2, text="",
+                     toggle=True, icon_value=icon_normal, expand=True, icon_only=True)
+            row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill",
+                     toggle=True, icon_value=icon_fill, expand=True, icon_only=True)
+            row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint",
+                     toggle=True, icon_value=icon_paint, expand=True, icon_only=True)
+            row.prop(sprytile_data, "set_paint_mode", index=1, text="Build",
+                     toggle=True, icon_value=icon_build, expand=True, icon_only=True)
+        else:
+            row = layout.row(align=True)
 
-        dropdown_icon = "TRIA_DOWN" if sprytile_data.show_tools else "TRIA_RIGHT"
-        row.prop(sprytile_data, "show_tools", icon=dropdown_icon, emboss=True, text="")
+            dropdown_icon = "TRIA_DOWN" if sprytile_data.show_tools else "TRIA_RIGHT"
+            row.prop(sprytile_data, "show_tools", icon=dropdown_icon, emboss=True, text="")
 
-        col = row.column(align=True)
+            col = row.column(align=True)
 
-        row = col.row(align=True)
-        row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)
-        row.prop(sprytile_data, "set_paint_mode", index=1, text="Build", toggle=True)
-
-        if sprytile_data.show_tools:
             row = col.row(align=True)
-            row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
-            row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
+            row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)
+            row.prop(sprytile_data, "set_paint_mode", index=1, text="Build", toggle=True)
+
+            if sprytile_data.show_tools:
+                row = col.row(align=True)
+                row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
+                row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "uv_flip_x", toggle=True)
