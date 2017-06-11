@@ -10,21 +10,35 @@ bl_info = {
     "category": "Paint"
 }
 
-if "bpy" in locals():
-    import imp
-    imp.reload(addon_updater_ops)
-    imp.reload(sprytile_gui)
-    imp.reload(sprytile_modal)
-    imp.reload(sprytile_panel)
-    imp.reload(sprytile_utils)
+# Put Sprytile directory is sys.path so modules can be loaded
+import os
+import sys
+import inspect
+cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
+if cmd_subfolder not in sys.path:
+    sys.path.insert(0, cmd_subfolder)
+
+locals_list = locals()
+if "bpy" in locals_list:
+    from importlib import reload
+    reload(addon_updater_ops)
+    reload(sprytile_gui)
+    reload(sprytile_modal)
+    reload(sprytile_panel)
+    reload(sprytile_utils)
+    reload(sprytile_uv)
+    reload(tool_build)
+    reload(tool_paint)
+    reload(tool_fill)
+    reload(tool_set_normal)
 else:
-    from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils
+    from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
+    from sprytile_tools import *
 
 import bpy
 from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
-
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
     def set_normal(self, value):
@@ -441,10 +455,18 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     grid = IntVectorProperty(
         name="Size",
         description="Grid size, in pixels",
-        min=2,
+        min=1,
         size=2,
         subtype='XYZ',
         default=(32, 32)
+    )
+    padding = IntVectorProperty(
+        name="Padding",
+        description="Cell padding, in pixels",
+        min=0,
+        size=2,
+        subtype='XYZ',
+        default=(0, 0)
     )
     offset = IntVectorProperty(
         name="Offset",
@@ -696,6 +718,10 @@ def unregister():
     teardown_props()
     bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
+
+    # Unregister self from sys.path as well
+    cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
+    sys.path.remove(cmd_subfolder)
 
 
 if __name__ == "__main__":

@@ -2,14 +2,132 @@ import bpy
 import bgl
 import blf
 import bmesh
+import math
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Vector, Quaternion
+from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 from bpy.path import abspath
 from datetime import datetime
 from os import path
-from . import sprytile_modal
-from . import addon_updater_ops
+import sprytile_modal
+import addon_updater_ops
+
+
+def get_current_grid_vectors(scene, with_rotation=True):
+    """Returns the current grid X/Y/Z vectors from scene data
+    :param scene: scene data
+    :param with_rotation: bool, rotate the grid vectors by sprytile_data
+    :return: up_vector, right_vector, normal_vector
+    """
+    data_normal = scene.sprytile_data.paint_normal_vector
+    data_up_vector = scene.sprytile_data.paint_up_vector
+
+    normal_vector = Vector((data_normal[0], data_normal[1], data_normal[2]))
+    up_vector = Vector((data_up_vector[0], data_up_vector[1], data_up_vector[2]))
+
+    normal_vector.normalize()
+    up_vector.normalize()
+    right_vector = up_vector.cross(normal_vector)
+
+    if with_rotation:
+        rotation = Quaternion(-normal_vector, scene.sprytile_data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
+
+    return up_vector, right_vector, normal_vector
+
+
+def snap_vector_to_axis(vector, mirrored=False):
+    """Snaps a vector to the closest world axis"""
+    norm_vector = vector.normalized()
+
+    x = Vector((1.0, 0.0, 0.0))
+    y = Vector((0.0, 1.0, 0.0))
+    z = Vector((0.0, 0.0, 1.0))
+
+    x_dot = 1 - abs(norm_vector.dot(x))
+    y_dot = 1 - abs(norm_vector.dot(y))
+    z_dot = 1 - abs(norm_vector.dot(z))
+    dot_array = [x_dot, y_dot, z_dot]
+    closest = min(dot_array)
+
+    if closest is dot_array[0]:
+        snapped_vector = x
+    elif closest is dot_array[1]:
+        snapped_vector = y
+    else:
+        snapped_vector = z
+
+    vector_dot = norm_vector.dot(snapped_vector)
+    if mirrored is False and vector_dot < 0:
+        snapped_vector *= -1
+    elif mirrored is True and vector_dot > 0:
+        snapped_vector *= -1
+
+    return snapped_vector
+
+
+def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, grid_x, grid_y, as_coord=False):
+    """Snaps a world position to the given grid settings"""
+    position_vector = position - grid_center
+    pos_vector_normalized = position.normalized()
+
+    if not as_coord:
+        if right_vector.dot(pos_vector_normalized) < 0:
+            right_vector *= -1
+        if up_vector.dot(pos_vector_normalized) < 0:
+            up_vector *= -1
+
+    x_magnitude = position_vector.dot(right_vector)
+    y_magnitude = position_vector.dot(up_vector)
+
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+
+    x_snap = math.floor(x_magnitude / x_unit)
+    y_snap = math.floor(y_magnitude / y_unit)
+
+    right_vector *= x_unit
+    up_vector *= y_unit
+
+    if as_coord:
+        return Vector((x_snap, y_snap)), right_vector, up_vector
+
+    grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
+
+    return grid_pos, right_vector, up_vector
+
+
+def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+    """
+    Raycast to a plane on the scene cursor, and return the grid snapped position
+    :param scene:
+    :param context:
+    :param up_vector:
+    :param right_vector:
+    :param plane_normal:
+    :param ray_origin:
+    :param ray_vector:
+    :return: grid_position, x_vector, y_vector, plane_pos
+    """
+
+    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+    # Didn't hit the plane exit
+    if plane_pos is None:
+        return None, None, None, None
+
+    world_pixels = scene.sprytile_data.world_pixels
+    target_grid = get_grid(context, context.object.sprytile_gridid)
+    grid_x = target_grid.grid[0]
+    grid_y = target_grid.grid[1]
+
+    grid_position, x_vector, y_vector = get_grid_pos(
+                                            plane_pos, scene.cursor_location,
+                                            right_vector.copy(), up_vector.copy(),
+                                            world_pixels, grid_x, grid_y
+                                        )
+    return grid_position, x_vector, y_vector, plane_pos
 
 
 def get_grid_matrix(sprytile_grid):
@@ -20,6 +138,12 @@ def get_grid_matrix(sprytile_grid):
 
 
 def get_grid_texture(obj, sprytile_grid):
+    """
+    Returns the texture applied to an object, given the sprytile_grid
+    :param obj: the Blender mesh object
+    :param sprytile_grid: the sprytile grid applied to the object
+    :return: Texture or None
+    """
     mat_idx = obj.material_slots.find(sprytile_grid.mat_id)
     if mat_idx == -1:
         return None
@@ -45,20 +169,28 @@ def get_grid_texture(obj, sprytile_grid):
 
 
 def get_selected_grid(context):
+    """
+    Returns the sprytile_grid currently selected
+    :param context: Blender tool context
+    :return: sprytile_grid or None
+    """
     obj = context.object
     scene = context.scene
 
     mat_list = scene.sprytile_mats
+    # The selected mesh object has the current sprytile_grid id
     grid_id = obj.sprytile_gridid
 
-    for mat_data in mat_list:
-        for grid in mat_data.grids:
-            if grid.id == grid_id:
-                return grid
-    return None
+    return get_grid(context, grid_id)
 
 
 def get_grid(context, grid_id):
+    """
+    Returns the sprytile_grid with the given id
+    :param context: Blender tool context
+    :param grid_id: grid id
+    :return: sprytile_grid or None
+    """
     mat_list = context.scene.sprytile_mats
     for mat_data in mat_list:
         for grid in mat_data.grids:
@@ -82,6 +214,74 @@ def get_mat_data(context, mat_id):
         if mat_data.mat_id == mat_id:
             return mat_data
     return None
+
+
+def get_paint_settings(sprytile_data):
+    '''
+    Returns the paint settings bitmask from a sprytile_data instance
+    :param sprytile_data: sprytile_data instance
+    :return: A bitmask representing the paint settings in the sprytile_data
+    '''
+    # Rotation and UV flip are always included
+    paint_settings = 0
+    # Flip x/y are toggles
+    paint_settings += (1 if sprytile_data.uv_flip_x else 0) << 9
+    paint_settings += (1 if sprytile_data.uv_flip_y else 0) << 8
+    # Rotation is encoded as 0-3 clockwise, bit shifted by 10
+    degree_rotation = round(math.degrees(sprytile_data.mesh_rotate), 0)
+    if degree_rotation < 0:
+        degree_rotation += 360
+    rot_val = 0
+    if degree_rotation <= 1:
+        rot_val = 0
+    elif degree_rotation <= 90:
+        rot_val = 3
+    elif degree_rotation <= 180:
+        rot_val = 2
+    elif degree_rotation <= 270:
+        rot_val = 1
+    paint_settings += rot_val << 10
+
+    if sprytile_data.paint_mode == 'MAKE_FACE':
+        paint_settings += 5  # Default center align
+        for x in range(4, 8):  # All toggles on
+            paint_settings += 1 << x
+    if sprytile_data.paint_mode == 'PAINT':
+        paint_settings += sprytile_data["paint_align"]
+        paint_settings += (1 if sprytile_data.paint_uv_snap else 0) << 7
+        paint_settings += (1 if sprytile_data.paint_edge_snap else 0) << 6
+        paint_settings += (1 if sprytile_data.paint_stretch_x else 0) << 5
+        paint_settings += (1 if sprytile_data.paint_stretch_y else 0) << 4
+    return paint_settings
+
+
+def from_paint_settings(sprytile_data, paint_settings):
+    """
+    Sets the paint settings of a sprytile_data using the paint settings bitmask
+    :param sprytile_data: sprytile_data instance to set
+    :param paint_settings: Painting settings bitmask
+    :return: None
+    """
+    if paint_settings == 0:
+        return
+    align_value = paint_settings & 15  # First four bits
+    rot_value = (paint_settings & 3072) >> 10  # 11th and 12th bit, shifted back
+    rot_radian = 0
+    if rot_value == 1:
+        rot_radian = math.radians(270)
+    if rot_value == 2:
+        rot_radian = math.radians(180)
+    if rot_value == 3:
+        rot_radian = math.radians(90)
+
+    sprytile_data["paint_align"] = align_value
+    sprytile_data.mesh_rotate = rot_radian
+    sprytile_data.uv_flip_x = (paint_settings & 1 << 9) > 0
+    sprytile_data.uv_flip_y = (paint_settings & 1 << 8) > 0
+    sprytile_data.paint_uv_snap = (paint_settings & 1 << 7) > 0
+    sprytile_data.paint_edge_snap = (paint_settings & 1 << 6) > 0
+    sprytile_data.paint_stretch_x = (paint_settings & 1 << 5) > 0
+    sprytile_data.paint_stretch_y = (paint_settings & 1 << 4) > 0
 
 
 def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="    ", scale_y=0.55):
@@ -157,8 +357,8 @@ class SprytileAxisUpdate(bpy.types.Operator):
         # downward, with up on Y axis. Apply view rotation to get current up
         view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
 
-        view_vector = sprytile_modal.snap_vector_to_axis(view_vector, mirrored=True)
-        view_up_vector = sprytile_modal.snap_vector_to_axis(view_up_vector)
+        view_vector = snap_vector_to_axis(view_vector, mirrored=True)
+        view_up_vector = snap_vector_to_axis(view_up_vector)
 
         # implicit X
         paint_normal = Vector((1.0, 0.0, 0.0))
@@ -770,8 +970,8 @@ class SprytileGridTranslate(bpy.types.Operator):
 
             if self.exec_counter == 0:
                 self.exec_counter -= 1
-                up_vec, right_vec, norm_vec = sprytile_modal.get_current_grid_vectors(context.scene)
-                norm_vec = sprytile_modal.snap_vector_to_axis(norm_vec)
+                up_vec, right_vec, norm_vec = get_current_grid_vectors(context.scene)
+                norm_vec = snap_vector_to_axis(norm_vec)
                 axis_constraint = [
                     abs(norm_vec.x) == 0,
                     abs(norm_vec.y) == 0,
