@@ -748,7 +748,7 @@ class SprytileModalTool(bpy.types.Operator):
             return {'CANCELLED'}
 
         if self.no_undo and sprytile_data.is_grid_translate is False:
-            print("no undo on, grid translate off")
+            # print("no undo on, grid translate off")
             self.no_undo = False
 
         if event.type == 'TIMER':
@@ -855,7 +855,7 @@ class SprytileModalTool(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if self.no_undo:
-            print("No undo flag is on", event.type, event.value)
+            # print("No undo flag is on", event.type, event.value)
             clear_types = {'LEFTMOUSE', 'RIGHTMOUSE'}
             if event.type in clear_types and event.value == 'RELEASE':
                 print("Clearing no undo")
@@ -899,7 +899,7 @@ class SprytileModalTool(bpy.types.Operator):
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 SprytileModalTool.preview_uvs = None
                 SprytileModalTool.preview_verts = None
-                print("No undo on")
+                # print("No undo on")
                 self.no_undo = True
                 return {'RUNNING_MODAL'}
             if arg == 'sel_mesh':
