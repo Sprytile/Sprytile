@@ -6,28 +6,6 @@ import sprytile_utils
 import sprytile_uv
 
 
-def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
-    """Get the world position vertices for a new face, at the given position"""
-    x_dot = right_vector.dot(x_vector.normalized())
-    y_dot = up_vector.dot(y_vector.normalized())
-    x_positive = x_dot > 0
-    y_positive = y_dot > 0
-
-    # These are in world positions
-    vtx1 = position
-    vtx2 = position + y_vector
-    vtx3 = position + x_vector + y_vector
-    vtx4 = position + x_vector
-
-    # Quadrant II, IV
-    face_order = (vtx1, vtx2, vtx3, vtx4)
-    # Quadrant I, III
-    if x_positive == y_positive:
-        face_order = (vtx1, vtx4, vtx3, vtx2)
-
-    return face_order
-
-
 class ToolBuild:
     modal = None
     left_down = False
@@ -117,7 +95,7 @@ class ToolBuild:
         # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
         self.modal.add_virtual_cursor(plane_cursor)
         # Build face and UV map it
-        face_vertices = get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
+        face_vertices = self.modal.get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
         face_index = self.modal.create_face(context, face_vertices)
 
         face_up, face_right = self.modal.get_face_up_vector(context, face_index)
@@ -182,8 +160,8 @@ class ToolBuild:
         if face_position is None:
             return
 
-        preview_verts = get_build_vertices(face_position, x_vector, y_vector,
-                                           up_vector, right_vector)
+        preview_verts = self.modal.get_build_vertices(face_position, x_vector, y_vector,
+                                                      up_vector, right_vector)
 
         # Get the center of the preview verts
         vtx_center = Vector((0, 0, 0))
