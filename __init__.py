@@ -469,6 +469,14 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         subtype='XYZ',
         default=(0, 0)
     )
+    margin = IntVectorProperty(
+        name="Margin",
+        description="Spacing between tiles (top, right, bottom, left)",
+        min=0,
+        size=4,
+        subtype='XYZ',
+        default=(0, 0, 0, 0)
+    )
     offset = IntVectorProperty(
         name="Offset",
         description="Offset of the grid",

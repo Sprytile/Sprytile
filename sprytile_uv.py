@@ -22,11 +22,13 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
     offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
     rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
 
-    origin_x = ((target_grid.grid[0] + (target_grid.padding[0] * 2)) * tile_xy[0])
+    origin_x = target_grid.grid[0] + (target_grid.padding[0] * 2) + target_grid.margin[1] + target_grid.margin[3]
+    origin_x *= tile_xy[0]
     origin_x += target_grid.padding[0]
     origin_x = pixel_uv_x * origin_x
 
-    origin_y = ((target_grid.grid[1] + (target_grid.padding[1] * 2)) * tile_xy[1])
+    origin_y = target_grid.grid[1] + (target_grid.padding[1] * 2) + target_grid.margin[0] + target_grid.margin[2]
+    origin_y *= tile_xy[1]
     origin_y += target_grid.padding[1]
     origin_y = pixel_uv_y * origin_y
 

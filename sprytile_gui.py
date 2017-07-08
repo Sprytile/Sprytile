@@ -223,7 +223,11 @@ class SprytileGui(bpy.types.Operator):
             tex_pos = grid_matrix.inverted() * tex_pos
 
             grid_max = Vector((ceil(tex_size[0]/tilegrid.grid[0])-1, ceil(tex_size[1]/tilegrid.grid[1])-1))
-            grid_pos = Vector((tex_pos.x / tilegrid.grid[0], tex_pos.y / tilegrid.grid[1]))
+            cell_size = Vector((
+                tilegrid.grid[0] + (tilegrid.padding[0] * 2) + tilegrid.margin[1] + tilegrid.margin[3],
+                tilegrid.grid[1] + (tilegrid.padding[1] * 2) + tilegrid.margin[0] + tilegrid.margin[2]
+            ))
+            grid_pos = Vector((tex_pos.x / cell_size.x, tex_pos.y / cell_size.y))
             grid_pos.x = max(0, min(grid_max.x, floor(grid_pos.x)))
             grid_pos.y = max(0, min(grid_max.y, floor(grid_pos.y)))
 
@@ -391,36 +395,32 @@ class SprytileGui(bpy.types.Operator):
         # Draw box for currently selected tile(s)
         grid_size = SprytileGui.loaded_grid.grid
         padding = SprytileGui.loaded_grid.padding
+        margin = SprytileGui.loaded_grid.margin
         curr_sel = SprytileGui.loaded_grid.tile_selection
-        curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(grid_size, padding,
+        curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                                 curr_sel[0], curr_sel[1],
                                                                 curr_sel[2], curr_sel[3])
-        # curr_sel_min = (grid_size[0] * curr_sel[0]), (grid_size[1] * curr_sel[1])
-        # curr_sel_max = [
-        #     (curr_sel_min[0] + grid_size[0] * curr_sel[2]),
-        #     (curr_sel_min[1] + grid_size[1] * curr_sel[3])
-        # ]
         draw_selection(curr_sel_min, curr_sel_max)
 
         # Inside gui, draw box for tile under mouse
         if context.scene.sprytile_ui.use_mouse is True and SprytileGui.cursor_grid_pos is not None:
             glColor4f(1.0, 0.0, 0.0, 1.0)
             cursor_pos = SprytileGui.cursor_grid_pos
-            cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding,
+            cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                                 int(cursor_pos.x), int(cursor_pos.y),)
-            # cursor_min = int(cursor_pos.x * grid_size[0]), int(cursor_pos.y * grid_size[1])
-            # cursor_max = [
-            #     cursor_min[0] + grid_size[0],
-            #     cursor_min[1] + grid_size[1],
-            #     ]
             draw_selection(cursor_min, cursor_max)
 
         glPopMatrix()
         offscreen.unbind()
 
     @staticmethod
-    def get_sel_bounds(grid_size, padding, x, y, size_x=1, size_y=1):
-        total_size = Vector((grid_size[0] + (padding[0]*2), grid_size[1] + (padding[1]*2)))
+    def get_sel_bounds(grid_size, padding, margin, x, y, size_x=1, size_y=1):
+        total_size = Vector(
+            (
+                grid_size[0] + (padding[0]*2) + margin[1] + margin[3],
+                grid_size[1] + (padding[1]*2) + margin[0] + margin[2]
+             )
+        )
         sel_min = [
             int(total_size[0]) * x,
             int(total_size[1]) * y
@@ -429,10 +429,10 @@ class SprytileGui(bpy.types.Operator):
             sel_min[0] + total_size[0] * size_x,
             sel_min[1] + total_size[1] * size_y
         ]
-        sel_min[0] += padding[0]
-        sel_min[1] += padding[1]
-        sel_max[0] -= padding[0]
-        sel_max[1] -= padding[1]
+        sel_min[0] += padding[0] + margin[3]
+        sel_min[1] += padding[1] + margin[0]
+        sel_max[0] -= padding[0] + margin[1]
+        sel_max[1] -= padding[1] + margin[2]
         sel_min = int(sel_min[0]), int(sel_min[1])
         sel_max = int(sel_max[0]), int(sel_max[1])
         return sel_min, sel_max
@@ -512,7 +512,7 @@ class SprytileGui(bpy.types.Operator):
         glEnd()
 
     @staticmethod
-    def draw_tile_select_ui(view_min, view_max, view_size, tex_size, grid_size, padding, show_extra):
+    def draw_tile_select_ui(view_min, view_max, view_size, tex_size, grid_size, padding, margin, show_extra):
         # Draw the texture quad
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBegin(bgl.GL_QUADS)
@@ -545,7 +545,10 @@ class SprytileGui(bpy.types.Operator):
         glColor4f(0.0, 0.0, 0.0, 0.5)
         glLineWidth(1)
         # Draw the grid
-        cell_size = grid_size[0] + padding[0] * 2, grid_size[1] + padding[1] * 2
+        cell_size = (
+            grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
+            grid_size[1] + padding[1] * 2 + margin[0] + margin[2]
+        )
         x_divs = ceil(tex_size[0] / cell_size[0])
         y_divs = ceil(tex_size[1] / cell_size[1])
         x_end = x_divs * cell_size[0]
@@ -607,6 +610,7 @@ class SprytileGui(bpy.types.Operator):
         # Prepare some data that will be used for drawing
         grid_size = SprytileGui.loaded_grid.grid
         padding = SprytileGui.loaded_grid.padding
+        margin = SprytileGui.loaded_grid.margin
 
         # Draw work plane
         SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
@@ -636,7 +640,7 @@ class SprytileGui(bpy.types.Operator):
 
         # Draw the tile select UI
         SprytileGui.draw_tile_select_ui(view_min, view_max, view_size, SprytileGui.tex_size,
-                                        grid_size, padding, show_extra)
+                                        grid_size, padding, margin, show_extra)
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])

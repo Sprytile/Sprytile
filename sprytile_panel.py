@@ -180,9 +180,23 @@ class SprytilePanel(bpy.types.Panel):
         if not sprytile_data.show_extra:
             return
 
-        layout.prop(selected_grid, "padding")
         layout.prop(selected_grid, "offset")
         layout.prop(selected_grid, "rotate")
+
+        layout.prop(selected_grid, "padding")
+
+        row = layout.row(align=True)
+        row.label("Margins")
+
+        col = row.column(align=True)
+        
+        row_margins = col.row(align=True)
+        row_margins.prop(selected_grid, "margin", text="Left", index=3)
+        row_margins.prop(selected_grid, "margin", text="Right", index=1)
+
+        row_margins = col.row(align=True)
+        row_margins.prop(selected_grid, "margin", text="Top", index=0)
+        row_margins.prop(selected_grid, "margin", text="Bottom", index=2)
 
 
 def register():
