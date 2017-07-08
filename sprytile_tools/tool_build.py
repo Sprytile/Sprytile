@@ -150,6 +150,14 @@ class ToolBuild:
 
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
 
+        rotation = Quaternion(plane_normal, data.mesh_rotate)
+
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
+
+        up_vector.normalize()
+        right_vector.normalize()
+
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
             scene, context,
@@ -168,15 +176,6 @@ class ToolBuild:
         for vtx in preview_verts:
             vtx_center += vtx
         vtx_center /= len(preview_verts)
-
-        rotate_normal = plane_normal
-
-        rotation = Quaternion(rotate_normal, data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
-
-        up_vector.normalize()
-        right_vector.normalize()
 
         tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
         preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
