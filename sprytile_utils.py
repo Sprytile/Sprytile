@@ -853,7 +853,10 @@ class SprytileReloadImagesAuto(bpy.types.Operator):
             if img is None:
                 continue
             filepath = abspath(img.filepath)
-            filetime = datetime.fromtimestamp(path.getmtime(filepath))
+            if path.exists(filepath) is False:
+                continue
+            file_mod = path.getmtime(filepath)
+            filetime = datetime.fromtimestamp(file_mod)
             if self.last_check_time is None or filetime > self.last_check_time:
                 print("Reloading", img.filepath)
                 img.reload()
@@ -865,6 +868,7 @@ class SprytileReloadImagesAuto(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
+        self.last_check_time = None
         self.check_files()
         wm = context.window_manager
         self._timer = wm.event_timer_add(2, context.window)
