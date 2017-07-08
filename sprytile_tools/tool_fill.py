@@ -146,7 +146,7 @@ class ToolFill:
         sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
 
         if did_build and sprytile_data.auto_merge:
-            face = self.bmesh.faces[face_index]
+            face = self.modal.bmesh.faces[face_index]
             face.select = True
             # Find the face center, to raycast from later
             face_center = context.object.matrix_world * face.calc_center_bounds()
