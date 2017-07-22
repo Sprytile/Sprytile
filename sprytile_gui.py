@@ -25,6 +25,8 @@ class SprytileGui(bpy.types.Operator):
 
     mouse_pt = None
     label_frames = 50
+    is_selecting = False
+    sel_start = None
 
     # ================
     # Modal functions
@@ -233,9 +235,29 @@ class SprytileGui(bpy.types.Operator):
 
             SprytileGui.cursor_grid_pos = grid_pos
 
-            if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-                tilegrid.tile_selection[0] = grid_pos.x
-                tilegrid.tile_selection[1] = grid_pos.y
+            if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and SprytileGui.is_selecting is False:
+                SprytileGui.is_selecting = True
+                SprytileGui.sel_start = grid_pos
+
+            if SprytileGui.is_selecting:
+
+                sel_min = Vector((
+                    min(grid_pos.x, SprytileGui.sel_start.x),
+                    min(grid_pos.y, SprytileGui.sel_start.y)
+                ))
+                sel_max = Vector((
+                    max(grid_pos.x, SprytileGui.sel_start.x),
+                    max(grid_pos.y, SprytileGui.sel_start.y)
+                ))
+
+                tilegrid.tile_selection[0] = sel_min.x
+                tilegrid.tile_selection[1] = sel_min.y
+                tilegrid.tile_selection[2] = (sel_max.x - sel_min.x) + 1
+                tilegrid.tile_selection[3] = (sel_max.y - sel_min.y) + 1
+
+            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE' and SprytileGui.is_selecting:
+                SprytileGui.is_selecting = False
+                SprytileGui.sel_start = None
 
         # Cycle through grids on same material when right click
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
@@ -403,7 +425,9 @@ class SprytileGui(bpy.types.Operator):
         draw_selection(curr_sel_min, curr_sel_max)
 
         # Inside gui, draw box for tile under mouse
-        if context.scene.sprytile_ui.use_mouse is True and SprytileGui.cursor_grid_pos is not None:
+        if context.scene.sprytile_ui.use_mouse is True and \
+                SprytileGui.cursor_grid_pos is not None and \
+                SprytileGui.is_selecting is False:
             glColor4f(1.0, 0.0, 0.0, 1.0)
             cursor_pos = SprytileGui.cursor_grid_pos
             cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
