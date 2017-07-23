@@ -170,19 +170,59 @@ class ToolBuild:
         if face_position is None:
             return
 
-        preview_verts = self.modal.get_build_vertices(face_position, x_vector, y_vector,
-                                                      up_vector, right_vector)
+        offset_tile_id, offset_grid = sprytile_utils.get_grid_area(target_grid.tile_selection[2],
+                                                                   target_grid.tile_selection[3])
 
-        # Get the center of the preview verts
-        vtx_center = Vector((0, 0, 0))
-        for vtx in preview_verts:
-            vtx_center += vtx
-        vtx_center /= len(preview_verts)
+        preview_verts = []
+        preview_uvs = []
+        for i in range(len(offset_tile_id)):
+            grid_offset = offset_grid[i]
+            tile_offset = offset_tile_id[i]
 
-        tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
-        preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
-                                                   up_vector, right_vector, tile_xy,
-                                                   preview_verts, vtx_center)
+            x_offset = x_vector * grid_offset[0]
+            y_offset = y_vector * grid_offset[1]
+
+            coord_position = face_position + x_offset + y_offset
+
+#             print("""
+# idx: {0} - {1}
+# y offset: {2}
+# face pos: {3}
+# calculated pos: {4}
+# """.format(i, coord_sel, y_offset, face_position, coord_position))
+
+            coord_verts = self.modal.get_build_vertices(coord_position, x_vector, y_vector,
+                                                        up_vector, right_vector)
+            # Get the center of the preview verts
+            vtx_center = Vector((0, 0, 0))
+            for vtx in coord_verts:
+                vtx_center += vtx
+            vtx_center /= len(coord_verts)
+
+            # Calculate the tile with offset
+            tile_xy = (target_grid.tile_selection[0] + tile_offset[0],
+                       target_grid.tile_selection[1] + tile_offset[1])
+
+            coord_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
+                                                     up_vector, right_vector, tile_xy,
+                                                     coord_verts, vtx_center)
+
+            preview_verts.extend(coord_verts)
+            preview_uvs.extend(coord_uvs)
+
+        # preview_verts = self.modal.get_build_vertices(face_position, x_vector, y_vector,
+        #                                               up_vector, right_vector)
+        #
+        # # Get the center of the preview verts
+        # vtx_center = Vector((0, 0, 0))
+        # for vtx in preview_verts:
+        #     vtx_center += vtx
+        # vtx_center /= len(preview_verts)
+        #
+        # tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
+        # preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
+        #                                            up_vector, right_vector, tile_xy,
+        #                                            preview_verts, vtx_center)
 
         self.modal.set_preview_data(preview_verts, preview_uvs)
 

@@ -99,6 +99,30 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
+def get_grid_area(width, height):
+    """
+    Get the grid and tile ID offset, for a given dimension
+    :param width:
+    :param height:
+    :return: offset_tile_ids, offset_grid
+    """
+    offset_x = int(width/2)
+    offset_y = int(height/2)
+    if width % 2 == 0:
+        offset_x -= 1
+    if height % 2 == 0:
+        offset_y -= 1
+    offset_x *= -1
+    offset_y *= -1
+    offset_tile_ids = []
+    offset_grid = []
+    for y in range(height):
+        for x in range(width):
+            offset_tile_ids.append((x, y))
+            offset_grid.append((x + offset_x, y + offset_y))
+    return offset_tile_ids, offset_grid
+
+
 def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
     """
     Raycast to a plane on the scene cursor, and return the grid snapped position

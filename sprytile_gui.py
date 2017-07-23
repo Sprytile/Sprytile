@@ -620,11 +620,16 @@ class SprytileGui(bpy.types.Operator):
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
 
-        bgl.glBegin(bgl.GL_POLYGON)
+        # bgl.glBegin(bgl.GL_POLYGON)
         for i in range(len(uv)):
+            mod = i % 4
+            if mod == 0:
+                bgl.glBegin(bgl.GL_POLYGON)
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])
-        bgl.glEnd()
+            if mod == 3:
+                bgl.glEnd()
+        # bgl.glEnd()
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
