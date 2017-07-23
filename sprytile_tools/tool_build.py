@@ -44,11 +44,13 @@ class ToolBuild:
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
+        # Get vectors for grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(context.object, ray_origin, ray_vector)
 
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
+
+        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(context.object, ray_origin, ray_vector)
 
         # If raycast hit the mesh...
         if face_index is not None:
