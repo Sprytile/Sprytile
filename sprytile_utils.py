@@ -145,7 +145,7 @@ def get_grid_area(width, height, flip_x=False, flip_y=False):
     return offset_tile_ids, offset_grid
 
 
-def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector, as_coord=False):
     """
     Raycast to a plane on the scene cursor, and return the grid snapped position
     :param scene:
@@ -155,6 +155,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     :param plane_normal:
     :param ray_origin:
     :param ray_vector:
+    :param as_coord: If position should be returned as world position or grid coordinate
     :return: grid_position, x_vector, y_vector, plane_pos
     """
 
@@ -171,7 +172,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     grid_position, x_vector, y_vector = get_grid_pos(
                                             plane_pos, scene.cursor_location,
                                             right_vector.copy(), up_vector.copy(),
-                                            world_pixels, grid_x, grid_y
+                                            world_pixels, grid_x, grid_y, as_coord
                                         )
     if x_vector.normalized().dot(right_vector) < 0:
         x_vector *= -1
