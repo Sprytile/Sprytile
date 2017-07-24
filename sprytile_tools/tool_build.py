@@ -176,8 +176,6 @@ class ToolBuild:
                                                                    data.uv_flip_x,
                                                                    data.uv_flip_y)
 
-        print("pos: {4}\nright: {3}, up: {2}\nx: {0}, y: {1}"
-              .format(x_vector, y_vector, up_vector, right_vector, face_position))
         preview_verts = []
         preview_uvs = []
         for i in range(len(offset_tile_id)):
@@ -199,10 +197,7 @@ class ToolBuild:
             # Calculate the tile with offset
             tile_xy = (target_grid.tile_selection[0] + tile_offset[0],
                        target_grid.tile_selection[1] + tile_offset[1])
-            print(
-"""i: {0}
-grid offset: {1}
-tile id offset: {2}""".format(i, grid_offset, tile_offset))
+
             coord_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
                                                      up_vector, right_vector, tile_xy,
                                                      coord_verts, vtx_center)
