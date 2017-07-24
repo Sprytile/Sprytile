@@ -151,6 +151,12 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
                                             right_vector.copy(), up_vector.copy(),
                                             world_pixels, grid_x, grid_y
                                         )
+    if x_vector.normalized().dot(right_vector) < 0:
+        x_vector *= -1
+        grid_position -= x_vector
+    if y_vector.normalized().dot(up_vector) < 0:
+        y_vector *= -1
+        grid_position -= y_vector
     return grid_position, x_vector, y_vector, plane_pos
 
 
