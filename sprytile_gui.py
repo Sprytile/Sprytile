@@ -495,26 +495,28 @@ class SprytileGui(bpy.types.Operator):
             glVertex2f(end.x, end.y)
             glEnd()
 
-        def draw_interior_grid(start_loc, x_vec, y_vec, size_x, size_y):
-            for x_dir in [-1, 1]:
-                for grid_x in range(1, size_x):
-                    start_pos = start_loc + (x_vec * x_dir * grid_x)
-                    end_pos = start_pos + y_vec * size_y * 2
-                    draw_world_line(start_pos, end_pos)
-
         plane_col = sprytile_data.axis_plane_color
         glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
         glLineWidth(2)
 
-        x_offset_min = cursor_loc + paint_right_vector * grid_min[0]
-        x_offset_max = cursor_loc + paint_right_vector * grid_max[0]
-        y_offset_min = cursor_loc + paint_up_vector * grid_min[1]
-        y_offset_max = cursor_loc + paint_up_vector * grid_max[1]
+        for x in range(grid_min[0] + 1, grid_max[0]):
+            draw_start = cursor_loc + (paint_right_vector * x) + (paint_up_vector * grid_min[1])
+            draw_end = draw_start + paint_up_vector * sprytile_data.axis_plane_size[1]
+            draw_world_line(draw_start, draw_end)
+        for y in range(grid_min[1] + 1, grid_max[1]):
+            draw_start = cursor_loc + (paint_right_vector * grid_min[0]) + (paint_up_vector * y)
+            draw_end = draw_start + paint_right_vector * sprytile_data.axis_plane_size[0]
+            draw_world_line(draw_start, draw_end)
 
-        p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_min + y_offset_min)
-        p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_min + y_offset_max)
-        p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_max + y_offset_max)
-        p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_max + y_offset_min)
+        x_offset_min = paint_right_vector * grid_min[0]
+        x_offset_max = paint_right_vector * grid_max[0]
+        y_offset_min = paint_up_vector * grid_min[1]
+        y_offset_max = paint_up_vector * grid_max[1]
+
+        p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_min + y_offset_min)
+        p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_min + y_offset_max)
+        p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_max + y_offset_max)
+        p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_max + y_offset_min)
 
         if p0 is None or p1 is None or p2 is None or p3 is None:
             return
