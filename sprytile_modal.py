@@ -210,11 +210,10 @@ class SprytileModalTool(bpy.types.Operator):
         if closest_idx != -1:
             context.scene.cursor_location = closest_pos
 
-    def raycast_grid_coord(self, context, obj, x, y, up_vector, right_vector, normal):
+    def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal):
         """
         Raycast agains the object using grid coordinates around the cursor
         :param context:
-        :param obj:
         :param x:
         :param y:
         :param up_vector:
@@ -222,6 +221,7 @@ class SprytileModalTool(bpy.types.Operator):
         :param normal:
         :return:
         """
+        obj = context.object
         ray_origin = Vector(context.scene.cursor_location)
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
