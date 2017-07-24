@@ -426,9 +426,9 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Plane Size",
         description="Size of the Work Plane Cursor",
         size=2,
-        default=(1, 1),
-        min=1,
-        soft_min=1
+        default=(2, 2),
+        min=2,
+        soft_min=2
     )
 
     axis_plane_color = FloatVectorProperty(
