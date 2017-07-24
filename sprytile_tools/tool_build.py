@@ -53,7 +53,6 @@ class ToolBuild:
         rotation = Quaternion(plane_normal, data.mesh_rotate)
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
-        print("After rot, up: {0}, right: {1}".format(up_vector, right_vector))
 
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
