@@ -3,6 +3,8 @@ import bgl
 import blf
 import bmesh
 import math
+
+import sys
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector, Quaternion
@@ -97,6 +99,20 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     grid_pos = grid_center + (right_vector * x_snap) + (up_vector * y_snap)
 
     return grid_pos, right_vector, up_vector
+
+
+def get_workplane_area(width, height):
+    offset_ids, offset_grid = get_grid_area(width, height)
+    x_min = y_min = sys.maxsize
+    x_max = y_max = -sys.maxsize
+    for offset in offset_grid:
+        x_max = max(offset[0], x_max)
+        x_min = min(offset[0], x_min)
+        y_max = max(offset[1], y_max)
+        y_min = min(offset[1], y_min)
+    x_min -= 1
+    y_min -= 1
+    return [x_min, y_min], [x_max, y_max]
 
 
 def get_grid_area(width, height, flip_x=False, flip_y=False):

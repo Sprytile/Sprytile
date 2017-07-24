@@ -1,7 +1,6 @@
 import bpy
 import bgl
 import blf
-import sys
 from bpy_extras import view3d_utils
 from math import floor, ceil, copysign
 from bgl import *
@@ -481,19 +480,10 @@ class SprytileGui(bpy.types.Operator):
         paint_up_vector = paint_up_vector * pixel_unit * grid_size[1]
         paint_right_vector = paint_right_vector * pixel_unit * grid_size[0]
 
-        offset_ids, offset_grid = sprytile_utils.get_grid_area(
+        grid_min, grid_max = sprytile_utils.get_workplane_area(
                                         sprytile_data.axis_plane_size[0],
                                         sprytile_data.axis_plane_size[1]
                                     )
-        x_min = y_min = sys.maxsize
-        x_max = y_max = -sys.maxsize
-        for offset in offset_grid:
-            x_max = max(offset[0], x_max)
-            x_min = min(offset[0], x_min)
-            y_max = max(offset[1], y_max)
-            y_min = min(offset[1], y_min)
-        x_min -= 1
-        y_min -= 1
 
         def draw_world_line(world_start, world_end):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
@@ -516,10 +506,10 @@ class SprytileGui(bpy.types.Operator):
         glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
         glLineWidth(2)
 
-        x_offset_min = cursor_loc + paint_right_vector * x_min
-        x_offset_max = cursor_loc + paint_right_vector * x_max
-        y_offset_min = cursor_loc + paint_up_vector * y_min
-        y_offset_max = cursor_loc + paint_up_vector * y_max
+        x_offset_min = cursor_loc + paint_right_vector * grid_min[0]
+        x_offset_max = cursor_loc + paint_right_vector * grid_max[0]
+        y_offset_min = cursor_loc + paint_up_vector * grid_min[1]
+        y_offset_max = cursor_loc + paint_up_vector * grid_max[1]
 
         p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_min + y_offset_min)
         p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, x_offset_min + y_offset_max)
