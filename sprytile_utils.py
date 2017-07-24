@@ -40,6 +40,37 @@ def get_current_grid_vectors(scene, with_rotation=True):
     return up_vector, right_vector, normal_vector
 
 
+def get_grid_ids(context, grid, select_coords):
+    """Convert an array of selection X/Y coordinates to grid ids"""
+    target_img = get_grid_texture(context.object, grid)
+    if target_img is None:
+        return None
+
+    row_size = math.ceil(target_img.size[0] / grid.grid[0])
+    grid_ids = []
+    for x, y in select_coords:
+        tile_id = (y * row_size) + x
+        grid_ids.append(tile_id)
+    return grid_ids
+
+
+def get_grid_selection_coords(grid):
+    tile_sel = grid.tile_selection
+    selection_array = []
+    for y in range(tile_sel[3]):
+        for x in range(tile_sel[2]):
+            coord = (tile_sel[0] + x, tile_sel[1] + y)
+            selection_array.append(coord)
+    return selection_array
+
+
+def get_grid_selection_ids(context, grid):
+    coords = get_grid_selection_coords(grid)
+    sel_size = (grid.tile_selection[2], grid.tile_selection[3])
+    grid_ids = get_grid_ids(context, grid, coords)
+    return coords, sel_size, grid_ids
+
+
 def snap_vector_to_axis(vector, mirrored=False):
     """Snaps a vector to the closest world axis"""
     norm_vector = vector.normalized()
