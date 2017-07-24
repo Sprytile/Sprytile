@@ -68,17 +68,23 @@ class ToolFill:
 
         # Check hit_coord is inside the work plane grid
         plane_size = sprytile_data.axis_plane_size
-        if hit_coord.x < -plane_size[0] or hit_coord.x >= plane_size[0]:
+
+        grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
+        grid_min[0] += 1
+        grid_max[0] += 1
+
+        if hit_coord.x < grid_min[0] or hit_coord.x >= grid_max[0]:
             return
-        if hit_coord.y < -plane_size[1] or hit_coord.y >= plane_size[1]:
+        if hit_coord.y < grid_min[1] or hit_coord.y >= grid_max[1]:
             return
 
         # Build the fill map
-        fill_map, face_idx_array = self.build_fill_map(context, grid_up, grid_right, plane_normal, plane_size)
+        fill_map, face_idx_array = self.build_fill_map(context, grid_up, grid_right, plane_normal,
+                                                       plane_size, grid_min, grid_max)
 
         # Convert from grid coordinate to map coordinate
-        hit_array_coord = [int(hit_coord.x) + plane_size[0],
-                           int((plane_size[1] * 2) - 1 - (hit_coord.y + plane_size[1]))]
+        hit_array_coord = [int(hit_coord.x) - grid_min[0],
+                           int(hit_coord.y) - grid_min[1]]
 
         # Calculate the tile index of currently selected tile
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
@@ -100,16 +106,16 @@ class ToolFill:
                                 face_idx_array, paint_setting_layer, tile_xy,
                                 ray_vector, shift_vec, threshold,
                                 up_vector, right_vector, plane_normal,
-                                grid_up, grid_right)
+                                grid_up, grid_right, grid_min)
 
     def construct_fill(self, context, scene, sprytile_data, cell_coord, plane_size,
                        face_idx_array, paint_setting_layer, tile_xy,
                        ray_vector, shift_vec, threshold,
                        up_vector, right_vector, plane_normal,
-                       grid_up, grid_right):
-
-        grid_coord = [-plane_size[0] + cell_coord[0],
-                      plane_size[1] - 1 - cell_coord[1]]
+                       grid_up, grid_right, grid_min):
+        # Convert map coord to grid coord
+        grid_coord = [grid_min[0] + cell_coord[0],
+                      grid_min[1] + cell_coord[1]]
 
         # Check face index array, if -1, create face
         face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
@@ -165,17 +171,18 @@ class ToolFill:
             if new_face_idx is not None:
                 self.modal.bmesh.faces[new_face_idx].select = False
 
-    def build_fill_map(self, context, grid_up, grid_right, plane_normal, plane_size):
+    def build_fill_map(self, context, grid_up, grid_right, plane_normal, plane_size, grid_min, grid_max):
         # Use raycast_grid_coord to build a 2d array of work plane
-        fill_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
-        face_idx_array = numpy.zeros((plane_size[1] * 2, plane_size[0] * 2))
+
+        fill_array = numpy.zeros((plane_size[1], plane_size[0]))
+        face_idx_array = numpy.zeros((plane_size[1], plane_size[0]))
         face_idx_array.fill(-1)
-        for y in range(plane_size[1] * 2):
-            y_coord = plane_size[1] - 1 - y
-            for x in range(plane_size[0] * 2):
-                x_coord = -plane_size[0] + x
+        idx_y = 0
+        idx_x = 0
+        for y in range(grid_min[1], grid_max[1]):
+            for x in range(grid_min[0], grid_max[0]):
                 hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_grid_coord(
-                                                                context, context.object, x_coord, y_coord,
+                                                                context, context.object, x, y,
                                                                 grid_up, grid_right, plane_normal)
 
                 if hit_loc is not None:
@@ -183,11 +190,13 @@ class ToolFill:
                     map_value = 1
                     if tile_packed_id is not None:
                         map_value = tile_packed_id
-                    fill_array[y][x] = map_value
-                    face_idx_array[y][x] = face_index
+                    fill_array[idx_y][idx_x] = map_value
+                    face_idx_array[idx_y][idx_x] = face_index
 
-                x_coord += 1
-            y_coord += 1
+                idx_x += 1
+            idx_x = 0
+            idx_y += 1
+
         return fill_array, face_idx_array
 
     @staticmethod
