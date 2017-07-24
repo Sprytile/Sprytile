@@ -144,6 +144,7 @@ class SprytileModalTool(bpy.types.Operator):
             return
 
         paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
+        tile_selection = [1, 1]
         if paint_setting_layer is not None:
             paint_setting = face[paint_setting_layer]
             sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
@@ -155,6 +156,8 @@ class SprytileModalTool(bpy.types.Operator):
         context.object.sprytile_gridid = grid_id
         tilegrid.tile_selection[0] = tile_x
         tilegrid.tile_selection[1] = tile_y
+        tilegrid.tile_selection[2] = tile_selection[0]
+        tilegrid.tile_selection[3] = tile_selection[1]
 
         bpy.ops.sprytile.build_grid_list()
 
