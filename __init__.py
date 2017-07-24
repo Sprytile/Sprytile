@@ -461,14 +461,34 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         subtype='XYZ',
         default=(32, 32)
     )
+
+    def set_padding(self, value):
+        current_padding = self.get_padding()
+        if "grid" not in self.keys():
+            self["grid"] = (32, 32)
+        padding_delta = [ (value[0] - current_padding[0]) * 2, (value[1] - current_padding[1]) * 2]
+        new_grid = [self["grid"][0] - padding_delta[0], self["grid"][1] - padding_delta[1]]
+        if new_grid[0] < 1 or new_grid[1] < 1:
+            return
+        self["grid"] = (new_grid[0], new_grid[1])
+        self["padding"] = value
+
+    def get_padding(self):
+        if "padding" not in self.keys():
+            self["padding"] = (0, 0)
+        return self["padding"]
+
     padding = IntVectorProperty(
         name="Padding",
         description="Cell padding, in pixels",
         min=0,
         size=2,
         subtype='XYZ',
-        default=(0, 0)
+        default=(0, 0),
+        set=set_padding,
+        get=get_padding
     )
+
     margin = IntVectorProperty(
         name="Margin",
         description="Spacing between tiles (top, right, bottom, left)",
