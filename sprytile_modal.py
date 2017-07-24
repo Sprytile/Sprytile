@@ -301,7 +301,7 @@ class SprytileModalTool(bpy.types.Operator):
     def construct_face(self, context, grid_coord, tile_xy, grid_up, grid_right,
                        up_vector, right_vector, plane_normal,
                        face_index=None, check_exists=True,
-                       shift_vec=None, threshold=None):
+                       shift_vec=None, threshold=None, add_cursor=True):
         """
         Create a new face at grid_coord or remap the existing face
         :param context:
@@ -314,8 +314,9 @@ class SprytileModalTool(bpy.types.Operator):
         :param plane_normal:
         :param face_index:
         :param check_exists:
-        :param threshold:
         :param shift_vec:
+        :param threshold:
+        :param add_cursor:
         :return:
         """
         scene = context.scene
@@ -346,13 +347,6 @@ class SprytileModalTool(bpy.types.Operator):
 
         if face_index is None or face_index < 0:
             return None
-
-        # face_up, face_right = self.get_face_up_vector(context, face_index)
-        # if face_up is not None and face_up.dot(up_vector) < 0.95:
-        #     data = context.scene.sprytile_data
-        #     rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
-        #     up_vector = rotate_matrix * face_up
-        #     right_vector = rotate_matrix * face_right
 
         # Didn't create face, only want to remap face. Check for coplanarity and dot
         if did_build is False:
@@ -399,7 +393,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
 
-        if hit_loc is not None:
+        if add_cursor and hit_loc is not None:
             self.add_virtual_cursor(hit_loc)
         return face_index
 
