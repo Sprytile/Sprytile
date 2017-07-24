@@ -41,103 +41,54 @@ class ToolBuild:
             self.build_preview(context, scene, ray_origin, ray_vector)
 
     def execute(self, context, scene, ray_origin, ray_vector):
+        data = scene.sprytile_data
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
         # Get vectors for grid
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
+        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(
+            scene,
+            with_rotation=False
+        )
+        rotation = Quaternion(plane_normal, data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
+        print("After rot, up: {0}, right: {1}".format(up_vector, right_vector))
 
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
 
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(context.object, ray_origin, ray_vector)
-
-        # If raycast hit the mesh...
-        if face_index is not None:
-            # The face is valid for painting if hit face
-            # is facing same way as plane normal and is coplanar to target plane
-            check_dot = abs(plane_normal.dot(hit_normal))
-            check_dot -= 1
-            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-            check_coplanar = abs(check_coplanar) < 0.05
-            check_dot = abs(check_dot) < 0.05
-            # Hit a face that is valid for painting
-            if check_dot and check_coplanar:
-                self.modal.add_virtual_cursor(hit_loc)
-                # Change UV of this face instead
-                face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-                if face_up is not None and face_up.dot(up_vector) < 0.95:
-                    data = context.scene.sprytile_data
-                    rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, hit_normal)
-                    up_vector = rotate_matrix * face_up
-                    right_vector = rotate_matrix * face_right
-                sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
-                if scene.sprytile_data.cursor_flow:
-                    self.modal.flow_cursor(context, face_index, hit_loc)
-                return
-
-        # Raycast did not hit the mesh, raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
+        # raycast grid to get the grid position under the mouse
+        grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
             scene, context,
             up_vector, right_vector, plane_normal,
-            ray_origin, ray_vector
+            ray_origin, ray_vector,
+            as_coord=True
         )
-        # Failed to hit the grid
-        if face_position is None:
-            return
 
-        # If raycast hit mesh, compare distance of grid hit and mesh hit
-        if hit_loc is not None:
-            grid_hit_dist = (face_position - ray_origin).magnitude
-            # Mesh hit closer than grid hit, don't do anything
-            if hit_dist < grid_hit_dist:
-                return
+        # Get the area to build
+        offset_tile_id, offset_grid = sprytile_utils.get_grid_area(
+            grid.tile_selection[2],
+            grid.tile_selection[3],
+            data.uv_flip_x, data.uv_flip_y
+        )
 
-        # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
-        self.modal.add_virtual_cursor(plane_cursor)
-        # Build face and UV map it
-        face_vertices = self.modal.get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
-        face_index = self.modal.create_face(context, face_vertices)
+        # Loop through grid coordinates to build
+        face_index = None
+        for i in range(len(offset_grid)):
+            grid_offset = offset_grid[i]
+            tile_offset = offset_tile_id[i]
 
-        face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-        if face_up is not None and face_up.dot(up_vector) < 0.95:
-            data = context.scene.sprytile_data
-            rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
-            up_vector = rotate_matrix * face_up
-            right_vector = rotate_matrix * face_right
+            grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
+            tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
+            face_index = self.modal.construct_face(context, grid_pos, tile_pos,
+                                                   grid_up, grid_right,
+                                                   up_vector, right_vector, plane_normal,
+                                                   shift_vec=shift_vec)
 
-        if scene.sprytile_data.auto_merge:
-            face = self.modal.bmesh.faces[face_index]
-            face.select = True
-            # Find the face center, to raycast from later
-            face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for ray casting
-            face_center -= shift_vec
-
-            threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
-            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
-
-            for el in [self.modal.bmesh.faces, self.modal.bmesh.verts, self.modal.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
-
-            # Modified the mesh, refresh and raycast to find the new face index
-            self.modal.update_bmesh_tree(context)
-            loc, norm, new_face_idx, hit_dist = self.modal.raycast_object(context.object, face_center, ray_vector)
-            if new_face_idx is not None:
-                self.modal.bmesh.faces[new_face_idx].select = False
-                face_index = new_face_idx
-            else:
-                face_index = -1
-
-        # Auto merge refreshes the mesh automatically
-        self.modal.refresh_mesh = not scene.sprytile_data.auto_merge
-
-        if scene.sprytile_data.cursor_flow and face_index is not None and face_index > -1:
-            self.modal.flow_cursor(context, face_index, plane_cursor)
+        if data.cursor_flow and face_index is not None and face_index > -1:
+            self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
@@ -152,11 +103,7 @@ class ToolBuild:
 
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
 
-        # up_vector.normalize()
-        # right_vector.normalize()
-
         rotation = Quaternion(plane_normal, data.mesh_rotate)
-        # tile_rotation = Matrix.Rotation(data.mesh_rotate, 2, 'Y')
 
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
