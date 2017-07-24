@@ -298,6 +298,111 @@ class SprytileModalTool(bpy.types.Operator):
 
         return face_order
 
+    def construct_face(self, context, grid_coord, tile_xy, grid_up, grid_right,
+                       up_vector, right_vector, plane_normal,
+                       face_index=None, check_exists=True,
+                       shift_vec=None, threshold=None):
+        """
+        Create a new face at grid_coord or remap the existing face
+        :param context:
+        :param grid_coord:
+        :param tile_xy:
+        :param grid_up:
+        :param grid_right:
+        :param up_vector:
+        :param right_vector:
+        :param plane_normal:
+        :param face_index:
+        :param check_exists:
+        :param threshold:
+        :param shift_vec:
+        :return:
+        """
+        scene = context.scene
+        data = scene.sprytile_data
+        hit_loc = None
+        hit_normal = None
+        if check_exists:
+            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                context, grid_coord[0], grid_coord[1],
+                grid_up, grid_right, plane_normal
+            )
+
+        did_build = False
+        # No face index, assume build face
+        if face_index is None or face_index < 0:
+            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+            face_verts = self.get_build_vertices(face_position,
+                                                 grid_right, grid_up,
+                                                 up_vector, right_vector)
+            face_index = self.create_face(context, face_verts)
+            did_build = True
+        # Face index was given and check exists flag is off, check for actual face
+        elif check_exists is False:
+            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                context, grid_coord[0], grid_coord[1],
+                grid_up, grid_right, plane_normal
+            )
+
+        if face_index is None or face_index < 0:
+            return None
+
+        # face_up, face_right = self.get_face_up_vector(context, face_index)
+        # if face_up is not None and face_up.dot(up_vector) < 0.95:
+        #     data = context.scene.sprytile_data
+        #     rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
+        #     up_vector = rotate_matrix * face_up
+        #     right_vector = rotate_matrix * face_right
+
+        # Didn't create face, only want to remap face. Check for coplanarity and dot
+        if did_build is False:
+            check_dot = abs(plane_normal.dot(hit_normal))
+            check_dot -= 1
+            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+
+            check_coplanar = abs(check_coplanar) < 0.05
+            check_dot = abs(check_dot) < 0.05
+            # Can't remap face
+            if not check_coplanar or not check_dot:
+                return None
+
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+
+        if did_build and data.auto_merge:
+            if shift_vec is None:
+                shift_vec = plane_normal.normalized() * 0.01
+            if threshold is None:
+                threshold = (1 / data.world_pixels) * 2
+
+            face = self.bmesh.faces[face_index]
+            face.select = True
+            # Find the face center, to raycast from later
+            face_center = context.object.matrix_world * face.calc_center_bounds()
+            # Move face center back a little for ray casting
+            face_center += shift_vec
+
+            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+
+            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+                el.index_update()
+                el.ensure_lookup_table()
+
+            # Modified the mesh, refresh and raycast to find the new face index
+            self.update_bmesh_tree(context)
+            hit_loc, norm, new_face_idx, hit_dist = self.raycast_grid_coord(
+                context, grid_coord[0], grid_coord[1],
+                grid_up, grid_right, plane_normal
+            )
+            if new_face_idx is not None:
+                self.bmesh.faces[new_face_idx].select = False
+
+        # Auto merge refreshes the mesh automatically
+        self.refresh_mesh = not data.auto_merge
+
+        if hit_loc is not None:
+            self.add_virtual_cursor(hit_loc)
+        return face_index
+
     def create_face(self, context, world_vertices):
         """
         Create a face in the bmesh using the given world space vertices
