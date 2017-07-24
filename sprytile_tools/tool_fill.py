@@ -99,77 +99,25 @@ class ToolFill:
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
 
         # Flood fill targets map cell coordinates
+        lock_transform = sprytile_data.fill_lock_transform and paint_setting_layer is not None
         hit_coord_content = int(fill_map[hit_array_coord[1]][hit_array_coord[0]])
         fill_coords = self.flood_fill(fill_map, hit_array_coord, -1, hit_coord_content)
         for cell_coord in fill_coords:
-            self.construct_fill(context, scene, sprytile_data, cell_coord, plane_size,
-                                face_idx_array, paint_setting_layer, tile_xy,
-                                ray_vector, shift_vec, threshold,
-                                up_vector, right_vector, plane_normal,
-                                grid_up, grid_right, grid_min)
-
-    def construct_fill(self, context, scene, sprytile_data, cell_coord, plane_size,
-                       face_idx_array, paint_setting_layer, tile_xy,
-                       ray_vector, shift_vec, threshold,
-                       up_vector, right_vector, plane_normal,
-                       grid_up, grid_right, grid_min):
-        # Convert map coord to grid coord
-        grid_coord = [grid_min[0] + cell_coord[0],
-                      grid_min[1] + cell_coord[1]]
-
-        # Check face index array, if -1, create face
-        face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
-        did_build = False
-        # If no existing face, build it
-        if face_index < 0:
-            did_build = True
-            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
-            face_verts = self.modal.get_build_vertices(face_position,
-                                                       grid_right, grid_up,
-                                                       up_vector, right_vector)
-            face_index = self.modal.create_face(context, face_verts)
-        # Face existing...
-        else:
-            # Raycast to get the face index of the face, could have changed
-            hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_grid_coord(
-                context, context.object,
-                grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal)
-
-            # use the face paint settings for the UV map step
-            face = self.modal.bmesh.faces[face_index]
-            if sprytile_data.fill_lock_transform and paint_setting_layer is not None:
+            face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
+            if face_index > -1 and lock_transform:
+                face = self.modal.bmesh.faces[face_index]
                 paint_setting = face[paint_setting_layer]
                 sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
 
-        face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-        if face_up is not None and face_up.dot(up_vector) < 0.95:
-            data = context.scene.sprytile_data
-            rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
-            up_vector = rotate_matrix * face_up
-            right_vector = rotate_matrix * face_right
+            # Convert map coord to grid coord
+            grid_coord = [grid_min[0] + cell_coord[0],
+                          grid_min[1] + cell_coord[1]]
 
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
-
-        if did_build and sprytile_data.auto_merge:
-            face = self.modal.bmesh.faces[face_index]
-            face.select = True
-            # Find the face center, to raycast from later
-            face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for ray casting
-            face_center += shift_vec
-
-            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
-
-            for el in [self.modal.bmesh.faces, self.modal.bmesh.verts, self.modal.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
-
-            # Modified the mesh, refresh and raycast to find the new face index
-            self.modal.update_bmesh_tree(context)
-            loc, norm, new_face_idx, hit_dist = self.modal.raycast_object(context.object, face_center, ray_vector, 0.1)
-            if new_face_idx is not None:
-                self.modal.bmesh.faces[new_face_idx].select = False
+            self.modal.construct_face(context, grid_coord, tile_xy,
+                                      grid_up, grid_right,
+                                      up_vector, right_vector, plane_normal,
+                                      face_index,
+                                      shift_vec=shift_vec, threshold=threshold, add_cursor=False)
 
     def build_fill_map(self, context, grid_up, grid_right, plane_normal, plane_size, grid_min, grid_max):
         # Use raycast_grid_coord to build a 2d array of work plane
@@ -182,7 +130,7 @@ class ToolFill:
         for y in range(grid_min[1], grid_max[1]):
             for x in range(grid_min[0], grid_max[0]):
                 hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_grid_coord(
-                                                                context, context.object, x, y,
+                                                                context, x, y,
                                                                 grid_up, grid_right, plane_normal)
 
                 if hit_loc is not None:
