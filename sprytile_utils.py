@@ -99,11 +99,13 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
-def get_grid_area(width, height):
+def get_grid_area(width, height, flip_x=False, flip_y=False):
     """
     Get the grid and tile ID offset, for a given dimension
     :param width:
     :param height:
+    :param flip_x:
+    :param flip_y:
     :return: offset_tile_ids, offset_grid
     """
     offset_x = int(width/2)
@@ -112,13 +114,17 @@ def get_grid_area(width, height):
         offset_x -= 1
     if height % 2 == 0:
         offset_y -= 1
+
     offset_x *= -1
     offset_y *= -1
+
     offset_tile_ids = []
     offset_grid = []
     for y in range(height):
         for x in range(width):
-            offset_tile_ids.append((x, y))
+            tile_id = (width - 1 - x if flip_x else x,
+                       height - 1 - y if flip_y else y)
+            offset_tile_ids.append(tile_id)
             offset_grid.append((x + offset_x, y + offset_y))
     return offset_tile_ids, offset_grid
 
