@@ -89,7 +89,8 @@ class ToolBuild:
             # Hit something, check if hit is closer than plane pos
             if hit_face_idx is not None:
                 plane_dist = distance_point_to_plane(ray_origin, scene.cursor_location, plane_normal)
-                if hit_dist < plane_dist:
+                difference = abs(plane_dist - hit_dist)
+                if hit_dist < plane_dist or difference < 0.8:
                     return
 
             origin_coord = scene.cursor_location + \
