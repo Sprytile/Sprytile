@@ -40,6 +40,15 @@ def get_current_grid_vectors(scene, with_rotation=True):
     return up_vector, right_vector, normal_vector
 
 
+def grid_is_single_pixel(grid):
+    is_pixel = grid.grid[0] == 1 and grid.grid[1] == 1 and\
+               grid.padding[0] == 0 and grid.padding[0] == 0 and\
+               grid.margin[0] == 0 and grid.margin[1] == 0 and\
+               grid.margin[2] == 0 and grid.margin[3] == 0
+
+    return is_pixel
+
+
 def get_grid_ids(context, grid, select_coords):
     """Convert an array of selection X/Y coordinates to grid ids"""
     target_img = get_grid_texture(context.object, grid)
