@@ -74,29 +74,78 @@ class ToolBuild:
         )
 
         # Check if joining multi tile faces
-        # grid_no_spacing = sprytile_utils.grid_no_spacing(grid)
-        # is_single_pixel = sprytile_utils.grid_is_single_pixel(grid)
-        # do_join = is_single_pixel
-        # if do_join is False:
-        #     do_join = grid_no_spacing and data.auto_join
+        grid_no_spacing = sprytile_utils.grid_no_spacing(grid)
+        is_single_pixel = sprytile_utils.grid_is_single_pixel(grid)
+        do_join = is_single_pixel
+        if do_join is False:
+            do_join = grid_no_spacing and data.auto_join
 
         face_index = None
 
-        # if do_join:
-        #     pass
+        if do_join:
+            # Raycast under mouse
+            hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
+                context.object, ray_origin, ray_vector)
+            # Hit something, check if hit is closer than plane pos
+            if hit_face_idx is not None:
+                plane_dist = distance_point_to_plane(ray_origin, scene.cursor_location, plane_normal)
+                if hit_dist < plane_dist:
+                    return
 
-        # Loop through grid coordinates to build
-        for i in range(len(offset_grid)):
-            grid_offset = offset_grid[i]
-            tile_offset = offset_tile_id[i]
+            origin_coord = scene.cursor_location + \
+                           (grid_coord[0] + coord_min[0]) * grid_right + \
+                           (grid_coord[1] + coord_min[1]) * grid_up
 
-            grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
-            tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
+            size_x = (coord_max[0] - coord_min[0]) + 1
+            size_y = (coord_max[1] - coord_min[1]) + 1
 
-            face_index = self.modal.construct_face(context, grid_pos, tile_pos,
-                                                   grid_up, grid_right,
-                                                   up_vector, right_vector, plane_normal,
-                                                   shift_vec=shift_vec)
+            size_x *= grid.grid[0]
+            size_y *= grid.grid[1]
+
+            grid_right *= size_x / grid.grid[0]
+            grid_up *= size_y / grid.grid[1]
+
+            verts = self.modal.get_build_vertices(origin_coord,
+                                                  grid_right, grid_up,
+                                                  up_vector, right_vector)
+            face_index = self.modal.create_face(context, verts)
+            if face_index is None:
+                return
+            vtx_center = Vector((0, 0, 0))
+            for vtx in verts:
+                vtx_center += vtx
+            vtx_center /= len(verts)
+
+            origin_xy = (grid.tile_selection[0],
+                         grid.tile_selection[1])
+
+            target_img = sprytile_utils.get_grid_texture(context.object, grid)
+
+            uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, grid,
+                                              origin_xy, size_x, size_y,
+                                              up_vector, right_vector,
+                                              verts, vtx_center)
+            sprytile_uv.apply_uvs(context, self.modal.bmesh.faces[face_index],
+                                  uvs, grid, self.modal.bmesh,
+                                  data, target_img, origin_xy)
+
+            if data.auto_merge:
+                threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
+                face = self.modal.bmesh.faces[face_index]
+                self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
+        else:
+            # Loop through grid coordinates to build
+            for i in range(len(offset_grid)):
+                grid_offset = offset_grid[i]
+                tile_offset = offset_tile_id[i]
+
+                grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
+                tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
+
+                face_index = self.modal.construct_face(context, grid_pos, tile_pos,
+                                                       grid_up, grid_right,
+                                                       up_vector, right_vector, plane_normal,
+                                                       shift_vec=shift_vec)
 
         if data.cursor_flow and face_index is not None and face_index > -1:
             self.modal.flow_cursor(context, face_index, plane_pos)
@@ -167,6 +216,7 @@ class ToolBuild:
             self.modal.set_preview_data(preview_verts, preview_uvs)
             return
 
+        # Spaced grids need to be tiled
         preview_verts = []
         preview_uvs = []
         for i in range(len(offset_tile_id)):
