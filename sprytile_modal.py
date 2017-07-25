@@ -363,32 +363,14 @@ class SprytileModalTool(bpy.types.Operator):
         sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
 
         if did_build and data.auto_merge:
-            if shift_vec is None:
-                shift_vec = plane_normal.normalized() * 0.01
             if threshold is None:
                 threshold = (1 / data.world_pixels) * 2
 
             face = self.bmesh.faces[face_index]
-            face.select = True
-            # Find the face center, to raycast from later
-            face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for ray casting
-            face_center += shift_vec
 
-            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
-
-            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
-
-            # Modified the mesh, refresh and raycast to find the new face index
-            self.update_bmesh_tree(context)
-            hit_loc, norm, new_face_idx, hit_dist = self.raycast_grid_coord(
-                context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal
-            )
-            if new_face_idx is not None:
-                self.bmesh.faces[new_face_idx].select = False
+            face_position += grid_right * 0.5 + grid_up * 0.5
+            face_position += plane_normal * 0.01
+            self.merge_doubles(context, face, face_position, -plane_normal, threshold)
 
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
@@ -396,6 +378,26 @@ class SprytileModalTool(bpy.types.Operator):
         if add_cursor and hit_loc is not None:
             self.add_virtual_cursor(hit_loc)
         return face_index
+
+    def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
+        face.select = True
+
+        bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+
+        for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+            el.index_update()
+            el.ensure_lookup_table()
+
+        # Modified the mesh, refresh and raycast to find the new face index
+        self.update_bmesh_tree(context)
+        hit_loc, norm, new_face_idx, hit_dist = self.raycast_object(
+            context.object,
+            ray_origin,
+            ray_direction,
+            0.02
+        )
+        if new_face_idx is not None:
+            self.bmesh.faces[new_face_idx].select = False
 
     def create_face(self, context, world_vertices):
         """
