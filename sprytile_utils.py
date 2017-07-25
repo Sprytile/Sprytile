@@ -145,17 +145,8 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
 
 
 def get_workplane_area(width, height):
-    offset_ids, offset_grid = get_grid_area(width, height)
-    x_min = y_min = sys.maxsize
-    x_max = y_max = -sys.maxsize
-    for offset in offset_grid:
-        x_max = max(offset[0], x_max)
-        x_min = min(offset[0], x_min)
-        y_max = max(offset[1], y_max)
-        y_min = min(offset[1], y_min)
-    x_min -= 1
-    y_min -= 1
-    return [x_min, y_min], [x_max, y_max]
+    offset_ids, offset_grid, coord_min, coord_max = get_grid_area(width, height)
+    return [coord_min[0] - 1, coord_min[1] - 1], coord_max
 
 
 def get_grid_area(width, height, flip_x=False, flip_y=False):
@@ -179,13 +170,25 @@ def get_grid_area(width, height, flip_x=False, flip_y=False):
 
     offset_tile_ids = []
     offset_grid = []
+    coords_min = [sys.maxsize, sys.maxsize]
+    coords_max = [-sys.maxsize, -sys.maxsize]
     for y in range(height):
         for x in range(width):
-            tile_id = (width - 1 - x if flip_x else x,
-                       height - 1 - y if flip_y else y)
-            offset_tile_ids.append(tile_id)
-            offset_grid.append((x + offset_x, y + offset_y))
-    return offset_tile_ids, offset_grid
+            # Calculate tile offset
+            tile_offset = (width - 1 - x if flip_x else x,
+                           height - 1 - y if flip_y else y)
+            offset_tile_ids.append(tile_offset)
+
+            # Calculate grid offset
+            grid_offset = (x + offset_x, y + offset_y)
+
+            coords_min[0] = min(grid_offset[0], coords_min[0])
+            coords_min[1] = min(grid_offset[1], coords_min[1])
+            coords_max[0] = max(grid_offset[0], coords_max[0])
+            coords_max[1] = max(grid_offset[1], coords_max[1])
+
+            offset_grid.append(grid_offset)
+    return offset_tile_ids, offset_grid, coords_min, coords_max
 
 
 def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector, as_coord=False):
