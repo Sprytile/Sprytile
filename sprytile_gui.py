@@ -342,7 +342,7 @@ class SprytileGui(bpy.types.Operator):
 
         middle_btn = context.scene.sprytile_ui.middle_btn
 
-        SprytileGui.draw_offscreen(self, context)
+        SprytileGui.draw_offscreen(context)
         SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
                                      context.scene.cursor_location, region, rv3d,
@@ -363,7 +363,7 @@ class SprytileGui(bpy.types.Operator):
         glEnd()
 
     @staticmethod
-    def draw_offscreen(self, context):
+    def draw_offscreen(context):
         """Draw the GUI into the offscreen texture"""
         offscreen = SprytileGui.offscreen
         target_img = SprytileGui.texture_grid
@@ -419,12 +419,14 @@ class SprytileGui(bpy.types.Operator):
         margin = SprytileGui.loaded_grid.margin
         curr_sel = SprytileGui.loaded_grid.tile_selection
         is_pixel_grid = sprytile_utils.grid_is_single_pixel(SprytileGui.loaded_grid)
+        is_use_mouse = context.scene.sprytile_ui.use_mouse
+        is_selecting = SprytileGui.is_selecting
 
         glLineWidth(1)
 
         # Draw box for currently selected tile(s)
         # Pixel grid selection is drawn in draw_tile_select_ui
-        if not is_pixel_grid or curr_sel[2] > 1 or curr_sel[3] > 1:
+        if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 and curr_sel[3] == 1):
             glColor4f(1.0, 1.0, 1.0, 1.0)
             curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(
                                                     grid_size, padding, margin,
@@ -434,9 +436,7 @@ class SprytileGui(bpy.types.Operator):
             SprytileGui.draw_selection(curr_sel_min, curr_sel_max)
 
         # Inside gui, draw appropriate selection for under mouse
-        if context.scene.sprytile_ui.use_mouse is True and \
-                SprytileGui.cursor_grid_pos is not None and \
-                SprytileGui.is_selecting is False:
+        if is_use_mouse and is_selecting is False and SprytileGui.cursor_grid_pos is not None:
 
             cursor_pos = SprytileGui.cursor_grid_pos
             # In pixel grid, draw cross hair
@@ -592,36 +592,36 @@ class SprytileGui(bpy.types.Operator):
 
         glLineWidth(1)
 
-        if is_pixel:
+        if is_pixel is False:
+            glColor4f(0.0, 0.0, 0.0, 0.5)
+            # Draw the grid
+            cell_size = (
+                grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
+                grid_size[1] + padding[1] * 2 + margin[0] + margin[2]
+            )
+            x_divs = ceil(tex_size[0] / cell_size[0])
+            y_divs = ceil(tex_size[1] / cell_size[1])
+            x_end = x_divs * cell_size[0]
+            y_end = y_divs * cell_size[1]
+            for x in range(x_divs + 1):
+                x_pos = (x * cell_size[0])
+                glBegin(GL_LINES)
+                glVertex2f(x_pos, 0)
+                glVertex2f(x_pos, y_end)
+                glEnd()
+            for y in range(y_divs + 1):
+                y_pos = (y * cell_size[1])
+                glBegin(GL_LINES)
+                glVertex2f(0, y_pos)
+                glVertex2f(x_end, y_pos)
+                glEnd()
+
+        if SprytileGui.is_selecting or (is_pixel and tile_selection[2] == 1 and tile_selection[3] == 1):
             sel_min, sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                           tile_selection[0], tile_selection[1],
                                                           tile_selection[2], tile_selection[3])
             glColor4f(1.0, 1.0, 1.0, 1.0)
             SprytileGui.draw_selection(sel_min, sel_max, 0)
-            return
-
-        glColor4f(0.0, 0.0, 0.0, 0.5)
-        # Draw the grid
-        cell_size = (
-            grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
-            grid_size[1] + padding[1] * 2 + margin[0] + margin[2]
-        )
-        x_divs = ceil(tex_size[0] / cell_size[0])
-        y_divs = ceil(tex_size[1] / cell_size[1])
-        x_end = x_divs * cell_size[0]
-        y_end = y_divs * cell_size[1]
-        for x in range(x_divs + 1):
-            x_pos = (x * cell_size[0])
-            glBegin(GL_LINES)
-            glVertex2f(x_pos, 0)
-            glVertex2f(x_pos, y_end)
-            glEnd()
-        for y in range(y_divs + 1):
-            y_pos = (y * cell_size[1])
-            glBegin(GL_LINES)
-            glVertex2f(0, y_pos)
-            glVertex2f(x_end, y_pos)
-            glEnd()
 
         glPopMatrix()
 
