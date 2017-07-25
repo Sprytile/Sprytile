@@ -533,7 +533,7 @@ class SprytileModalTool(bpy.types.Operator):
         grid_x = target_grid.grid[0]
         grid_y = target_grid.grid[1]
         layer_move = min(grid_x, grid_y)
-        layer_move = int(layer_move/2)
+        layer_move = math.ceil(layer_move/2)
         layer_move *= (1 / context.scene.sprytile_data.world_pixels)
         plane_normal = scene.sprytile_data.paint_normal_vector.copy()
         plane_normal *= layer_move * direction
