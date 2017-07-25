@@ -380,6 +380,11 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Automatically merge vertices when creating faces",
         default=True
     )
+    auto_join = BoolProperty(
+        name="Auto Join",
+        description="Join multi tile faces automatically",
+        default=False
+    )
 
     def set_reload(self, value):
         self["auto_reload"] = value
