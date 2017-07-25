@@ -41,12 +41,15 @@ def get_current_grid_vectors(scene, with_rotation=True):
 
 
 def grid_is_single_pixel(grid):
-    is_pixel = grid.grid[0] == 1 and grid.grid[1] == 1 and\
-               grid.padding[0] == 0 and grid.padding[0] == 0 and\
-               grid.margin[0] == 0 and grid.margin[1] == 0 and\
-               grid.margin[2] == 0 and grid.margin[3] == 0
-
+    is_pixel = grid.grid[0] == 1 and grid.grid[1] == 1 and grid_no_spacing(grid)
     return is_pixel
+
+
+def grid_no_spacing(grid):
+    no_spacing = grid.padding[0] == 0 and grid.padding[0] == 0 and \
+                 grid.margin[0] == 0 and grid.margin[1] == 0 and \
+                 grid.margin[2] == 0 and grid.margin[3] == 0
+    return no_spacing
 
 
 def get_grid_ids(context, grid, select_coords):
