@@ -45,11 +45,12 @@ class ToolBuild:
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
-        # Get vectors for grid
+        # Get vectors for grid, without rotation
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(
             scene,
             with_rotation=False
         )
+        # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
@@ -66,14 +67,25 @@ class ToolBuild:
         )
 
         # Get the area to build
-        offset_tile_id, offset_grid = sprytile_utils.get_grid_area(
+        offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
             grid.tile_selection[2],
             grid.tile_selection[3],
             data.uv_flip_x, data.uv_flip_y
         )
 
-        # Loop through grid coordinates to build
+        # Check if joining multi tile faces
+        # grid_no_spacing = sprytile_utils.grid_no_spacing(grid)
+        # is_single_pixel = sprytile_utils.grid_is_single_pixel(grid)
+        # do_join = is_single_pixel
+        # if do_join is False:
+        #     do_join = grid_no_spacing and data.auto_join
+
         face_index = None
+
+        # if do_join:
+        #     pass
+
+        # Loop through grid coordinates to build
         for i in range(len(offset_grid)):
             grid_offset = offset_grid[i]
             tile_offset = offset_tile_id[i]
@@ -117,10 +129,43 @@ class ToolBuild:
         if face_position is None:
             return
 
-        offset_tile_id, offset_grid = sprytile_utils.get_grid_area(target_grid.tile_selection[2],
-                                                                   target_grid.tile_selection[3],
-                                                                   data.uv_flip_x,
-                                                                   data.uv_flip_y)
+        offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
+                                                                    target_grid.tile_selection[2],
+                                                                    target_grid.tile_selection[3],
+                                                                    data.uv_flip_x,
+                                                                    data.uv_flip_y)
+
+        grid_no_spacing = sprytile_utils.grid_no_spacing(target_grid)
+        # No spacing in grid, automatically join the preview together
+        if grid_no_spacing:
+            origin_coord = face_position + coord_min[0] * x_vector + coord_min[1] * y_vector
+
+            size_x = (coord_max[0] - coord_min[0]) + 1
+            size_y = (coord_max[1] - coord_min[1]) + 1
+
+            size_x *= target_grid.grid[0]
+            size_y *= target_grid.grid[1]
+
+            x_vector *= size_x / target_grid.grid[0]
+            y_vector *= size_y / target_grid.grid[1]
+
+            preview_verts = self.modal.get_build_vertices(origin_coord,
+                                                          x_vector, y_vector,
+                                                          up_vector, right_vector)
+            vtx_center = Vector((0, 0, 0))
+            for vtx in preview_verts:
+                vtx_center += vtx
+            vtx_center /= len(preview_verts)
+
+            origin_xy = (target_grid.tile_selection[0],
+                         target_grid.tile_selection[1])
+
+            preview_uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, target_grid,
+                                                      origin_xy, size_x, size_y,
+                                                      up_vector, right_vector,
+                                                      preview_verts, vtx_center)
+            self.modal.set_preview_data(preview_verts, preview_uvs)
+            return
 
         preview_verts = []
         preview_uvs = []
