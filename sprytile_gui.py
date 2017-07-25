@@ -494,6 +494,8 @@ class SprytileGui(bpy.types.Operator):
                 SprytileGui.loaded_grid.tile_selection[2],
                 SprytileGui.loaded_grid.tile_selection[3]
             )
+        if display_grid[0] == 1 or display_grid[1] == 1:
+            return
 
         force_draw = sprytile_data.paint_mode == 'FILL'
         # Decide if should draw, only draw if middle mouse?
