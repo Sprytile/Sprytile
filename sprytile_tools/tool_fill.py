@@ -70,8 +70,11 @@ class ToolFill:
         plane_size = sprytile_data.axis_plane_size
 
         grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
-        grid_min[0] += 1
-        grid_max[0] += 1
+
+        x_offset = 1
+        if plane_size[0] % 2 == 1:
+            grid_min[0] += x_offset
+            grid_max[0] += x_offset
 
         if hit_coord.x < grid_min[0] or hit_coord.x >= grid_max[0]:
             return
@@ -113,7 +116,6 @@ class ToolFill:
                     paint_setting_cache[idx] = face[paint_setting_layer]
 
         data = scene.sprytile_data
-
         # Loop through list of coords to be filled
         for idx, cell_coord in enumerate(fill_coords):
             face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
