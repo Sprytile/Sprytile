@@ -236,6 +236,18 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if uv_verts is None:
         return None, None
 
+    apply_uvs(context, face, uv_verts, target_grid, mesh, data, target_img, tile_xy, uv_layer)
+    return face.index, target_grid
+
+
+def apply_uvs(context, face, uv_verts, target_grid,
+              mesh, data, target_img, tile_xy,
+              uv_layer=None):
+
+    if uv_layer is None:
+        uv_layer = mesh.loops.layers.uv.verify()
+        mesh.faces.layers.tex.verify()
+
     # Apply the UV positions on the face verts
     idx = 0
     for loop in face.loops:
@@ -259,17 +271,17 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if paint_settings_id is None:
         paint_settings_id = mesh.faces.layers.int.new('paint_settings')
 
-    face = mesh.faces[face_index]
+    face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
 
     paint_settings = sprytile_utils.get_paint_settings(data)
 
-    face[grid_layer_id] = grid_id
+    face[grid_layer_id] = context.object.sprytile_gridid
     face[grid_layer_tileid] = tile_id
     face[paint_settings_id] = paint_settings
 
-    bmesh.update_edit_mesh(obj.data)
+    bmesh.update_edit_mesh(context.object.data)
     mesh.faces.index_update()
     return face.index, target_grid
 
