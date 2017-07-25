@@ -487,9 +487,14 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
-        # Don't draw the work plane for 1 grids
+        display_grid = (grid_size[0], grid_size[1])
+        # For single pixel grids, use world pixel density
         if grid_size[0] == 1 or grid_size[1] == 1:
-            return
+            display_grid = (
+                SprytileGui.loaded_grid.tile_selection[2],
+                SprytileGui.loaded_grid.tile_selection[3]
+            )
+
         force_draw = sprytile_data.paint_mode == 'FILL'
         # Decide if should draw, only draw if middle mouse?
         if force_draw is False:
@@ -504,8 +509,8 @@ class SprytileGui(bpy.types.Operator):
         paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
 
         pixel_unit = 1 / sprytile_data.world_pixels
-        paint_up_vector = paint_up_vector * pixel_unit * grid_size[1]
-        paint_right_vector = paint_right_vector * pixel_unit * grid_size[0]
+        paint_up_vector = paint_up_vector * pixel_unit * display_grid[1]
+        paint_right_vector = paint_right_vector * pixel_unit * display_grid[0]
 
         grid_min, grid_max = sprytile_utils.get_workplane_area(
                                         sprytile_data.axis_plane_size[0],
