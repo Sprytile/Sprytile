@@ -6,32 +6,31 @@ from mathutils import Vector, Matrix
 import sprytile_utils
 
 
-def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):
-    """Given world vertices, find the UV position for each vert"""
-    
+def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
+                    up_vector, right_vector, verts, vtx_center):
     pixel_uv_x = 1.0 / image_size[0]
     pixel_uv_y = 1.0 / image_size[1]
-    uv_unit_x = pixel_uv_x * target_grid.grid[0]
-    uv_unit_y = pixel_uv_y * target_grid.grid[1]
+
+    uv_unit_x = pixel_uv_x * size_x
+    uv_unit_y = pixel_uv_y * size_y
 
     world_units = data.world_pixels
-    world_convert = Vector((target_grid.grid[0] / world_units,
-                            target_grid.grid[1] / world_units))
+    world_convert = Vector((size_x / world_units,
+                            size_y / world_units))
 
     # Build the translation matrix
     offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
     rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
 
     origin_x = target_grid.grid[0] + (target_grid.padding[0] * 2) + target_grid.margin[1] + target_grid.margin[3]
-    origin_x *= tile_xy[0]
+    origin_x *= origin_xy[0]
     origin_x += target_grid.padding[0]
     origin_x = pixel_uv_x * origin_x
 
     origin_y = target_grid.grid[1] + (target_grid.padding[1] * 2) + target_grid.margin[0] + target_grid.margin[2]
-    origin_y *= tile_xy[1]
+    origin_y *= origin_xy[1]
     origin_y += target_grid.padding[1]
     origin_y = pixel_uv_y * origin_y
-
     origin_matrix = Matrix.Translation((origin_x, origin_y, 0))
 
     uv_matrix = offset_matrix * rotate_matrix * origin_matrix
@@ -97,6 +96,15 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
             uv_vert.y = uv_pixel_y * pixel_uv_y
 
     return uv_verts
+
+
+def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):
+    """Given world vertices, find the UV position for each vert"""
+
+    return get_uv_pos_size(data, image_size, target_grid, tile_xy,
+                           target_grid.grid[0], target_grid.grid[1],
+                           up_vector, right_vector,
+                           verts, vtx_center)
 
 
 def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
