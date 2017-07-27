@@ -69,8 +69,6 @@ class ToolPaint:
 
         up_vector.normalize()
         right_vector.normalize()
-        # print("Up vector:", up_vector, "Right vector:", right_vector)
-        # print("Up mag:", up_vector.magnitude, "Right mag:", right_vector.magnitude)
         sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
@@ -131,7 +129,7 @@ class ToolPaint:
                                                    up_vector, right_vector, tile_xy,
                                                    preview_verts, vtx_center)
 
-        self.modal.set_preview_data(preview_verts, preview_uvs)
+        self.modal.set_preview_data(preview_verts, preview_uvs, is_quads=False)
 
     def handle_error(self, err):
         pass
