@@ -381,9 +381,9 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=True
     )
     auto_join = BoolProperty(
-        name="Auto Join",
+        name="Join Multi",
         description="Join multi tile faces when possible",
-        default=True
+        default=False
     )
 
     def set_reload(self, value):
