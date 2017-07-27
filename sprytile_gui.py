@@ -641,6 +641,7 @@ class SprytileGui(bpy.types.Operator):
 
         uv = sprytile_modal.SprytileModalTool.preview_uvs
         world_verts = sprytile_modal.SprytileModalTool.preview_verts
+        is_quads = sprytile_modal.SprytileModalTool.preview_is_quads
 
         # Turn the world vert positions into screen positions
         screen_verts = []
@@ -653,6 +654,7 @@ class SprytileGui(bpy.types.Operator):
         addon_prefs = context.user_preferences.addons[__package__].preferences
         preview_alpha = addon_prefs.preview_transparency
         sprytile_data = context.scene.sprytile_data
+
         if sprytile_data.has_selection:
             preview_alpha *= 0.25
         if sprytile_data.paint_mode == 'PAINT':
@@ -660,16 +662,25 @@ class SprytileGui(bpy.types.Operator):
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
 
-        # bgl.glBegin(bgl.GL_POLYGON)
+        # paint preview only draws one polygon
+        if not is_quads:
+            bgl.glBegin(bgl.GL_POLYGON)
+
         for i in range(len(uv)):
             mod = i % 4
-            if mod == 0:
+
+            # Per tile polygon preview, begin and end every four verts
+            if is_quads and mod == 0:
                 bgl.glBegin(bgl.GL_POLYGON)
+
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])
-            if mod == 3:
+
+            if is_quads and mod == 3:
                 bgl.glEnd()
-        # bgl.glEnd()
+
+        if not is_quads:
+            bgl.glEnd()
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
