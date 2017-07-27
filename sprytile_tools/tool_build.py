@@ -1,6 +1,6 @@
 import bpy
-from mathutils import Vector, Matrix, Quaternion
-from mathutils.geometry import distance_point_to_plane
+from mathutils import Vector, Quaternion
+from mathutils.geometry import intersect_line_plane
 
 import sprytile_utils
 import sprytile_uv
@@ -88,9 +88,11 @@ class ToolBuild:
                 context.object, ray_origin, ray_vector)
             # Hit something, check if hit is closer than plane pos
             if hit_face_idx is not None:
-                plane_dist = distance_point_to_plane(ray_origin, scene.cursor_location, plane_normal)
-                difference = abs(plane_dist - hit_dist)
-                if hit_dist < plane_dist or difference < 0.8:
+                plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
+                                                 scene.cursor_location, plane_normal)
+                plane_dist = (plane_hit - ray_origin).magnitude
+                difference = abs(hit_dist - plane_dist)
+                if difference < 0.01 or hit_dist < plane_dist:
                     return
 
             origin_coord = scene.cursor_location + \
