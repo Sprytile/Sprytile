@@ -188,6 +188,14 @@ class SprytileModalTool(bpy.types.Operator):
 
     def flow_cursor(self, context, face_index, virtual_cursor):
         """Move the cursor along the given face, using virtual_cursor direction"""
+        face = self.bmesh.faces[face_index]
+        world_verts = []
+        for idx, vert in enumerate(face.verts):
+            vert_world_pos = context.object.matrix_world * vert.co
+            world_verts.append(vert_world_pos)
+        self.flow_cursor_verts(context, world_verts, virtual_cursor)
+
+    def flow_cursor_verts(self, context, verts, virtual_cursor):
         cursor_len = len(self.virtual_cursor)
         if cursor_len <= 1:
             return
@@ -195,21 +203,21 @@ class SprytileModalTool(bpy.types.Operator):
         cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
-        face = self.bmesh.faces[face_index]
         max_dot = 1.0
         closest_idx = -1
         closest_pos = Vector((0.0, 0.0, 0.0))
-        for idx, vert in enumerate(face.verts):
-            vert_world_pos = context.object.matrix_world * vert.co
-            vert_vector = vert_world_pos - virtual_cursor
+
+        for idx, vert in enumerate(verts):
+            vert_vector = vert - virtual_cursor
             vert_vector.normalize()
             vert_dot = abs(1.0 - vert_vector.dot(cursor_direction))
             if vert_dot < max_dot:
                 closest_idx = idx
-                closest_pos = vert_world_pos
-
+                closest_pos = vert
         if closest_idx != -1:
             context.scene.cursor_location = closest_pos
+
+        pass
 
     def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal):
         """
