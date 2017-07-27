@@ -116,9 +116,11 @@ class SprytilePanel(bpy.types.Panel):
         if sprytile_data.paint_mode == 'MAKE_FACE':
             row = layout.row(align=True)
             row.prop(sprytile_data, "auto_merge", toggle=True)
-            row.prop(sprytile_data, "auto_join", toggle=True, )
+            row.prop(sprytile_data, "auto_join", toggle=True)
 
         if sprytile_data.paint_mode == 'PAINT':
+            layout.prop(sprytile_data, "auto_join", toggle=True, )
+
             row = layout.row(align=False)
             split = row.split(percentage=0.65)
 
