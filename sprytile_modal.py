@@ -242,7 +242,6 @@ class SprytileModalTool(bpy.types.Operator):
         cursor_len = len(self.virtual_cursor)
         if cursor_len <= 1:
             return
-
         cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
@@ -437,7 +436,7 @@ class SprytileModalTool(bpy.types.Operator):
 
             face_position += grid_right * 0.5 + grid_up * 0.5
             face_position += plane_normal * 0.01
-            self.merge_doubles(context, face, face_position, -plane_normal, threshold)
+            face_index = self.merge_doubles(context, face, face_position, -plane_normal, threshold)
 
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
@@ -465,6 +464,7 @@ class SprytileModalTool(bpy.types.Operator):
         )
         if new_face_idx is not None:
             self.bmesh.faces[new_face_idx].select = False
+        return new_face_idx
 
     def create_face(self, context, world_vertices):
         """

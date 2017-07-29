@@ -168,8 +168,8 @@ class ToolBuild:
                                                        up_vector, right_vector, plane_normal,
                                                        shift_vec=shift_vec)
 
-        if data.cursor_flow and face_index is not None and face_index > -1:
-            self.modal.flow_cursor(context, face_index, plane_pos)
+            if data.cursor_flow and face_index is not None and face_index > -1:
+                self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
