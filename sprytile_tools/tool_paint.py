@@ -39,7 +39,8 @@ class ToolPaint:
         if modal_evt.build_preview:
             self.build_preview(context, scene, ray_origin, ray_vector)
 
-    def process_preview(self, context, scene, face_index):
+    @staticmethod
+    def process_preview(modal, context, scene, face_index):
         obj = context.object
         data = scene.sprytile_data
 
@@ -54,7 +55,7 @@ class ToolPaint:
 
         face_verts = []
 
-        face = self.modal.bmesh.faces[face_index]
+        face = modal.bmesh.faces[face_index]
         for loop in face.loops:
             vert = loop.vert
             face_verts.append(context.object.matrix_world * vert.co)
@@ -68,7 +69,7 @@ class ToolPaint:
         rotate_normal = plane_normal
 
         # Recalculate the rotation normal
-        face_up, face_right = self.modal.get_face_up_vector(context, face_index)
+        face_up, face_right = modal.get_face_up_vector(context, face_index)
 
         if face_up is not None and face_right is not None:
             rotate_normal = face_right.cross(face_up)
@@ -111,9 +112,11 @@ class ToolPaint:
         if hit_loc is None:
             return
 
-        face, verts, uvs, target_grid, data, target_img, tile_xy = self.process_preview(
-                                                                        context, scene, face_index
-                                                                        )
+        face, verts, uvs, target_grid, data, target_img, tile_xy = ToolPaint.process_preview(
+                                                                        self.modal,
+                                                                        context,
+                                                                        scene,
+                                                                        face_index)
         if face is None:
             return
 
@@ -129,9 +132,11 @@ class ToolPaint:
         if hit_loc is None:
             return
 
-        face, verts, uvs, target_grid, data, target_img, tile_xy = self.process_preview(
-                                                                        context, scene, face_index
-                                                                        )
+        face, verts, uvs, target_grid, data, target_img, tile_xy = ToolPaint.process_preview(
+                                                                        self.modal,
+                                                                        context,
+                                                                        scene,
+                                                                        face_index)
         if face is None:
             self.modal.set_preview_data(None, None)
             return
