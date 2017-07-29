@@ -269,6 +269,16 @@ class SprytileModalTool(bpy.types.Operator):
     def update_bmesh_tree(self, context, update_index=False):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         if update_index:
+            # Verify layers are created
+            layer_names = ['grid_index', 'grid_tile_id',
+                           'grid_sel_width', 'grid_sel_height',
+                           'paint_settings']
+            for layer_name in layer_names:
+                layer_data = self.bmesh.faces.layers.int.get(layer_name)
+                if layer_data is None:
+                    print('Creating face layer:', layer_name)
+                    self.bmesh.faces.layers.int.new(layer_name)
+
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
