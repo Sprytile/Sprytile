@@ -1195,24 +1195,24 @@ class SprytileGridTranslate(bpy.types.Operator):
                 bpy.ops.transform.translate(value=offset)
 
         # Loop through the selected of the bmesh
-        if context.object.mode == 'EDIT' and context.scene.sprytile_data.snap_translate:
-            for sel in self.bmesh.select_history:
-                vert_list = []
-                if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
-                    for vert in sel.verts:
-                        vert_list.append(vert)
-                if isinstance(sel, BMVert):
-                    vert_list.append(sel)
-                cursor_pos = context.scene.cursor_location
-                for vert in vert_list:
-                    vert_offset = vert.co - cursor_pos
-                    vert_int = Vector((
-                                int(round(vert_offset.x / pixel_unit)),
-                                int(round(vert_offset.y / pixel_unit)),
-                                int(round(vert_offset.z / pixel_unit))
-                                ))
-                    new_vert_pos = cursor_pos + (vert_int * pixel_unit)
-                    vert.co = new_vert_pos
+        # if context.object.mode == 'EDIT' and context.scene.sprytile_data.snap_translate:
+        #     for sel in self.bmesh.select_history:
+        #         vert_list = []
+        #         if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
+        #             for vert in sel.verts:
+        #                 vert_list.append(vert)
+        #         if isinstance(sel, BMVert):
+        #             vert_list.append(sel)
+        #         cursor_pos = context.scene.cursor_location
+        #         for vert in vert_list:
+        #             vert_offset = vert.co - cursor_pos
+        #             vert_int = Vector((
+        #                         int(round(vert_offset.x / pixel_unit)),
+        #                         int(round(vert_offset.y / pixel_unit)),
+        #                         int(round(vert_offset.z / pixel_unit))
+        #                         ))
+        #             new_vert_pos = cursor_pos + (vert_int * pixel_unit)
+        #             vert.co = new_vert_pos
 
         self.bmesh = None
         bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'WINDOW')
@@ -1272,10 +1272,10 @@ class SprytileObjectPanel(bpy.types.Panel):
             help_text = "Select a mesh object to use Sprytile"
         label_wrap(layout.column(), help_text)
 
-        layout.separator()
-        box = layout.box()
-        box.label("Pixel Translate Options")
-        box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
+        # layout.separator()
+        # box = layout.box()
+        # box.label("Pixel Translate Options")
+        # box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
 
         layout.separator()
         box = layout.box()
@@ -1333,11 +1333,11 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
-        row = layout.row(align=False)
-        row.label("", icon="CURSOR")
-        row.prop(data, "cursor_flow", toggle=True)
+        # row = layout.row(align=False)
+        # row.label("", icon="CURSOR")
+        # row.prop(data, "cursor_flow", toggle=True)
 
-        layout.prop(data, "snap_translate", toggle=True)
+        # layout.prop(data, "snap_translate", toggle=True)
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
 
