@@ -39,39 +39,7 @@ class ToolPaint:
         if modal_evt.build_preview:
             self.build_preview(context, scene, ray_origin, ray_vector)
 
-    def execute(self, context, scene, ray_origin, ray_vector):
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(context.scene)
-        hit_loc, normal, face_index, distance = self.modal.raycast_object(context.object, ray_origin, ray_vector,
-                                                                          world_normal=True)
-        if face_index is None:
-            return
-
-        normal.normalize()
-
-        self.modal.add_virtual_cursor(hit_loc)
-        # Change the uv of the given face
-        grid_id = context.object.sprytile_gridid
-        grid = sprytile_utils.get_grid(context, grid_id)
-        tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
-
-        face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-        data = context.scene.sprytile_data
-
-        rotate_normal = plane_normal
-        if face_up is not None and face_right is not None:
-            rotate_normal = face_up.cross(face_right)
-
-        rotate_matrix = Quaternion(-rotate_normal, data.mesh_rotate)
-        if face_up is not None:
-            up_vector = rotate_matrix * face_up
-        if face_right is not None:
-            right_vector = rotate_matrix * face_right
-
-        up_vector.normalize()
-        right_vector.normalize()
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, None, face_index, self.modal.bmesh)
-
-    def build_preview(self, context, scene, ray_origin, ray_vector):
+    def process_preview(self, context, scene, face_index):
         obj = context.object
         data = scene.sprytile_data
 
@@ -80,29 +48,22 @@ class ToolPaint:
 
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
-            return
+            return None, None, None, None, None, None, None
 
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
 
-        # Raycast the object
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
-        # Didn't hit a face, do nothing
-        if face_index is None:
-            self.modal.set_preview_data(None, None)
-            return
-
-        preview_verts = []
+        face_verts = []
 
         face = self.modal.bmesh.faces[face_index]
         for loop in face.loops:
             vert = loop.vert
-            preview_verts.append(context.object.matrix_world * vert.co)
+            face_verts.append(context.object.matrix_world * vert.co)
 
         # Get the center of the preview verts
         vtx_center = Vector((0, 0, 0))
-        for vtx in preview_verts:
+        for vtx in face_verts:
             vtx_center += vtx
-        vtx_center /= len(preview_verts)
+        vtx_center /= len(face_verts)
 
         rotate_normal = plane_normal
 
@@ -125,11 +86,57 @@ class ToolPaint:
         right_vector.normalize()
 
         tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
-        preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
-                                                   up_vector, right_vector, tile_xy,
-                                                   preview_verts, vtx_center)
 
-        self.modal.set_preview_data(preview_verts, preview_uvs, is_quads=False)
+        offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
+            target_grid.tile_selection[2],
+            target_grid.tile_selection[3],
+            data.uv_flip_x,
+            data.uv_flip_y)
+
+        size_x = (coord_max[0] - coord_min[0]) + 1
+        size_y = (coord_max[1] - coord_min[1]) + 1
+        size_x *= target_grid.grid[0]
+        size_y *= target_grid.grid[1]
+
+        uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, target_grid,
+                                          tile_xy, size_x, size_y,
+                                          up_vector, right_vector,
+                                          face_verts, vtx_center)
+        return face, face_verts, uvs, target_grid, data, target_img, tile_xy
+
+    def execute(self, context, scene, ray_origin, ray_vector):
+        # Raycast the object
+        obj = context.object
+        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
+        if hit_loc is None:
+            return
+
+        face, verts, uvs, target_grid, data, target_img, tile_xy = self.process_preview(
+                                                                        context, scene, face_index
+                                                                        )
+        if face is None:
+            return
+
+        self.modal.add_virtual_cursor(hit_loc)
+        sprytile_uv.apply_uvs(context, face, uvs, target_grid,
+                              self.modal.bmesh, data, target_img,
+                              tile_xy, origin_xy=tile_xy)
+
+    def build_preview(self, context, scene, ray_origin, ray_vector):
+        # Raycast the object
+        obj = context.object
+        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
+        if hit_loc is None:
+            return
+
+        face, verts, uvs, target_grid, data, target_img, tile_xy = self.process_preview(
+                                                                        context, scene, face_index
+                                                                        )
+        if face is None:
+            self.modal.set_preview_data(None, None)
+            return
+
+        self.modal.set_preview_data(verts, uvs, is_quads=False)
 
     def handle_error(self, err):
         pass
