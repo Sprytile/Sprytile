@@ -45,6 +45,7 @@ class SprytileModalTool(bpy.types.Operator):
 
     preview_verts = None
     preview_uvs = None
+    preview_is_quads = True
 
     modal_map = bpy.props.EnumProperty(
         items=[
@@ -106,11 +107,42 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
         tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
         if grid_id_layer is None or tile_id_layer is None:
-            return None, None
+            return None, None, None, None, None
 
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
-        return grid_id, tile_packed_id
+
+        width = 1
+        width_layer = self.bmesh.faces.layers.int.get('grid_sel_width')
+        if width_layer is not None:
+            width = face[width_layer]
+            if width is None:
+                width = 1
+
+        height = 1
+        height_layer = self.bmesh.faces.layers.int.get('grid_sel_height')
+        if height_layer is not None:
+            height = face[height_layer]
+            if height is None:
+                height = 1
+
+        origin = -1
+        origin_layer = self.bmesh.faces.layers.int.get('grid_sel_origin')
+        if origin_layer is not None:
+            origin = face[origin_layer]
+            if origin is None:
+                origin = -1
+
+        # For backwards compatibility. Origin/width/height
+        # did not exist before 0.4.2
+        if origin == 0 and height == 0 and width == 0:
+            origin = tile_packed_id
+        height = max(1, height)
+        width = max(1, width)
+
+        # print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}, o:{4}"
+        #       .format(grid_id, tile_packed_id, width, height, origin))
+        return grid_id, tile_packed_id, width, height, origin
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
@@ -131,7 +163,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = self.bmesh.faces[face_index]
 
-        grid_id, tile_packed_id = self.get_face_tiledata(face)
+        grid_id, tile_packed_id, width, height, origin_id = self.get_face_tiledata(face)
         if None in {grid_id, tile_packed_id}:
             return
 
@@ -151,10 +183,25 @@ class SprytileModalTool(bpy.types.Operator):
         row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
         tile_y = math.floor(tile_packed_id / row_size)
         tile_x = tile_packed_id % row_size
+        if event.ctrl:
+            width = 1
+            height = 1
+        elif origin_id > -1:
+            origin_y = math.floor(origin_id / row_size)
+            origin_x = origin_id % row_size
+            tile_x = min(origin_x, tile_x)
+            tile_y = min(origin_y, tile_y)
+
+        if width == 0:
+            width = 1
+        if height == 0:
+            height = 1
 
         context.object.sprytile_gridid = grid_id
         tilegrid.tile_selection[0] = tile_x
         tilegrid.tile_selection[1] = tile_y
+        tilegrid.tile_selection[2] = width
+        tilegrid.tile_selection[3] = height
 
         bpy.ops.sprytile.build_grid_list()
 
@@ -184,34 +231,40 @@ class SprytileModalTool(bpy.types.Operator):
 
     def flow_cursor(self, context, face_index, virtual_cursor):
         """Move the cursor along the given face, using virtual_cursor direction"""
+        face = self.bmesh.faces[face_index]
+        world_verts = []
+        for idx, vert in enumerate(face.verts):
+            vert_world_pos = context.object.matrix_world * vert.co
+            world_verts.append(vert_world_pos)
+        self.flow_cursor_verts(context, world_verts, virtual_cursor)
+
+    def flow_cursor_verts(self, context, verts, virtual_cursor):
         cursor_len = len(self.virtual_cursor)
         if cursor_len <= 1:
             return
-
         cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
-        face = self.bmesh.faces[face_index]
         max_dot = 1.0
         closest_idx = -1
         closest_pos = Vector((0.0, 0.0, 0.0))
-        for idx, vert in enumerate(face.verts):
-            vert_world_pos = context.object.matrix_world * vert.co
-            vert_vector = vert_world_pos - virtual_cursor
+
+        for idx, vert in enumerate(verts):
+            vert_vector = vert - virtual_cursor
             vert_vector.normalize()
             vert_dot = abs(1.0 - vert_vector.dot(cursor_direction))
             if vert_dot < max_dot:
                 closest_idx = idx
-                closest_pos = vert_world_pos
-
+                closest_pos = vert
         if closest_idx != -1:
             context.scene.cursor_location = closest_pos
 
-    def raycast_grid_coord(self, context, obj, x, y, up_vector, right_vector, normal):
+        pass
+
+    def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal):
         """
         Raycast agains the object using grid coordinates around the cursor
         :param context:
-        :param obj:
         :param x:
         :param y:
         :param up_vector:
@@ -219,6 +272,7 @@ class SprytileModalTool(bpy.types.Operator):
         :param normal:
         :return:
         """
+        obj = context.object
         ray_origin = Vector(context.scene.cursor_location)
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
@@ -257,21 +311,33 @@ class SprytileModalTool(bpy.types.Operator):
     def update_bmesh_tree(self, context, update_index=False):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         if update_index:
+            # Verify layers are created
+            layer_names = ['grid_index', 'grid_tile_id',
+                           'grid_sel_width', 'grid_sel_height',
+                           'paint_settings', 'grid_sel_origin']
+            for layer_name in layer_names:
+                layer_data = self.bmesh.faces.layers.int.get(layer_name)
+                if layer_data is None:
+                    print('Creating face layer:', layer_name)
+                    self.bmesh.faces.layers.int.new(layer_name)
+
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
-    def set_preview_data(self, verts, uvs):
+    def set_preview_data(self, verts, uvs, is_quads=True):
         """
         Set the preview data for SprytileGUI to draw
         :param verts:
         :param uvs:
+        :param is_quads:
         :return:
         """
         SprytileModalTool.preview_verts = verts
         SprytileModalTool.preview_uvs = uvs
+        SprytileModalTool.preview_is_quads = is_quads
 
     @staticmethod
     def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
@@ -294,6 +360,111 @@ class SprytileModalTool(bpy.types.Operator):
             face_order = (vtx1, vtx4, vtx3, vtx2)
 
         return face_order
+
+    def construct_face(self, context, grid_coord,
+                       tile_xy, origin_xy,
+                       grid_up, grid_right,
+                       up_vector, right_vector, plane_normal,
+                       face_index=None, check_exists=True,
+                       shift_vec=None, threshold=None, add_cursor=True):
+        """
+        Create a new face at grid_coord or remap the existing face
+        :param context:
+        :param grid_coord:
+        :param tile_xy:
+        :param origin_xy:
+        :param grid_up:
+        :param grid_right:
+        :param up_vector:
+        :param right_vector:
+        :param plane_normal:
+        :param face_index:
+        :param check_exists:
+        :param shift_vec:
+        :param threshold:
+        :param add_cursor:
+        :return:
+        """
+        scene = context.scene
+        data = scene.sprytile_data
+        hit_loc = None
+        hit_normal = None
+        if check_exists:
+            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                context, grid_coord[0], grid_coord[1],
+                grid_up, grid_right, plane_normal
+            )
+
+        did_build = False
+        # No face index, assume build face
+        if face_index is None or face_index < 0:
+            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+            face_verts = self.get_build_vertices(face_position,
+                                                 grid_right, grid_up,
+                                                 up_vector, right_vector)
+            face_index = self.create_face(context, face_verts)
+            did_build = True
+        # Face index was given and check exists flag is off, check for actual face
+        elif check_exists is False:
+            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+                context, grid_coord[0], grid_coord[1],
+                grid_up, grid_right, plane_normal
+            )
+
+        if face_index is None or face_index < 0:
+            return None
+
+        # Didn't create face, only want to remap face. Check for coplanarity and dot
+        if did_build is False:
+            check_dot = abs(plane_normal.dot(hit_normal))
+            check_dot -= 1
+            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+
+            check_coplanar = abs(check_coplanar) < 0.05
+            check_dot = abs(check_dot) < 0.05
+            # Can't remap face
+            if not check_coplanar or not check_dot:
+                return None
+
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, self.bmesh)
+
+        if did_build and data.auto_merge:
+            if threshold is None:
+                threshold = (1 / data.world_pixels) * 2
+
+            face = self.bmesh.faces[face_index]
+
+            face_position += grid_right * 0.5 + grid_up * 0.5
+            face_position += plane_normal * 0.01
+            face_index = self.merge_doubles(context, face, face_position, -plane_normal, threshold)
+
+        # Auto merge refreshes the mesh automatically
+        self.refresh_mesh = not data.auto_merge
+
+        if add_cursor and hit_loc is not None:
+            self.add_virtual_cursor(hit_loc)
+        return face_index
+
+    def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
+        face.select = True
+
+        bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+
+        for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+            el.index_update()
+            el.ensure_lookup_table()
+
+        # Modified the mesh, refresh and raycast to find the new face index
+        self.update_bmesh_tree(context)
+        hit_loc, norm, new_face_idx, hit_dist = self.raycast_object(
+            context.object,
+            ray_origin,
+            ray_direction,
+            0.02
+        )
+        if new_face_idx is not None:
+            self.bmesh.faces[new_face_idx].select = False
+        return new_face_idx
 
     def create_face(self, context, world_vertices):
         """
@@ -429,7 +600,7 @@ class SprytileModalTool(bpy.types.Operator):
         grid_x = target_grid.grid[0]
         grid_y = target_grid.grid[1]
         layer_move = min(grid_x, grid_y)
-        layer_move = int(layer_move/2)
+        layer_move = math.ceil(layer_move/2)
         layer_move *= (1 / context.scene.sprytile_data.world_pixels)
         plane_normal = scene.sprytile_data.paint_normal_vector.copy()
         plane_normal *= layer_move * direction

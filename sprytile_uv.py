@@ -6,32 +6,31 @@ from mathutils import Vector, Matrix
 import sprytile_utils
 
 
-def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):
-    """Given world vertices, find the UV position for each vert"""
-    
+def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
+                    up_vector, right_vector, verts, vtx_center):
     pixel_uv_x = 1.0 / image_size[0]
     pixel_uv_y = 1.0 / image_size[1]
-    uv_unit_x = pixel_uv_x * target_grid.grid[0]
-    uv_unit_y = pixel_uv_y * target_grid.grid[1]
+
+    uv_unit_x = pixel_uv_x * size_x
+    uv_unit_y = pixel_uv_y * size_y
 
     world_units = data.world_pixels
-    world_convert = Vector((target_grid.grid[0] / world_units,
-                            target_grid.grid[1] / world_units))
+    world_convert = Vector((size_x / world_units,
+                            size_y / world_units))
 
     # Build the translation matrix
     offset_matrix = Matrix.Translation((target_grid.offset[0] * pixel_uv_x, target_grid.offset[1] * pixel_uv_y, 0))
     rotate_matrix = Matrix.Rotation(target_grid.rotate, 4, 'Z')
 
     origin_x = target_grid.grid[0] + (target_grid.padding[0] * 2) + target_grid.margin[1] + target_grid.margin[3]
-    origin_x *= tile_xy[0]
+    origin_x *= origin_xy[0]
     origin_x += target_grid.padding[0]
     origin_x = pixel_uv_x * origin_x
 
     origin_y = target_grid.grid[1] + (target_grid.padding[1] * 2) + target_grid.margin[0] + target_grid.margin[2]
-    origin_y *= tile_xy[1]
+    origin_y *= origin_xy[1]
     origin_y += target_grid.padding[1]
     origin_y = pixel_uv_y * origin_y
-
     origin_matrix = Matrix.Translation((origin_x, origin_y, 0))
 
     uv_matrix = offset_matrix * rotate_matrix * origin_matrix
@@ -97,6 +96,15 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
             uv_vert.y = uv_pixel_y * pixel_uv_y
 
     return uv_verts
+
+
+def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, tile_xy, verts, vtx_center):
+    """Given world vertices, find the UV position for each vert"""
+
+    return get_uv_pos_size(data, image_size, target_grid, tile_xy,
+                           target_grid.grid[0], target_grid.grid[1],
+                           up_vector, right_vector,
+                           verts, vtx_center)
 
 
 def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
@@ -189,7 +197,7 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min,
     return uv_verts
 
 
-def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
+def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, mesh):
     """UV map the given face"""
     if mesh is None:
         return None, None
@@ -228,6 +236,23 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if uv_verts is None:
         return None, None
 
+    apply_uvs(context, face, uv_verts,
+              target_grid, mesh, data,
+              target_img, tile_xy,
+              origin_xy=origin_xy,
+              uv_layer=uv_layer)
+
+    return face.index, target_grid
+
+
+def apply_uvs(context, face, uv_verts, target_grid,
+              mesh, data, target_img, tile_xy,
+              uv_layer=None, origin_xy=None):
+
+    if uv_layer is None:
+        uv_layer = mesh.loops.layers.uv.verify()
+        mesh.faces.layers.tex.verify()
+
     # Apply the UV positions on the face verts
     idx = 0
     for loop in face.loops:
@@ -240,29 +265,36 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
         face.material_index = mat_idx
 
     # Save the grid and tile ID to the face
+    # If adding more layers, make sure setup in sprytile_modal.update_bmesh_tree
     grid_layer_id = mesh.faces.layers.int.get('grid_index')
     grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
+    grid_sel_width = mesh.faces.layers.int.get('grid_sel_width')
+    grid_sel_height = mesh.faces.layers.int.get('grid_sel_height')
+    grid_sel_origin = mesh.faces.layers.int.get('grid_sel_origin')
     paint_settings_id = mesh.faces.layers.int.get('paint_settings')
 
-    if grid_layer_id is None:
-        grid_layer_id = mesh.faces.layers.int.new('grid_index')
-    if grid_layer_tileid is None:
-        grid_layer_tileid = mesh.faces.layers.int.new('grid_tile_id')
-    if paint_settings_id is None:
-        paint_settings_id = mesh.faces.layers.int.new('paint_settings')
-
-    face = mesh.faces[face_index]
+    face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
+    origin_id = tile_id
+    if origin_xy is not None:
+        origin_id = (origin_xy[1] * row_size) + origin_xy[0]
 
     paint_settings = sprytile_utils.get_paint_settings(data)
 
-    face[grid_layer_id] = grid_id
+    sel_width = target_grid.tile_selection[2]
+    sel_height = target_grid.tile_selection[3]
+
+    face[grid_layer_id] = context.object.sprytile_gridid
     face[grid_layer_tileid] = tile_id
+    face[grid_sel_width] = sel_width
+    face[grid_sel_height] = sel_height
+    face[grid_sel_origin] = origin_id
     face[paint_settings_id] = paint_settings
 
-    bmesh.update_edit_mesh(obj.data)
+    bmesh.update_edit_mesh(context.object.data)
     mesh.faces.index_update()
+
     return face.index, target_grid
 
 

@@ -1,14 +1,16 @@
 import bpy
-from mathutils import Vector, Matrix, Quaternion
-from mathutils.geometry import distance_point_to_plane
+from math import floor
+from mathutils import Vector, Quaternion
+from mathutils.geometry import intersect_line_plane
 
 import sprytile_utils
 import sprytile_uv
-
+from sprytile_tools import tool_paint
 
 class ToolBuild:
     modal = None
     left_down = False
+    start_coord = None
 
     def __init__(self, modal, rx_source):
         self.modal = modal
@@ -31,111 +33,155 @@ class ToolBuild:
         ray_vector = self.modal.rx_data.ray_vector
 
         if modal_evt.left_down:
+            is_start = self.left_down is False
             self.left_down = True
-            self.execute(context, scene, ray_origin, ray_vector)
+            self.execute(context, scene, ray_origin, ray_vector, is_start)
         elif self.left_down:
             self.left_down = False
+            self.start_coord = None
             bpy.ops.ed.undo_push()
 
         if modal_evt.build_preview:
             self.build_preview(context, scene, ray_origin, ray_vector)
 
-    def execute(self, context, scene, ray_origin, ray_vector):
+    def execute(self, context, scene, ray_origin, ray_vector, is_start):
+        data = scene.sprytile_data
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
 
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(context.object, ray_origin, ray_vector)
+        # Get vectors for grid, without rotation
+        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(
+            scene,
+            with_rotation=False
+        )
+        # Rotate the vectors
+        rotation = Quaternion(plane_normal, data.mesh_rotate)
+        up_vector = rotation * up_vector
+        right_vector = rotation * right_vector
 
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
 
-        # If raycast hit the mesh...
-        if face_index is not None:
-            # The face is valid for painting if hit face
-            # is facing same way as plane normal and is coplanar to target plane
-            check_dot = abs(plane_normal.dot(hit_normal))
-            check_dot -= 1
-            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-            check_coplanar = abs(check_coplanar) < 0.05
-            check_dot = abs(check_dot) < 0.05
-            # Hit a face that is valid for painting
-            if check_dot and check_coplanar:
-                self.modal.add_virtual_cursor(hit_loc)
-                # Change UV of this face instead
-                face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-                if face_up is not None and face_up.dot(up_vector) < 0.95:
-                    data = context.scene.sprytile_data
-                    rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, hit_normal)
-                    up_vector = rotate_matrix * face_up
-                    right_vector = rotate_matrix * face_right
-                sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
-                if scene.sprytile_data.cursor_flow:
-                    self.modal.flow_cursor(context, face_index, hit_loc)
-                return
-
-        # Raycast did not hit the mesh, raycast to the virtual grid
-        face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
+        # raycast grid to get the grid position under the mouse
+        grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
             scene, context,
             up_vector, right_vector, plane_normal,
-            ray_origin, ray_vector
+            ray_origin, ray_vector,
+            as_coord=True
         )
-        # Failed to hit the grid
-        if face_position is None:
-            return
 
-        # If raycast hit mesh, compare distance of grid hit and mesh hit
-        if hit_loc is not None:
-            grid_hit_dist = (face_position - ray_origin).magnitude
-            # Mesh hit closer than grid hit, don't do anything
-            if hit_dist < grid_hit_dist:
+        # Record starting position of stroke
+        if is_start:
+            self.start_coord = grid_coord
+        # Not starting, filter out when can build
+        elif self.start_coord is not None:
+            tolerance_min = (floor(grid.tile_selection[2] * 0.25),
+                             floor(grid.tile_selection[3] * 0.25))
+            coord_offset = (
+                (grid_coord[0] - self.start_coord[0]) % grid.tile_selection[2],
+                (grid_coord[1] - self.start_coord[1]) % grid.tile_selection[3]
+            )
+            if coord_offset[0] > 0 or coord_offset[1] > 0:
                 return
 
-        # store plane_cursor, for deciding where to move actual cursor if auto cursor mode is on
-        self.modal.add_virtual_cursor(plane_cursor)
-        # Build face and UV map it
-        face_vertices = self.modal.get_build_vertices(face_position, x_vector, y_vector, up_vector, right_vector)
-        face_index = self.modal.create_face(context, face_vertices)
+        # Get the area to build
+        offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
+            grid.tile_selection[2],
+            grid.tile_selection[3],
+            data.uv_flip_x, data.uv_flip_y
+        )
 
-        face_up, face_right = self.modal.get_face_up_vector(context, face_index)
-        if face_up is not None and face_up.dot(up_vector) < 0.95:
-            data = context.scene.sprytile_data
-            rotate_matrix = Matrix.Rotation(data.mesh_rotate, 4, plane_normal)
-            up_vector = rotate_matrix * face_up
-            right_vector = rotate_matrix * face_right
+        # Check if joining multi tile faces
+        grid_no_spacing = sprytile_utils.grid_no_spacing(grid)
+        is_single_pixel = sprytile_utils.grid_is_single_pixel(grid)
+        do_join = is_single_pixel
+        if do_join is False:
+            do_join = grid_no_spacing and data.auto_join
 
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
+        face_index = None
 
-        if scene.sprytile_data.auto_merge:
-            face = self.modal.bmesh.faces[face_index]
-            face.select = True
-            # Find the face center, to raycast from later
-            face_center = context.object.matrix_world * face.calc_center_bounds()
-            # Move face center back a little for ray casting
-            face_center -= shift_vec
+        if do_join:
+            # Raycast under mouse
+            hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
+                context.object, ray_origin, ray_vector)
+            # Hit something, check if hit is closer than plane pos
+            if hit_face_idx is not None:
+                plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
+                                                 scene.cursor_location, plane_normal)
+                plane_dist = (plane_hit - ray_origin).magnitude
+                difference = abs(hit_dist - plane_dist)
+                if difference < 0.01 or hit_dist < plane_dist:
+                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
+                                                    self.modal, context,
+                                                    scene, hit_face_idx)
+                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
+                                          self.modal.bmesh, data, target_img,
+                                          tile_xy, origin_xy=tile_xy)
+                    return
 
-            threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
-            bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+            origin_coord = scene.cursor_location + \
+                           (grid_coord[0] + coord_min[0]) * grid_right + \
+                           (grid_coord[1] + coord_min[1]) * grid_up
+            self.modal.add_virtual_cursor(origin_coord)
 
-            for el in [self.modal.bmesh.faces, self.modal.bmesh.verts, self.modal.bmesh.edges]:
-                el.index_update()
-                el.ensure_lookup_table()
+            size_x = (coord_max[0] - coord_min[0]) + 1
+            size_y = (coord_max[1] - coord_min[1]) + 1
 
-            # Modified the mesh, refresh and raycast to find the new face index
-            self.modal.update_bmesh_tree(context)
-            loc, norm, new_face_idx, hit_dist = self.modal.raycast_object(context.object, face_center, ray_vector)
-            if new_face_idx is not None:
-                self.modal.bmesh.faces[new_face_idx].select = False
-                face_index = new_face_idx
-            else:
-                face_index = -1
+            size_x *= grid.grid[0]
+            size_y *= grid.grid[1]
 
-        # Auto merge refreshes the mesh automatically
-        self.modal.refresh_mesh = not scene.sprytile_data.auto_merge
+            grid_right *= size_x / grid.grid[0]
+            grid_up *= size_y / grid.grid[1]
 
-        if scene.sprytile_data.cursor_flow and face_index is not None and face_index > -1:
-            self.modal.flow_cursor(context, face_index, plane_cursor)
+            verts = self.modal.get_build_vertices(origin_coord,
+                                                  grid_right, grid_up,
+                                                  up_vector, right_vector)
+            face_index = self.modal.create_face(context, verts)
+            if face_index is None:
+                return
+            vtx_center = Vector((0, 0, 0))
+            for vtx in verts:
+                vtx_center += vtx
+            vtx_center /= len(verts)
+
+            origin_xy = (grid.tile_selection[0],
+                         grid.tile_selection[1])
+
+            target_img = sprytile_utils.get_grid_texture(context.object, grid)
+
+            uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, grid,
+                                              origin_xy, size_x, size_y,
+                                              up_vector, right_vector,
+                                              verts, vtx_center)
+            sprytile_uv.apply_uvs(context, self.modal.bmesh.faces[face_index],
+                                  uvs, grid, self.modal.bmesh,
+                                  data, target_img, origin_xy)
+
+            if data.auto_merge:
+                threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
+                face = self.modal.bmesh.faces[face_index]
+                self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
+        else:
+            virtual_cursor = scene.cursor_location + \
+                             (grid_coord[0] * grid_right) + \
+                             (grid_coord[1] * grid_up)
+            self.modal.add_virtual_cursor(virtual_cursor)
+            # Loop through grid coordinates to build
+            for i in range(len(offset_grid)):
+                grid_offset = offset_grid[i]
+                tile_offset = offset_tile_id[i]
+
+                grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
+                tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
+
+                face_index = self.modal.construct_face(context, grid_pos,
+                                                       tile_pos, tile_xy,
+                                                       grid_up, grid_right,
+                                                       up_vector, right_vector, plane_normal,
+                                                       shift_vec=shift_vec)
+
+        # if data.cursor_flow and face_index is not None and face_index > -1:
+        #     self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
@@ -155,9 +201,6 @@ class ToolBuild:
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
 
-        up_vector.normalize()
-        right_vector.normalize()
-
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
             scene, context,
@@ -168,19 +211,73 @@ class ToolBuild:
         if face_position is None:
             return
 
-        preview_verts = self.modal.get_build_vertices(face_position, x_vector, y_vector,
-                                                      up_vector, right_vector)
+        offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
+                                                                    target_grid.tile_selection[2],
+                                                                    target_grid.tile_selection[3],
+                                                                    data.uv_flip_x,
+                                                                    data.uv_flip_y)
 
-        # Get the center of the preview verts
-        vtx_center = Vector((0, 0, 0))
-        for vtx in preview_verts:
-            vtx_center += vtx
-        vtx_center /= len(preview_verts)
+        grid_no_spacing = sprytile_utils.grid_no_spacing(target_grid)
+        # No spacing in grid, automatically join the preview together
+        if grid_no_spacing:
+            origin_coord = face_position + coord_min[0] * x_vector + coord_min[1] * y_vector
 
-        tile_xy = (target_grid.tile_selection[0], target_grid.tile_selection[1])
-        preview_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
-                                                   up_vector, right_vector, tile_xy,
-                                                   preview_verts, vtx_center)
+            size_x = (coord_max[0] - coord_min[0]) + 1
+            size_y = (coord_max[1] - coord_min[1]) + 1
+
+            size_x *= target_grid.grid[0]
+            size_y *= target_grid.grid[1]
+
+            x_vector *= size_x / target_grid.grid[0]
+            y_vector *= size_y / target_grid.grid[1]
+
+            preview_verts = self.modal.get_build_vertices(origin_coord,
+                                                          x_vector, y_vector,
+                                                          up_vector, right_vector)
+            vtx_center = Vector((0, 0, 0))
+            for vtx in preview_verts:
+                vtx_center += vtx
+            vtx_center /= len(preview_verts)
+
+            origin_xy = (target_grid.tile_selection[0],
+                         target_grid.tile_selection[1])
+
+            preview_uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, target_grid,
+                                                      origin_xy, size_x, size_y,
+                                                      up_vector, right_vector,
+                                                      preview_verts, vtx_center)
+            self.modal.set_preview_data(preview_verts, preview_uvs)
+            return
+
+        # Spaced grids need to be tiled
+        preview_verts = []
+        preview_uvs = []
+        for i in range(len(offset_tile_id)):
+            grid_offset = offset_grid[i]
+            tile_offset = offset_tile_id[i]
+
+            x_offset = x_vector * grid_offset[0]
+            y_offset = y_vector * grid_offset[1]
+
+            coord_position = face_position + x_offset + y_offset
+            coord_verts = self.modal.get_build_vertices(coord_position, x_vector, y_vector,
+                                                        up_vector, right_vector)
+            # Get the center of the preview verts
+            vtx_center = Vector((0, 0, 0))
+            for vtx in coord_verts:
+                vtx_center += vtx
+            vtx_center /= len(coord_verts)
+
+            # Calculate the tile with offset
+            tile_xy = (target_grid.tile_selection[0] + tile_offset[0],
+                       target_grid.tile_selection[1] + tile_offset[1])
+
+            coord_uvs = sprytile_uv.get_uv_positions(data, target_img.size, target_grid,
+                                                     up_vector, right_vector, tile_xy,
+                                                     coord_verts, vtx_center)
+
+            preview_verts.extend(coord_verts)
+            preview_uvs.extend(coord_uvs)
 
         self.modal.set_preview_data(preview_verts, preview_uvs)
 

@@ -25,6 +25,8 @@ class SprytileGui(bpy.types.Operator):
 
     mouse_pt = None
     label_frames = 50
+    is_selecting = False
+    sel_start = None
 
     # ================
     # Modal functions
@@ -233,9 +235,29 @@ class SprytileGui(bpy.types.Operator):
 
             SprytileGui.cursor_grid_pos = grid_pos
 
-            if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-                tilegrid.tile_selection[0] = grid_pos.x
-                tilegrid.tile_selection[1] = grid_pos.y
+            if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and SprytileGui.is_selecting is False:
+                SprytileGui.is_selecting = True
+                SprytileGui.sel_start = grid_pos
+
+            if SprytileGui.is_selecting:
+
+                sel_min = Vector((
+                    min(grid_pos.x, SprytileGui.sel_start.x),
+                    min(grid_pos.y, SprytileGui.sel_start.y)
+                ))
+                sel_max = Vector((
+                    max(grid_pos.x, SprytileGui.sel_start.x),
+                    max(grid_pos.y, SprytileGui.sel_start.y)
+                ))
+
+                tilegrid.tile_selection[0] = sel_min.x
+                tilegrid.tile_selection[1] = sel_min.y
+                tilegrid.tile_selection[2] = (sel_max.x - sel_min.x) + 1
+                tilegrid.tile_selection[3] = (sel_max.y - sel_min.y) + 1
+
+            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE' and SprytileGui.is_selecting:
+                SprytileGui.is_selecting = False
+                SprytileGui.sel_start = None
 
         # Cycle through grids on same material when right click
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
@@ -320,14 +342,28 @@ class SprytileGui(bpy.types.Operator):
 
         middle_btn = context.scene.sprytile_ui.middle_btn
 
-        SprytileGui.draw_offscreen(self, context)
+        SprytileGui.draw_offscreen(context)
         SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
                                      context.scene.cursor_location, region, rv3d,
                                      middle_btn, context)
 
     @staticmethod
-    def draw_offscreen(self, context):
+    def draw_selection(sel_min, sel_max, adjust=1):
+        sel_vtx = [
+            (sel_min[0] + adjust, sel_min[1] + adjust),
+            (sel_max[0], sel_min[1]),
+            (sel_max[0], sel_max[1]),
+            (sel_min[0], sel_max[1])
+        ]
+        glBegin(GL_LINE_STRIP)
+        for vtx in sel_vtx:
+            glVertex2i(vtx[0], vtx[1])
+        glVertex2i(sel_vtx[0][0], sel_vtx[0][1] - adjust)
+        glEnd()
+
+    @staticmethod
+    def draw_offscreen(context):
         """Draw the GUI into the offscreen texture"""
         offscreen = SprytileGui.offscreen
         target_img = SprytileGui.texture_grid
@@ -377,38 +413,50 @@ class SprytileGui(bpy.types.Operator):
 
         glDisable(GL_TEXTURE_2D)
 
-        def draw_selection(sel_min, sel_max):
-            sel_vtx = [
-                (sel_min[0] + 1, sel_min[1] + 1),
-                (sel_max[0], sel_min[1]),
-                (sel_max[0], sel_max[1]),
-                (sel_min[0], sel_max[1])
-            ]
-            glBegin(GL_LINE_STRIP)
-            for vtx in sel_vtx:
-                glVertex2i(vtx[0], vtx[1])
-            glVertex2i(sel_vtx[0][0], sel_vtx[0][1] - 1)
-            glEnd()
-
-        glColor4f(1.0, 1.0, 1.0, 1.0)
-        glLineWidth(1)
-        # Draw box for currently selected tile(s)
+        # Get data for drawing additional overlays
         grid_size = SprytileGui.loaded_grid.grid
         padding = SprytileGui.loaded_grid.padding
         margin = SprytileGui.loaded_grid.margin
         curr_sel = SprytileGui.loaded_grid.tile_selection
-        curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
-                                                                curr_sel[0], curr_sel[1],
-                                                                curr_sel[2], curr_sel[3])
-        draw_selection(curr_sel_min, curr_sel_max)
+        is_pixel_grid = sprytile_utils.grid_is_single_pixel(SprytileGui.loaded_grid)
+        is_use_mouse = context.scene.sprytile_ui.use_mouse
+        is_selecting = SprytileGui.is_selecting
 
-        # Inside gui, draw box for tile under mouse
-        if context.scene.sprytile_ui.use_mouse is True and SprytileGui.cursor_grid_pos is not None:
-            glColor4f(1.0, 0.0, 0.0, 1.0)
+        glLineWidth(1)
+
+        # Draw box for currently selected tile(s)
+        # Pixel grid selection is drawn in draw_tile_select_ui
+        if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1):
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(
+                                                    grid_size, padding, margin,
+                                                    curr_sel[0], curr_sel[1],
+                                                    curr_sel[2], curr_sel[3]
+                                                )
+            SprytileGui.draw_selection(curr_sel_min, curr_sel_max)
+
+        # Inside gui, draw appropriate selection for under mouse
+        if is_use_mouse and is_selecting is False and SprytileGui.cursor_grid_pos is not None:
+
             cursor_pos = SprytileGui.cursor_grid_pos
-            cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
-                                                                int(cursor_pos.x), int(cursor_pos.y),)
-            draw_selection(cursor_min, cursor_max)
+            # In pixel grid, draw cross hair
+            if is_pixel_grid:
+                glColor4f(1.0, 1.0, 1.0, 0.5)
+                glBegin(GL_LINE_STRIP)
+                glVertex2i(0, int(cursor_pos.y + 1))
+                glVertex2i(tex_size[0], int(cursor_pos.y + 1))
+                glEnd()
+
+                glBegin(GL_LINE_STRIP)
+                glVertex2i(int(cursor_pos.x + 1), 0)
+                glVertex2i(int(cursor_pos.x + 1), tex_size[1])
+                glEnd()
+            # Draw box around selection
+            else:
+                glColor4f(1.0, 0.0, 0.0, 1.0)
+                cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
+                                                                    int(cursor_pos.x), int(cursor_pos.y),)
+                SprytileGui.draw_selection(cursor_min, cursor_max)
 
         glPopMatrix()
         offscreen.unbind()
@@ -439,6 +487,16 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
+        display_grid = (grid_size[0], grid_size[1])
+        # For single pixel grids, use world pixel density
+        if grid_size[0] == 1 or grid_size[1] == 1:
+            display_grid = (
+                SprytileGui.loaded_grid.tile_selection[2],
+                SprytileGui.loaded_grid.tile_selection[3]
+            )
+        if display_grid[0] == 1 or display_grid[1] == 1:
+            return
+
         force_draw = sprytile_data.paint_mode == 'FILL'
         # Decide if should draw, only draw if middle mouse?
         if force_draw is False:
@@ -452,18 +510,14 @@ class SprytileGui(bpy.types.Operator):
         paint_up_vector = sprytile_data.paint_up_vector
         paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
 
-        indicator_x = sprytile_data.axis_plane_size[0]
-        indicator_y = sprytile_data.axis_plane_size[1]
-
         pixel_unit = 1 / sprytile_data.world_pixels
-        paint_up_vector = paint_up_vector * pixel_unit * grid_size[1]
-        paint_right_vector = paint_right_vector * pixel_unit * grid_size[0]
+        paint_up_vector = paint_up_vector * pixel_unit * display_grid[1]
+        paint_right_vector = paint_right_vector * pixel_unit * display_grid[0]
 
-        x_min = cursor_loc - paint_right_vector * indicator_x
-        x_max = cursor_loc + paint_right_vector * indicator_x
-
-        y_min = cursor_loc - paint_up_vector * indicator_y
-        y_max = cursor_loc + paint_up_vector * indicator_y
+        grid_min, grid_max = sprytile_utils.get_workplane_area(
+                                        sprytile_data.axis_plane_size[0],
+                                        sprytile_data.axis_plane_size[1]
+                                    )
 
         def draw_world_line(world_start, world_end):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
@@ -475,30 +529,28 @@ class SprytileGui(bpy.types.Operator):
             glVertex2f(end.x, end.y)
             glEnd()
 
-        def draw_interior_grid(start_loc, x_vec, y_vec, size_x, size_y):
-            for x_dir in [-1, 1]:
-                for grid_x in range(1, size_x):
-                    start_pos = start_loc + (x_vec * x_dir * grid_x)
-                    end_pos = start_pos + y_vec * size_y * 2
-                    draw_world_line(start_pos, end_pos)
-
         plane_col = sprytile_data.axis_plane_color
         glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
         glLineWidth(2)
 
-        draw_interior_grid(y_min, paint_right_vector, paint_up_vector, indicator_x, indicator_y)
-        draw_interior_grid(x_min, paint_up_vector, paint_right_vector, indicator_y, indicator_x)
-        # Origin lines
-        draw_world_line(x_min, x_max)
-        draw_world_line(y_min, y_max)
+        for x in range(grid_min[0] + 1, grid_max[0]):
+            draw_start = cursor_loc + (paint_right_vector * x) + (paint_up_vector * grid_min[1])
+            draw_end = draw_start + paint_up_vector * sprytile_data.axis_plane_size[1]
+            draw_world_line(draw_start, draw_end)
+        for y in range(grid_min[1] + 1, grid_max[1]):
+            draw_start = cursor_loc + (paint_right_vector * grid_min[0]) + (paint_up_vector * y)
+            draw_end = draw_start + paint_right_vector * sprytile_data.axis_plane_size[0]
+            draw_world_line(draw_start, draw_end)
 
-        paint_right_vector *= sprytile_data.axis_plane_size[0]
-        paint_up_vector *= sprytile_data.axis_plane_size[1]
+        x_offset_min = paint_right_vector * grid_min[0]
+        x_offset_max = paint_right_vector * grid_max[0]
+        y_offset_min = paint_up_vector * grid_min[1]
+        y_offset_max = paint_up_vector * grid_max[1]
 
-        p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector - paint_up_vector)
-        p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc - paint_right_vector + paint_up_vector)
-        p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector + paint_up_vector)
-        p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + paint_right_vector - paint_up_vector)
+        p0 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_min + y_offset_min)
+        p1 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_min + y_offset_max)
+        p2 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_max + y_offset_max)
+        p3 = view3d_utils.location_3d_to_region_2d(region, rv3d, cursor_loc + x_offset_max + y_offset_min)
 
         if p0 is None or p1 is None or p2 is None or p3 is None:
             return
@@ -512,7 +564,9 @@ class SprytileGui(bpy.types.Operator):
         glEnd()
 
     @staticmethod
-    def draw_tile_select_ui(view_min, view_max, view_size, tex_size, grid_size, padding, margin, show_extra):
+    def draw_tile_select_ui(view_min, view_max, view_size,
+                            tex_size, grid_size, tile_selection,
+                            padding, margin, show_extra, is_pixel):
         # Draw the texture quad
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBegin(bgl.GL_QUADS)
@@ -531,6 +585,7 @@ class SprytileGui(bpy.types.Operator):
         # Translate the gl context by grid matrix
         scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
 
+        # Setup to draw grid into viewport
         offset_matrix = Matrix.Translation((view_min.x, view_min.y, 0))
         grid_matrix = sprytile_utils.get_grid_matrix(SprytileGui.loaded_grid)
         grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) * Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) * grid_matrix
@@ -542,29 +597,38 @@ class SprytileGui(bpy.types.Operator):
         glLoadMatrixf(grid_buff)
         glDisable(GL_TEXTURE_2D)
 
-        glColor4f(0.0, 0.0, 0.0, 0.5)
         glLineWidth(1)
-        # Draw the grid
-        cell_size = (
-            grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
-            grid_size[1] + padding[1] * 2 + margin[0] + margin[2]
-        )
-        x_divs = ceil(tex_size[0] / cell_size[0])
-        y_divs = ceil(tex_size[1] / cell_size[1])
-        x_end = x_divs * cell_size[0]
-        y_end = y_divs * cell_size[1]
-        for x in range(x_divs + 1):
-            x_pos = (x * cell_size[0])
-            glBegin(GL_LINES)
-            glVertex2f(x_pos, 0)
-            glVertex2f(x_pos, y_end)
-            glEnd()
-        for y in range(y_divs + 1):
-            y_pos = (y * cell_size[1])
-            glBegin(GL_LINES)
-            glVertex2f(0, y_pos)
-            glVertex2f(x_end, y_pos)
-            glEnd()
+
+        if is_pixel is False:
+            glColor4f(0.0, 0.0, 0.0, 0.5)
+            # Draw the grid
+            cell_size = (
+                grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
+                grid_size[1] + padding[1] * 2 + margin[0] + margin[2]
+            )
+            x_divs = ceil(tex_size[0] / cell_size[0])
+            y_divs = ceil(tex_size[1] / cell_size[1])
+            x_end = x_divs * cell_size[0]
+            y_end = y_divs * cell_size[1]
+            for x in range(x_divs + 1):
+                x_pos = (x * cell_size[0])
+                glBegin(GL_LINES)
+                glVertex2f(x_pos, 0)
+                glVertex2f(x_pos, y_end)
+                glEnd()
+            for y in range(y_divs + 1):
+                y_pos = (y * cell_size[1])
+                glBegin(GL_LINES)
+                glVertex2f(0, y_pos)
+                glVertex2f(x_end, y_pos)
+                glEnd()
+
+        if SprytileGui.is_selecting or (is_pixel and tile_selection[2] == 1 or tile_selection[3] == 1):
+            sel_min, sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
+                                                          tile_selection[0], tile_selection[1],
+                                                          tile_selection[2], tile_selection[3])
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            SprytileGui.draw_selection(sel_min, sel_max, 0)
 
         glPopMatrix()
 
@@ -577,6 +641,7 @@ class SprytileGui(bpy.types.Operator):
 
         uv = sprytile_modal.SprytileModalTool.preview_uvs
         world_verts = sprytile_modal.SprytileModalTool.preview_verts
+        is_quads = sprytile_modal.SprytileModalTool.preview_is_quads
 
         # Turn the world vert positions into screen positions
         screen_verts = []
@@ -589,6 +654,7 @@ class SprytileGui(bpy.types.Operator):
         addon_prefs = context.user_preferences.addons[__package__].preferences
         preview_alpha = addon_prefs.preview_transparency
         sprytile_data = context.scene.sprytile_data
+
         if sprytile_data.has_selection:
             preview_alpha *= 0.25
         if sprytile_data.paint_mode == 'PAINT':
@@ -596,11 +662,25 @@ class SprytileGui(bpy.types.Operator):
 
         bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
 
-        bgl.glBegin(bgl.GL_POLYGON)
+        # paint preview only draws one polygon
+        if not is_quads:
+            bgl.glBegin(bgl.GL_POLYGON)
+
         for i in range(len(uv)):
+            mod = i % 4
+
+            # Per tile polygon preview, begin and end every four verts
+            if is_quads and mod == 0:
+                bgl.glBegin(bgl.GL_POLYGON)
+
             glTexCoord2f(uv[i].x, uv[i].y)
             glVertex2f(screen_verts[i][0], screen_verts[i][1])
-        bgl.glEnd()
+
+            if is_quads and mod == 3:
+                bgl.glEnd()
+
+        if not is_quads:
+            bgl.glEnd()
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
@@ -609,8 +689,10 @@ class SprytileGui(bpy.types.Operator):
 
         # Prepare some data that will be used for drawing
         grid_size = SprytileGui.loaded_grid.grid
+        tile_sel = SprytileGui.loaded_grid.tile_selection
         padding = SprytileGui.loaded_grid.padding
         margin = SprytileGui.loaded_grid.margin
+        is_pixel = sprytile_utils.grid_is_single_pixel(SprytileGui.loaded_grid)
 
         # Draw work plane
         SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
@@ -640,7 +722,7 @@ class SprytileGui(bpy.types.Operator):
 
         # Draw the tile select UI
         SprytileGui.draw_tile_select_ui(view_min, view_max, view_size, SprytileGui.tex_size,
-                                        grid_size, padding, margin, show_extra)
+                                        grid_size, tile_sel, padding, margin, show_extra, is_pixel)
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])

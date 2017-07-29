@@ -114,7 +114,9 @@ class SprytilePanel(bpy.types.Panel):
         row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
 
         if sprytile_data.paint_mode == 'MAKE_FACE':
-            layout.prop(sprytile_data, "auto_merge", toggle=True)
+            row = layout.row(align=True)
+            row.prop(sprytile_data, "auto_merge", toggle=True)
+            row.prop(sprytile_data, "auto_join", toggle=True)
 
         if sprytile_data.paint_mode == 'PAINT':
             row = layout.row(align=False)

@@ -3,6 +3,8 @@ import bgl
 import blf
 import bmesh
 import math
+
+import sys
 from bpy_extras import view3d_utils
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector, Quaternion
@@ -36,6 +38,49 @@ def get_current_grid_vectors(scene, with_rotation=True):
         right_vector = rotation * right_vector
 
     return up_vector, right_vector, normal_vector
+
+
+def grid_is_single_pixel(grid):
+    is_pixel = grid.grid[0] == 1 and grid.grid[1] == 1 and grid_no_spacing(grid)
+    return is_pixel
+
+
+def grid_no_spacing(grid):
+    no_spacing = grid.padding[0] == 0 and grid.padding[0] == 0 and \
+                 grid.margin[0] == 0 and grid.margin[1] == 0 and \
+                 grid.margin[2] == 0 and grid.margin[3] == 0
+    return no_spacing
+
+
+def get_grid_ids(context, grid, select_coords):
+    """Convert an array of selection X/Y coordinates to grid ids"""
+    target_img = get_grid_texture(context.object, grid)
+    if target_img is None:
+        return None
+
+    row_size = math.ceil(target_img.size[0] / grid.grid[0])
+    grid_ids = []
+    for x, y in select_coords:
+        tile_id = (y * row_size) + x
+        grid_ids.append(tile_id)
+    return grid_ids
+
+
+def get_grid_selection_coords(grid):
+    tile_sel = grid.tile_selection
+    selection_array = []
+    for y in range(tile_sel[3]):
+        for x in range(tile_sel[2]):
+            coord = (tile_sel[0] + x, tile_sel[1] + y)
+            selection_array.append(coord)
+    return selection_array
+
+
+def get_grid_selection_ids(context, grid):
+    coords = get_grid_selection_coords(grid)
+    sel_size = (grid.tile_selection[2], grid.tile_selection[3])
+    grid_ids = get_grid_ids(context, grid, coords)
+    return coords, sel_size, grid_ids
 
 
 def snap_vector_to_axis(vector, mirrored=False):
@@ -99,7 +144,54 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
-def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector):
+def get_workplane_area(width, height):
+    offset_ids, offset_grid, coord_min, coord_max = get_grid_area(width, height)
+    return [coord_min[0] - 1, coord_min[1] - 1], coord_max
+
+
+def get_grid_area(width, height, flip_x=False, flip_y=False):
+    """
+    Get the grid and tile ID offset, for a given dimension
+    :param width:
+    :param height:
+    :param flip_x:
+    :param flip_y:
+    :return: offset_tile_ids, offset_grid
+    """
+    offset_x = int(width/2)
+    offset_y = int(height/2)
+    if width % 2 == 0:
+        offset_x -= 1
+    if height % 2 == 0:
+        offset_y -= 1
+
+    offset_x *= -1
+    offset_y *= -1
+
+    offset_tile_ids = []
+    offset_grid = []
+    coords_min = [sys.maxsize, sys.maxsize]
+    coords_max = [-sys.maxsize, -sys.maxsize]
+    for y in range(height):
+        for x in range(width):
+            # Calculate tile offset
+            tile_offset = (width - 1 - x if flip_x else x,
+                           height - 1 - y if flip_y else y)
+            offset_tile_ids.append(tile_offset)
+
+            # Calculate grid offset
+            grid_offset = (x + offset_x, y + offset_y)
+
+            coords_min[0] = min(grid_offset[0], coords_min[0])
+            coords_min[1] = min(grid_offset[1], coords_min[1])
+            coords_max[0] = max(grid_offset[0], coords_max[0])
+            coords_max[1] = max(grid_offset[1], coords_max[1])
+
+            offset_grid.append(grid_offset)
+    return offset_tile_ids, offset_grid, coords_min, coords_max
+
+
+def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_origin, ray_vector, as_coord=False):
     """
     Raycast to a plane on the scene cursor, and return the grid snapped position
     :param scene:
@@ -109,6 +201,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     :param plane_normal:
     :param ray_origin:
     :param ray_vector:
+    :param as_coord: If position should be returned as world position or grid coordinate
     :return: grid_position, x_vector, y_vector, plane_pos
     """
 
@@ -125,8 +218,14 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     grid_position, x_vector, y_vector = get_grid_pos(
                                             plane_pos, scene.cursor_location,
                                             right_vector.copy(), up_vector.copy(),
-                                            world_pixels, grid_x, grid_y
+                                            world_pixels, grid_x, grid_y, as_coord
                                         )
+    if x_vector.normalized().dot(right_vector) < 0:
+        x_vector *= -1
+        grid_position -= x_vector
+    if y_vector.normalized().dot(up_vector) < 0:
+        y_vector *= -1
+        grid_position -= y_vector
     return grid_position, x_vector, y_vector, plane_pos
 
 
@@ -1096,24 +1195,24 @@ class SprytileGridTranslate(bpy.types.Operator):
                 bpy.ops.transform.translate(value=offset)
 
         # Loop through the selected of the bmesh
-        if context.object.mode == 'EDIT' and context.scene.sprytile_data.snap_translate:
-            for sel in self.bmesh.select_history:
-                vert_list = []
-                if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
-                    for vert in sel.verts:
-                        vert_list.append(vert)
-                if isinstance(sel, BMVert):
-                    vert_list.append(sel)
-                cursor_pos = context.scene.cursor_location
-                for vert in vert_list:
-                    vert_offset = vert.co - cursor_pos
-                    vert_int = Vector((
-                                int(round(vert_offset.x / pixel_unit)),
-                                int(round(vert_offset.y / pixel_unit)),
-                                int(round(vert_offset.z / pixel_unit))
-                                ))
-                    new_vert_pos = cursor_pos + (vert_int * pixel_unit)
-                    vert.co = new_vert_pos
+        # if context.object.mode == 'EDIT' and context.scene.sprytile_data.snap_translate:
+        #     for sel in self.bmesh.select_history:
+        #         vert_list = []
+        #         if isinstance(sel, BMFace) or isinstance(sel, BMEdge):
+        #             for vert in sel.verts:
+        #                 vert_list.append(vert)
+        #         if isinstance(sel, BMVert):
+        #             vert_list.append(sel)
+        #         cursor_pos = context.scene.cursor_location
+        #         for vert in vert_list:
+        #             vert_offset = vert.co - cursor_pos
+        #             vert_int = Vector((
+        #                         int(round(vert_offset.x / pixel_unit)),
+        #                         int(round(vert_offset.y / pixel_unit)),
+        #                         int(round(vert_offset.z / pixel_unit))
+        #                         ))
+        #             new_vert_pos = cursor_pos + (vert_int * pixel_unit)
+        #             vert.co = new_vert_pos
 
         self.bmesh = None
         bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'WINDOW')
@@ -1173,10 +1272,10 @@ class SprytileObjectPanel(bpy.types.Panel):
             help_text = "Select a mesh object to use Sprytile"
         label_wrap(layout.column(), help_text)
 
-        layout.separator()
-        box = layout.box()
-        box.label("Pixel Translate Options")
-        box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
+        # layout.separator()
+        # box = layout.box()
+        # box.label("Pixel Translate Options")
+        # box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
 
         layout.separator()
         box = layout.box()
@@ -1234,11 +1333,11 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
-        row = layout.row(align=False)
-        row.label("", icon="CURSOR")
-        row.prop(data, "cursor_flow", toggle=True)
+        # row = layout.row(align=False)
+        # row.label("", icon="CURSOR")
+        # row.prop(data, "cursor_flow", toggle=True)
 
-        layout.prop(data, "snap_translate", toggle=True)
+        # layout.prop(data, "snap_translate", toggle=True)
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
 
