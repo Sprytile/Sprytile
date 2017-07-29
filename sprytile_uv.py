@@ -276,11 +276,9 @@ def apply_uvs(context, face, uv_verts, target_grid,
     face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
-    origin_id = -1
+    origin_id = tile_id
     if origin_xy is not None:
         origin_id = (origin_xy[1] * row_size) + origin_xy[0]
-        print("Row size:", row_size)
-        print("UV Origin is set to", origin_id, origin_xy)
 
     paint_settings = sprytile_utils.get_paint_settings(data)
 
