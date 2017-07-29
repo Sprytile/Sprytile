@@ -426,7 +426,7 @@ class SprytileGui(bpy.types.Operator):
 
         # Draw box for currently selected tile(s)
         # Pixel grid selection is drawn in draw_tile_select_ui
-        if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 and curr_sel[3] == 1):
+        if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1):
             glColor4f(1.0, 1.0, 1.0, 1.0)
             curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(
                                                     grid_size, padding, margin,
@@ -623,7 +623,7 @@ class SprytileGui(bpy.types.Operator):
                 glVertex2f(x_end, y_pos)
                 glEnd()
 
-        if SprytileGui.is_selecting or (is_pixel and tile_selection[2] == 1 and tile_selection[3] == 1):
+        if SprytileGui.is_selecting or (is_pixel and tile_selection[2] == 1 or tile_selection[3] == 1):
             sel_min, sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                           tile_selection[0], tile_selection[1],
                                                           tile_selection[2], tile_selection[3])
