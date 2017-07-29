@@ -5,7 +5,7 @@ from mathutils.geometry import intersect_line_plane
 
 import sprytile_utils
 import sprytile_uv
-
+from sprytile_tools import tool_paint
 
 class ToolBuild:
     modal = None
@@ -70,10 +70,11 @@ class ToolBuild:
             as_coord=True
         )
 
+        # Record starting position of stroke
         if is_start:
             self.start_coord = grid_coord
+        # Not starting, filter out when can build
         elif self.start_coord is not None:
-
             tolerance_min = (floor(grid.tile_selection[2] * 0.25),
                              floor(grid.tile_selection[3] * 0.25))
             coord_offset = (
@@ -110,11 +111,18 @@ class ToolBuild:
                 plane_dist = (plane_hit - ray_origin).magnitude
                 difference = abs(hit_dist - plane_dist)
                 if difference < 0.01 or hit_dist < plane_dist:
+                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
+                                                    self.modal, context,
+                                                    scene, hit_face_idx)
+                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
+                                          self.modal.bmesh, data, target_img,
+                                          tile_xy, origin_xy=tile_xy)
                     return
 
             origin_coord = scene.cursor_location + \
                            (grid_coord[0] + coord_min[0]) * grid_right + \
                            (grid_coord[1] + coord_min[1]) * grid_up
+            self.modal.add_virtual_cursor(origin_coord)
 
             size_x = (coord_max[0] - coord_min[0]) + 1
             size_y = (coord_max[1] - coord_min[1]) + 1
@@ -154,6 +162,10 @@ class ToolBuild:
                 face = self.modal.bmesh.faces[face_index]
                 self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
         else:
+            virtual_cursor = scene.cursor_location + \
+                             (grid_coord[0] * grid_right) + \
+                             (grid_coord[1] * grid_up)
+            self.modal.add_virtual_cursor(virtual_cursor)
             # Loop through grid coordinates to build
             for i in range(len(offset_grid)):
                 grid_offset = offset_grid[i]
@@ -168,8 +180,8 @@ class ToolBuild:
                                                        up_vector, right_vector, plane_normal,
                                                        shift_vec=shift_vec)
 
-            if data.cursor_flow and face_index is not None and face_index > -1:
-                self.modal.flow_cursor(context, face_index, plane_pos)
+        if data.cursor_flow and face_index is not None and face_index > -1:
+            self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
