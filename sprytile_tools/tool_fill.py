@@ -153,7 +153,7 @@ class ToolFill:
                                                                 grid_up, grid_right, plane_normal)
 
                 if hit_loc is not None:
-                    grid_id, tile_packed_id = self.modal.get_tiledata_from_index(face_index)
+                    grid_id, tile_packed_id, width, height = self.modal.get_tiledata_from_index(face_index)
                     map_value = 1
                     if tile_packed_id is not None:
                         map_value = tile_packed_id

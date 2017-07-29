@@ -107,11 +107,28 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
         tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
         if grid_id_layer is None or tile_id_layer is None:
-            return None, None
+            return None, None, None, None
 
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
-        return grid_id, tile_packed_id
+
+        width = 1
+        width_layer = self.bmesh.faces.layers.int.get('grid_sel_width')
+        if width_layer is not None:
+            width = face[width_layer]
+            if width is None:
+                width = 1
+
+        height = 1
+        height_layer = self.bmesh.faces.layers.int.get('grid_sel_height')
+        if height_layer is not None:
+            height = face[height_layer]
+            if height is None:
+                height = 1
+
+        print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}"
+              .format(grid_id, tile_packed_id, width, height))
+        return grid_id, tile_packed_id, width, height
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
@@ -132,7 +149,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = self.bmesh.faces[face_index]
 
-        grid_id, tile_packed_id = self.get_face_tiledata(face)
+        grid_id, tile_packed_id, width, height = self.get_face_tiledata(face)
         if None in {grid_id, tile_packed_id}:
             return
 
@@ -145,7 +162,6 @@ class SprytileModalTool(bpy.types.Operator):
             return
 
         paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
-        tile_selection = [1, 1]
         if paint_setting_layer is not None:
             paint_setting = face[paint_setting_layer]
             sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
@@ -157,8 +173,8 @@ class SprytileModalTool(bpy.types.Operator):
         context.object.sprytile_gridid = grid_id
         tilegrid.tile_selection[0] = tile_x
         tilegrid.tile_selection[1] = tile_y
-        tilegrid.tile_selection[2] = tile_selection[0]
-        tilegrid.tile_selection[3] = tile_selection[1]
+        tilegrid.tile_selection[2] = width
+        tilegrid.tile_selection[3] = height
 
         bpy.ops.sprytile.build_grid_list()
 

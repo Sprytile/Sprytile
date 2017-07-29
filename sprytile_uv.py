@@ -260,16 +260,12 @@ def apply_uvs(context, face, uv_verts, target_grid,
         face.material_index = mat_idx
 
     # Save the grid and tile ID to the face
+    # If adding more layers, make sure setup in sprytile_modal.update_bmesh_tree
     grid_layer_id = mesh.faces.layers.int.get('grid_index')
     grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
+    grid_sel_width = mesh.faces.layers.int.get('grid_sel_width')
+    grid_sel_height = mesh.faces.layers.int.get('grid_sel_height')
     paint_settings_id = mesh.faces.layers.int.get('paint_settings')
-
-    if grid_layer_id is None:
-        grid_layer_id = mesh.faces.layers.int.new('grid_index')
-    if grid_layer_tileid is None:
-        grid_layer_tileid = mesh.faces.layers.int.new('grid_tile_id')
-    if paint_settings_id is None:
-        paint_settings_id = mesh.faces.layers.int.new('paint_settings')
 
     face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
@@ -277,12 +273,20 @@ def apply_uvs(context, face, uv_verts, target_grid,
 
     paint_settings = sprytile_utils.get_paint_settings(data)
 
+    # print("Writing tile data. tileid:{2}, w:{0}, h:{1}"
+    #       .format(target_grid.tile_selection[2], target_grid.tile_selection[3], tile_id))
+    sel_width = 1 if data.auto_join is False else target_grid.tile_selection[2]
+    sel_height = 1 if data.auto_join is False else target_grid.tile_selection[3]
+
     face[grid_layer_id] = context.object.sprytile_gridid
     face[grid_layer_tileid] = tile_id
+    face[grid_sel_width] = sel_width
+    face[grid_sel_height] = sel_height
     face[paint_settings_id] = paint_settings
 
     bmesh.update_edit_mesh(context.object.data)
     mesh.faces.index_update()
+
     return face.index, target_grid
 
 
