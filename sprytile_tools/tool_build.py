@@ -162,7 +162,8 @@ class ToolBuild:
                 grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
                 tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-                face_index = self.modal.construct_face(context, grid_pos, tile_pos,
+                face_index = self.modal.construct_face(context, grid_pos,
+                                                       tile_pos, tile_xy,
                                                        grid_up, grid_right,
                                                        up_vector, right_vector, plane_normal,
                                                        shift_vec=shift_vec)

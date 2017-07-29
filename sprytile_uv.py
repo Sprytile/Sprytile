@@ -197,7 +197,7 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min,
     return uv_verts
 
 
-def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
+def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, mesh):
     """UV map the given face"""
     if mesh is None:
         return None, None
@@ -236,13 +236,18 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, face_index, mesh):
     if uv_verts is None:
         return None, None
 
-    apply_uvs(context, face, uv_verts, target_grid, mesh, data, target_img, tile_xy, uv_layer)
+    apply_uvs(context, face, uv_verts,
+              target_grid, mesh, data,
+              target_img, tile_xy,
+              origin_xy=origin_xy,
+              uv_layer=uv_layer)
+
     return face.index, target_grid
 
 
 def apply_uvs(context, face, uv_verts, target_grid,
               mesh, data, target_img, tile_xy,
-              uv_layer=None):
+              uv_layer=None, origin_xy=None):
 
     if uv_layer is None:
         uv_layer = mesh.loops.layers.uv.verify()
@@ -265,23 +270,28 @@ def apply_uvs(context, face, uv_verts, target_grid,
     grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
     grid_sel_width = mesh.faces.layers.int.get('grid_sel_width')
     grid_sel_height = mesh.faces.layers.int.get('grid_sel_height')
+    grid_sel_origin = mesh.faces.layers.int.get('grid_sel_origin')
     paint_settings_id = mesh.faces.layers.int.get('paint_settings')
 
     face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
     tile_id = (tile_xy[1] * row_size) + tile_xy[0]
+    origin_id = -1
+    if origin_xy is not None:
+        origin_id = (origin_xy[1] * row_size) + origin_xy[0]
+        print("Row size:", row_size)
+        print("UV Origin is set to", origin_id, origin_xy)
 
     paint_settings = sprytile_utils.get_paint_settings(data)
 
-    # print("Writing tile data. tileid:{2}, w:{0}, h:{1}"
-    #       .format(target_grid.tile_selection[2], target_grid.tile_selection[3], tile_id))
-    sel_width = 1 if data.auto_join is False else target_grid.tile_selection[2]
-    sel_height = 1 if data.auto_join is False else target_grid.tile_selection[3]
+    sel_width = target_grid.tile_selection[2]
+    sel_height = target_grid.tile_selection[3]
 
     face[grid_layer_id] = context.object.sprytile_gridid
     face[grid_layer_tileid] = tile_id
     face[grid_sel_width] = sel_width
     face[grid_sel_height] = sel_height
+    face[grid_sel_origin] = origin_id
     face[paint_settings_id] = paint_settings
 
     bmesh.update_edit_mesh(context.object.data)

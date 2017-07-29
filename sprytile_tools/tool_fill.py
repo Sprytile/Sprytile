@@ -115,6 +115,7 @@ class ToolFill:
                     face = self.modal.faces[face_index]
                     paint_setting_cache[idx] = face[paint_setting_layer]
 
+        origin_xy = (grid.tile_selection[0], grid.tile_selection[1])
         data = scene.sprytile_data
         # Loop through list of coords to be filled
         for idx, cell_coord in enumerate(fill_coords):
@@ -131,10 +132,11 @@ class ToolFill:
             sub_x = (grid_coord[0] - int(hit_coord.x)) % sel_size[0]
             sub_y = (grid_coord[1] - int(hit_coord.y)) % sel_size[1]
             sub_xy = sel_coords[(sub_y * sel_size[0]) + sub_x]
-            self.modal.construct_face(context, grid_coord, sub_xy,
+            self.modal.construct_face(context, grid_coord,
+                                      sub_xy, origin_xy,
                                       grid_up, grid_right,
-                                      up_vector, right_vector, plane_normal,
-                                      face_index,
+                                      up_vector, right_vector,
+                                      plane_normal, face_index,
                                       shift_vec=shift_vec, threshold=threshold, add_cursor=False)
 
     def build_fill_map(self, context, grid_up, grid_right,
@@ -153,7 +155,7 @@ class ToolFill:
                                                                 grid_up, grid_right, plane_normal)
 
                 if hit_loc is not None:
-                    grid_id, tile_packed_id, width, height = self.modal.get_tiledata_from_index(face_index)
+                    grid_id, tile_packed_id, width, height, origin = self.modal.get_tiledata_from_index(face_index)
                     map_value = 1
                     if tile_packed_id is not None:
                         map_value = tile_packed_id

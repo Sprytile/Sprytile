@@ -69,7 +69,7 @@ class ToolPaint:
 
         up_vector.normalize()
         right_vector.normalize()
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.modal.bmesh)
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, None, face_index, self.modal.bmesh)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object

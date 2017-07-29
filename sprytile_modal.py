@@ -107,7 +107,7 @@ class SprytileModalTool(bpy.types.Operator):
         grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
         tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
         if grid_id_layer is None or tile_id_layer is None:
-            return None, None, None, None
+            return None, None, None, None, None
 
         grid_id = face[grid_id_layer]
         tile_packed_id = face[tile_id_layer]
@@ -126,9 +126,23 @@ class SprytileModalTool(bpy.types.Operator):
             if height is None:
                 height = 1
 
-        print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}"
-              .format(grid_id, tile_packed_id, width, height))
-        return grid_id, tile_packed_id, width, height
+        origin = -1
+        origin_layer = self.bmesh.faces.layers.int.get('grid_sel_origin')
+        if origin_layer is not None:
+            origin = face[origin_layer]
+            if origin is None:
+                origin = -1
+
+        # Backwards compatibility, origin/width/height did not
+        # exist before 0.4.2
+        if origin == 0 and height == 0 and width == 0:
+            origin = tile_packed_id
+        height = max(1, height)
+        width = max(1, width)
+
+        print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}, o:{4}"
+              .format(grid_id, tile_packed_id, width, height, origin))
+        return grid_id, tile_packed_id, width, height, origin
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
@@ -149,7 +163,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         face = self.bmesh.faces[face_index]
 
-        grid_id, tile_packed_id, width, height = self.get_face_tiledata(face)
+        grid_id, tile_packed_id, width, height, origin_id = self.get_face_tiledata(face)
         if None in {grid_id, tile_packed_id}:
             return
 
@@ -169,6 +183,19 @@ class SprytileModalTool(bpy.types.Operator):
         row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
         tile_y = math.floor(tile_packed_id / row_size)
         tile_x = tile_packed_id % row_size
+        if event.ctrl:
+            width = 1
+            height = 1
+        elif origin_id > -1:
+            origin_y = math.floor(origin_id / row_size)
+            origin_x = origin_id % row_size
+            tile_x = min(origin_x, tile_x)
+            tile_y = min(origin_y, tile_y)
+
+        if width == 0:
+            width = 1
+        if height == 0:
+            height = 1
 
         context.object.sprytile_gridid = grid_id
         tilegrid.tile_selection[0] = tile_x
@@ -288,7 +315,7 @@ class SprytileModalTool(bpy.types.Operator):
             # Verify layers are created
             layer_names = ['grid_index', 'grid_tile_id',
                            'grid_sel_width', 'grid_sel_height',
-                           'paint_settings']
+                           'paint_settings', 'grid_sel_origin']
             for layer_name in layer_names:
                 layer_data = self.bmesh.faces.layers.int.get(layer_name)
                 if layer_data is None:
@@ -335,7 +362,9 @@ class SprytileModalTool(bpy.types.Operator):
 
         return face_order
 
-    def construct_face(self, context, grid_coord, tile_xy, grid_up, grid_right,
+    def construct_face(self, context, grid_coord,
+                       tile_xy, origin_xy,
+                       grid_up, grid_right,
                        up_vector, right_vector, plane_normal,
                        face_index=None, check_exists=True,
                        shift_vec=None, threshold=None, add_cursor=True):
@@ -344,6 +373,7 @@ class SprytileModalTool(bpy.types.Operator):
         :param context:
         :param grid_coord:
         :param tile_xy:
+        :param origin_xy:
         :param grid_up:
         :param grid_right:
         :param up_vector:
@@ -397,7 +427,7 @@ class SprytileModalTool(bpy.types.Operator):
             if not check_coplanar or not check_dot:
                 return None
 
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, face_index, self.bmesh)
+        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, self.bmesh)
 
         if did_build and data.auto_merge:
             if threshold is None:
