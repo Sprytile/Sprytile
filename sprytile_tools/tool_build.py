@@ -1,4 +1,5 @@
 import bpy
+from math import floor
 from mathutils import Vector, Quaternion
 from mathutils.geometry import intersect_line_plane
 
@@ -9,6 +10,7 @@ import sprytile_uv
 class ToolBuild:
     modal = None
     left_down = False
+    start_coord = None
 
     def __init__(self, modal, rx_source):
         self.modal = modal
@@ -31,16 +33,18 @@ class ToolBuild:
         ray_vector = self.modal.rx_data.ray_vector
 
         if modal_evt.left_down:
+            is_start = self.left_down is False
             self.left_down = True
-            self.execute(context, scene, ray_origin, ray_vector)
+            self.execute(context, scene, ray_origin, ray_vector, is_start)
         elif self.left_down:
             self.left_down = False
+            self.start_coord = None
             bpy.ops.ed.undo_push()
 
         if modal_evt.build_preview:
             self.build_preview(context, scene, ray_origin, ray_vector)
 
-    def execute(self, context, scene, ray_origin, ray_vector):
+    def execute(self, context, scene, ray_origin, ray_vector, is_start):
         data = scene.sprytile_data
         grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
         tile_xy = (grid.tile_selection[0], grid.tile_selection[1])
@@ -65,6 +69,19 @@ class ToolBuild:
             ray_origin, ray_vector,
             as_coord=True
         )
+
+        if is_start:
+            self.start_coord = grid_coord
+        elif self.start_coord is not None:
+
+            tolerance_min = (floor(grid.tile_selection[2] * 0.25),
+                             floor(grid.tile_selection[3] * 0.25))
+            coord_offset = (
+                (grid_coord[0] - self.start_coord[0]) % grid.tile_selection[2],
+                (grid_coord[1] - self.start_coord[1]) % grid.tile_selection[3]
+            )
+            if coord_offset[0] > 0 or coord_offset[1] > 0:
+                return
 
         # Get the area to build
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
