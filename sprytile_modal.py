@@ -133,15 +133,15 @@ class SprytileModalTool(bpy.types.Operator):
             if origin is None:
                 origin = -1
 
-        # Backwards compatibility, origin/width/height did not
-        # exist before 0.4.2
+        # For backwards compatibility. Origin/width/height
+        # did not exist before 0.4.2
         if origin == 0 and height == 0 and width == 0:
             origin = tile_packed_id
         height = max(1, height)
         width = max(1, width)
 
-        print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}, o:{4}"
-              .format(grid_id, tile_packed_id, width, height, origin))
+        # print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}, o:{4}"
+        #       .format(grid_id, tile_packed_id, width, height, origin))
         return grid_id, tile_packed_id, width, height, origin
 
     def find_face_tile(self, context, event):
