@@ -1,31 +1,38 @@
 
 <!DOCTYPE html>
-<html class="no-js">
+<html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
       
         <meta name="description" content="A tile map editor for Blender">
       
       
-        <link rel="canonical" href="https://chemikhazi.itch.io/sprytile/paint-mode/">
+        <link rel="canonical" href="http://itch.sprytile.xyz/using-tilesets/">
       
       
         <meta name="author" content="Jeiel Aranal">
       
       
-        <link rel="shortcut icon" href="../assets/images/favicon.ico">
+        <link rel="shortcut icon" href="../assets/images/favicon.png">
       
-      <meta name="generator" content="mkdocs+mkdocs-material#1.0.2">
+      <meta name="generator" content="mkdocs-0.16.1, mkdocs-material-1.8.0">
     
     
       
-        <title>Paint and Build - Sprytile Docs</title>
+        <title>Using Tilesets - Sprytile Docs</title>
       
     
     
-      <script src="../assets/javascripts/modernizr-0d3dc73294.js"></script>
+      <script src="../assets/javascripts/modernizr-1df76c4e58.js"></script>
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application-bfecc7305d.css">
+      
+        <link rel="stylesheet" href="../assets/stylesheets/application-02c2a4388f.palette.css">
+      
     
     
       
@@ -38,13 +45,7 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application-f3ab63f78a.css">
-      
-        <link rel="stylesheet" href="../assets/stylesheets/application-02ce7adcc2.palette.css">
-      
-      
-        <link rel="stylesheet" href="../stylesheets/extra.css">
-      
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
     
   </head>
@@ -64,13 +65,14 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
     <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
     
-      <header class="md-header">
+      <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href=".." title="Sprytile Docs" class=" md-icon md-icon--home  md-header-nav__button">
-          
-        </a>
+        
+          <a href="http://itch.sprytile.xyz" title="Sprytile Docs" class="md-icon md-icon--home md-header-nav__button">
+          </a>
+        
       </div>
       <div class="md-flex__cell md-flex__cell--shrink">
         <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
@@ -81,11 +83,11 @@
             
               
                 <span class="md-header-nav__parent">
-                  Topics
+                  Guides
                 </span>
               
             
-            Paint and Build
+            Using Tilesets
           
         </span>
       </div>
@@ -93,46 +95,54 @@
         
           <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
           
-<div class="md-search" data-md-component="search">
-  <div class="md-search__overlay"></div>
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="search"></label>
   <div class="md-search__inner">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" placeholder="Search" accesskey="s" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
       <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">close</button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="result"></div>
+        <div class="md-search-result" data-md-component="result" data-md-lang-search="" data-md-lang-tokenizer="[\s\-]+">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
       </div>
     </div>
   </div>
 </div>
         
       </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
+      
+        <div class="md-flex__cell md-flex__cell--shrink">
           <div class="md-header-nav__source">
             
-              
 
 
   
 
 
-  <a href="https://chemikhazi.itch.io/sprytile" title="Go to repository" class="md-source" data-md-source="">
+  <a href="http://itch.sprytile.xyz" title="Go to repository" class="md-source" data-md-source="">
     
     <div class="md-source__repository">
       Sprytile Home
     </div>
   </a>
 
-            
           </div>
-      </div>
+        </div>
+      
     </div>
   </nav>
 </header>
     
     <div class="md-container">
+      
+      
       <main class="md-main">
         <div class="md-main__inner md-grid" data-md-component="container">
           
@@ -140,11 +150,11 @@
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="drawer">
-    <i class=" md-icon md-icon--home  md-nav__button">
-      
-    </i>
+    
+      <i class="md-icon md-icon--home md-nav__button"></i>
+    
     Sprytile Docs
   </label>
   
@@ -155,7 +165,7 @@
   
 
 
-  <a href="https://chemikhazi.itch.io/sprytile" title="Go to repository" class="md-source" data-md-source="">
+  <a href="http://itch.sprytile.xyz" title="Go to repository" class="md-source" data-md-source="">
     
     <div class="md-source__repository">
       Sprytile Home
@@ -168,79 +178,122 @@
     
       
       
+      
+
+
   <li class="md-nav__item">
-    
-      <a href=".." title="Home" class="md-nav__link">
-        Home
-      </a>
-    
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
   </li>
 
     
       
       
+      
+
+
   <li class="md-nav__item">
-    
-      <a href="../quick-start/" title="Quick Start" class="md-nav__link">
-        Quick Start
-      </a>
-    
+    <a href="../quick-start/" title="Quick Start" class="md-nav__link">
+      Quick Start
+    </a>
   </li>
 
     
       
       
+      
+
+
   <li class="md-nav__item">
-    
-      <a href="../advanced-features/" title="Advanced Features" class="md-nav__link">
-        Advanced Features
-      </a>
-    
+    <a href="../advanced-features/" title="Advanced Features" class="md-nav__link">
+      Advanced Features
+    </a>
   </li>
 
     
       
       
-  <li class="md-nav__item md-nav__item--nested">
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
       <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
     <label class="md-nav__link" for="nav-4">
-      Topics
+      Guides
     </label>
-    <nav class="md-nav" data-md-component="collapsible">
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
-        Topics
+        Guides
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
         
           
           
+          
+
+
   <li class="md-nav__item">
-    
-      <a href="../workflow-concepts/" title="Workflow Concepts" class="md-nav__link">
-        Workflow Concepts
-      </a>
-    
+    <a href="../creating-tilesets/" title="Creating Tilesets" class="md-nav__link">
+      Creating Tilesets
+    </a>
   </li>
 
         
           
           
-  <li class="md-nav__item">
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
     
     <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
     
+      
     
-    <a href="./" title="Paint and Build" class="md-nav__link md-nav__link--active">
-      Paint and Build
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Using Tilesets
+      </label>
+    
+    <a href="./" title="Using Tilesets" class="md-nav__link md-nav__link--active">
+      Using Tilesets
     </a>
     
       
 <nav class="md-nav md-nav--secondary">
   
   
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#power-of-two-texture-sizes" title="Power of Two Texture Sizes" class="md-nav__link">
+    Power of Two Texture Sizes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-considerations" title="UI considerations" class="md-nav__link">
+    UI considerations
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
   
 </nav>
     
@@ -249,28 +302,18 @@
         
           
           
+          
+
+
   <li class="md-nav__item">
-    
-      <a href="../tile-grids/" title="Tile Grids" class="md-nav__link">
-        Tile Grids
-      </a>
-    
+    <a href="../sketchfab/" title="Sketchfab Export" class="md-nav__link">
+      Sketchfab Export
+    </a>
   </li>
 
         
       </ul>
     </nav>
-  </li>
-
-    
-      
-      
-  <li class="md-nav__item">
-    
-      <a href="../bugs/" title="Issues" class="md-nav__link">
-        Issues
-      </a>
-    
   </li>
 
     
@@ -288,6 +331,29 @@
 <nav class="md-nav md-nav--secondary">
   
   
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#power-of-two-texture-sizes" title="Power of Two Texture Sizes" class="md-nav__link">
+    Power of Two Texture Sizes
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-considerations" title="UI considerations" class="md-nav__link">
+    UI considerations
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
   
 </nav>
                   </div>
@@ -297,11 +363,24 @@
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
-               
               
                 
-                  <h1>Paint and Build</h1>
                 
+                <h1 id="using-existing-tilesets">Using Existing Tilesets<a class="headerlink" href="#using-existing-tilesets" title="Permanent link">&para;</a></h1>
+<p>By using <a href="../advanced-features#additional-tile-grid-settings">tilegrid settings</a>, Sprytile can use existing 2D tilesets assets but some care should be taken in how you use them.</p>
+<h2 id="power-of-two-texture-sizes">Power of Two Texture Sizes<a class="headerlink" href="#power-of-two-texture-sizes" title="Permanent link">&para;</a></h2>
+<p>The importance of Power of Two texture sizes is discussed in detail in <a href="../creating-tilesets#power-of-two-sizes">creating tilesets</a>.</p>
+<p>If you wish to use your scenes in a game engine, you will likely need to resize the tileset you want to use so that it is a power of two size.</p>
+<p>The easiest way to do this is to expand the canvas size so that it becomes a power of two size. The downside is that this is a wasteful use of texture space in 3D engines.</p>
+<p>The recommended method that takes more work is to remove tiles from the tileset that will not be used, or to split the tileset into multiple textures that are power of two sized.</p>
+<h2 id="ui-considerations">UI considerations<a class="headerlink" href="#ui-considerations" title="Permanent link">&para;</a></h2>
+<p>Related to the texture sizes, the Sprytile UI was not designed with existing tile sets in mind. Most 2D asset packs put every tile into one texture which makes them difficult to use with Sprytile.</p>
+<p>As above, consider splitting big asset packs into smaller textures in an image editor for ease of use in Sprytile.</p>
+                
+                  
+                
+              
+              
                 
               
             </article>
@@ -315,7 +394,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../workflow-concepts/" title="Workflow Concepts" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../creating-tilesets/" title="Creating Tilesets" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -324,19 +403,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Workflow Concepts
+                Creating Tilesets
               </span>
             </div>
           </a>
         
         
-          <a href="../tile-grids/" title="Tile Grids" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../sketchfab/" title="Sketchfab Export" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Tile Grids
+                Sketchfab Export
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
@@ -382,8 +461,10 @@
       
     </div>
     
-      <script src="../assets/javascripts/application-16f434a21a.js"></script>
-      <script>var config={url:{base:".."}},app=new Application(config);app.initialize()</script>
+      <script src="../assets/javascripts/application-1d6ee6ee6c.js"></script>
+      
+      
+      <script>app.initialize({url:{base:".."}})</script>
       
     
     

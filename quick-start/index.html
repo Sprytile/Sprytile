@@ -1,23 +1,24 @@
 
 <!DOCTYPE html>
-<html class="no-js">
+<html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
       
         <meta name="description" content="A tile map editor for Blender">
       
       
-        <link rel="canonical" href="https://chemikhazi.itch.io/sprytile/quick-start/">
+        <link rel="canonical" href="http://itch.sprytile.xyz/quick-start/">
       
       
         <meta name="author" content="Jeiel Aranal">
       
       
-        <link rel="shortcut icon" href="../assets/images/favicon.ico">
+        <link rel="shortcut icon" href="../assets/images/favicon.png">
       
-      <meta name="generator" content="mkdocs+mkdocs-material#1.0.2">
+      <meta name="generator" content="mkdocs-0.16.1, mkdocs-material-1.8.0">
     
     
       
@@ -25,7 +26,13 @@
       
     
     
-      <script src="../assets/javascripts/modernizr-0d3dc73294.js"></script>
+      <script src="../assets/javascripts/modernizr-1df76c4e58.js"></script>
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/application-bfecc7305d.css">
+      
+        <link rel="stylesheet" href="../assets/stylesheets/application-02c2a4388f.palette.css">
+      
     
     
       
@@ -38,13 +45,7 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application-f3ab63f78a.css">
-      
-        <link rel="stylesheet" href="../assets/stylesheets/application-02ce7adcc2.palette.css">
-      
-      
-        <link rel="stylesheet" href="../stylesheets/extra.css">
-      
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
     
   </head>
@@ -64,13 +65,14 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
     <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
     
-      <header class="md-header">
+      <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        <a href=".." title="Sprytile Docs" class=" md-icon md-icon--home  md-header-nav__button">
-          
-        </a>
+        
+          <a href="http://itch.sprytile.xyz" title="Sprytile Docs" class="md-icon md-icon--home md-header-nav__button">
+          </a>
+        
       </div>
       <div class="md-flex__cell md-flex__cell--shrink">
         <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
@@ -89,46 +91,54 @@
         
           <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
           
-<div class="md-search" data-md-component="search">
-  <div class="md-search__overlay"></div>
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="search"></label>
   <div class="md-search__inner">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" placeholder="Search" accesskey="s" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
       <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">close</button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="result"></div>
+        <div class="md-search-result" data-md-component="result" data-md-lang-search="" data-md-lang-tokenizer="[\s\-]+">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
       </div>
     </div>
   </div>
 </div>
         
       </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
+      
+        <div class="md-flex__cell md-flex__cell--shrink">
           <div class="md-header-nav__source">
             
-              
 
 
   
 
 
-  <a href="https://chemikhazi.itch.io/sprytile" title="Go to repository" class="md-source" data-md-source="">
+  <a href="http://itch.sprytile.xyz" title="Go to repository" class="md-source" data-md-source="">
     
     <div class="md-source__repository">
       Sprytile Home
     </div>
   </a>
 
-            
           </div>
-      </div>
+        </div>
+      
     </div>
   </nav>
 </header>
     
     <div class="md-container">
+      
+      
       <main class="md-main">
         <div class="md-main__inner md-grid" data-md-component="container">
           
@@ -136,11 +146,11 @@
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="drawer">
-    <i class=" md-icon md-icon--home  md-nav__button">
-      
-    </i>
+    
+      <i class="md-icon md-icon--home md-nav__button"></i>
+    
     Sprytile Docs
   </label>
   
@@ -151,7 +161,7 @@
   
 
 
-  <a href="https://chemikhazi.itch.io/sprytile" title="Go to repository" class="md-source" data-md-source="">
+  <a href="http://itch.sprytile.xyz" title="Go to repository" class="md-source" data-md-source="">
     
     <div class="md-source__repository">
       Sprytile Home
@@ -164,18 +174,24 @@
     
       
       
+      
+
+
   <li class="md-nav__item">
-    
-      <a href=".." title="Home" class="md-nav__link">
-        Home
-      </a>
-    
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
   </li>
 
     
       
       
-  <li class="md-nav__item">
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
     
     <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
     
@@ -289,6 +305,8 @@
   
 </li>
       
+      
+      
     </ul>
   
 </nav>
@@ -298,77 +316,73 @@
     
       
       
+      
+
+
   <li class="md-nav__item">
-    
-      <a href="../advanced-features/" title="Advanced Features" class="md-nav__link">
-        Advanced Features
-      </a>
-    
+    <a href="../advanced-features/" title="Advanced Features" class="md-nav__link">
+      Advanced Features
+    </a>
   </li>
 
     
       
       
+      
+
+
   <li class="md-nav__item md-nav__item--nested">
     
       <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
     <label class="md-nav__link" for="nav-4">
-      Topics
+      Guides
     </label>
-    <nav class="md-nav" data-md-component="collapsible">
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
-        Topics
+        Guides
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
         
           
           
+          
+
+
   <li class="md-nav__item">
-    
-      <a href="../workflow-concepts/" title="Workflow Concepts" class="md-nav__link">
-        Workflow Concepts
-      </a>
-    
+    <a href="../creating-tilesets/" title="Creating Tilesets" class="md-nav__link">
+      Creating Tilesets
+    </a>
   </li>
 
         
           
           
+          
+
+
   <li class="md-nav__item">
-    
-      <a href="../paint-mode/" title="Paint and Build" class="md-nav__link">
-        Paint and Build
-      </a>
-    
+    <a href="../using-tilesets/" title="Using Tilesets" class="md-nav__link">
+      Using Tilesets
+    </a>
   </li>
 
         
           
           
+          
+
+
   <li class="md-nav__item">
-    
-      <a href="../tile-grids/" title="Tile Grids" class="md-nav__link">
-        Tile Grids
-      </a>
-    
+    <a href="../sketchfab/" title="Sketchfab Export" class="md-nav__link">
+      Sketchfab Export
+    </a>
   </li>
 
         
       </ul>
     </nav>
-  </li>
-
-    
-      
-      
-  <li class="md-nav__item">
-    
-      <a href="../bugs/" title="Issues" class="md-nav__link">
-        Issues
-      </a>
-    
   </li>
 
     
@@ -481,6 +495,8 @@
   
 </li>
       
+      
+      
     </ul>
   
 </nav>
@@ -491,8 +507,8 @@
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
-               
               
+                
                 
                 <h1 id="quick-start-tutorial">Quick Start Tutorial<a class="headerlink" href="#quick-start-tutorial" title="Permanent link">&para;</a></h1>
 <p>This is a short tutorial on how to install and use Sprytile, an open source tile map editor addon for Blender.</p>
@@ -504,18 +520,22 @@
 <p>In Blender, open User Preferences by going to <code>File &gt; User Preferences</code>. Go to the Add-ons tab and press  <code>Install from File</code> at the bottom of the preference window and navigate to the downloaded zip file. After installation, search for Sprytile under Community addons and enable it.</p>
 <p><img alt="Install Addon" src="../img/install-addon.png" />
 <img alt="Enable Addon" src="../img/enable-addon.png" /></p>
+<p>To make sure Blender shows pixel art textures correctly, we have to turn off mipmaps in 3D view. In the preferences window, switch over to the <code>System</code> tab and turn off the Mipmaps option under OpenGL.</p>
+<p><img alt="Preferences Mipmaps" src="../img/prefs-mipmap.png" /></p>
+<p>Next, make sure that Blender is using the Blender Renderer by going back to the main window and checking the renderer dropdown near the top.</p>
+<p><img alt="Blender Renderer" src="../img/renderer-setting.png" /></p>
+<p>With Sprytile installed and setup, let's start a new Blender file by going to <code>File &gt; New</code>. Make sure the tool shelf panel to the left of the 3D view is open. If it is not, press <code>T</code> and find the Sprytile tab. If the Sprytile tab is missing, check the installation steps again.</p>
 <div class="admonition note">
 <p class="admonition-title">Future Uses</p>
 <p>Press the <code>Save User Settings</code> button if you want to continue using Sprytile in future Blender sessions without going back to User Preferences</p>
 </div>
-<p>To make sure Blender shows pixel art textures correctly, we have to turn off mipmaps in 3D view. In the preferences window, switch over to the <code>System</code> tab and turn off the Mipmaps option under OpenGL.</p>
-<p><img alt="Preferences Mipmaps" src="../img/prefs-mipmap.png" /></p>
-<p>With Sprytile installed and setup, let's start a new Blender file by going to <code>File &gt; New</code>. Make sure the tool shelf panel to the left of the 3D view is open. If it is not, press <code>T</code> and find the Sprytile tab. If the Sprytile tab is missing, check the installation steps again.</p>
 <h2 id="material-setup">Material Setup<a class="headerlink" href="#material-setup" title="Permanent link">&para;</a></h2>
 <p>Before using the Sprytile tools, the tile set has to be loaded into the material. With a mesh object selected, go to the Materials tab in the Properties View, then press <code>Set Material to Shadeless</code> in the Sprytile panel.</p>
 <p><img alt="Material Setup" src="../img/setup-material.jpg" /></p>
-<p>Next, go to the Textures tab in the Properties view and load your tile set image into the material. After loading the image, go back to the Sprytile tab and press <code>Setup Pixel Texture</code>.</p>
+<p>Next, go to the Textures tab in the Properties view and load your tile set image into the material.</p>
 <p><img alt="Texture Setup" src="../img/setup-texture.png" /></p>
+<p>After loading the image, go back to the Sprytile tab and press <code>Setup Pixel Texture</code>.</p>
+<p><img alt="Texture Button" src="../img/setup-pixel-texture.jpg" /></p>
 <h2 id="sprytile-tools">Sprytile Tools<a class="headerlink" href="#sprytile-tools" title="Permanent link">&para;</a></h2>
 <p>The majority of Sprytile's tools are accessed under <code>Edit Mode</code>. With a mesh object selected, enter edit mode and open the tool shelf to the Sprytile tab. Press <code>T</code> to open the tool shelf if it is hidden from the left of the 3D view. Expand the tool shelf if it is too cramped.</p>
 <p><img alt="Sprytile Edit Tools" src="../img/edit-tool-shelf.png" /></p>
@@ -525,7 +545,7 @@
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Backface Culling</p>
-<p>It is recommended to turn off backface culling so you can see the direction the faces are being built in.</p>
+<p>It is recommended to turn off backface culling so you can see the direction the faces are being built in. This is accessible in the right hand panel of the viewport (press 'n' if it is not visible), under the shading foldout.</p>
 </div>
 <h2 id="build-mode">Build Mode<a class="headerlink" href="#build-mode" title="Permanent link">&para;</a></h2>
 <p>The build tool creates mesh faces that are UV mapped to the selected tiles. Open Sprytile's tile map mode by pressing the <code>Build</code> button. You will notice the tile selection UI popup on the lower right corner of the 3D view, indicating that tile map mode is active.</p>
@@ -536,14 +556,20 @@
 <p>The tile selection UI lets you pick the tile you will be painting with. Zoom the UI by hovering over it and scrolling your mouse wheel up or down.</p>
 </div>
 <h3 id="tile-building-workflow">Tile Building Workflow<a class="headerlink" href="#tile-building-workflow" title="Permanent link">&para;</a></h3>
-<p>Now to get familiar with Sprytile's workflow by building something! First, delete the existing vertices of the selected mesh so we have a blank slate.</p>
+<p>Now to get familiar with Sprytile's workflow by building something!</p>
+<p>First, delete the existing vertices of the selected mesh so we have a blank slate. Do this by pressing <code>a</code> to select all, and then pressing <code>x</code> and selecting <code>Vertices</code>.</p>
 <p>The workflow of Sprytile revolves around Blender's 3D cursor and the direction the 3D view is facing.</p>
 <p>The 3D cursor is the center of the tile grid when you're painting, and the global axis that the view is facing is the surface you will be painting on.</p>
-<p>As an example, reorient the 3D view so that it is facing the floor of the file, and then set the 3D cursor to the center by pressing <code>Shift + S</code> and selecting <code>Cursor to Center</code>.</p>
+<p>Let's start by reseting the 3D cursor to the center of the scene by pressing <code>Shift + S</code> and selecting <code>Cursor to Center</code>.</p>
 <p><img alt="Paint Prepare" src="../img/paint-prepare.png" /></p>
-<p>In the tile selection UI, choose the grass tile and paint around the 3D cursor. Notice how the tile grid is centered on the 3D cursor and the painting surface is oriented to the ground.</p>
+<p>With the tile selection UI open, try rotating the 3D view camera around. Hold down the middle mouse button while the mouse cursor is in the 3D view and move the mouse.</p>
+<p><img alt="Camera Pan" src="../img/camera-pan.gif" /></p>
+<p>Notice that a grid appears around the blender 3D cursor. This is called the work plane and indicates the plane that you'll be building on.</p>
+<p>By default, the work plane appears when the view camera is panned. If it does not, <a href="../advanced-features/#work-plane-cursor">check the settings</a>.</p>
+<p>Tilt the camera downwards so that the work plane is aligned to the ground.</p>
+<p>In the tile selection UI, choose the grass tile and paint around the 3D cursor. Notice how the tile grid is centered around the 3D cursor and the painted tiles appear on the ground.</p>
 <p><img alt="Paint Z-axis" src="../img/paint-1.png" /></p>
-<p>Now reorient the 3D view so it is facing one of the side facing global axis. Pick a wall tile and paint with the tile. Notice how the tiles are being created on a grid centered on the 3D cursor but now in a perpendicular direction.</p>
+<p>Now pan the camera up so the work plane is vertical. Pick a wall tile and paint with the tile.</p>
 <p><img alt="Paint Y-axis" src="../img/paint-2.png" /></p>
 <div class="admonition info">
 <p class="admonition-title">Axis Indicator</p>
@@ -560,19 +586,24 @@
 <p><img alt="Reset" src="../img/reset-sprytile.png" /></p>
 </div>
 <h3 id="tile-grids">Tile Grids<a class="headerlink" href="#tile-grids" title="Permanent link">&para;</a></h3>
-<p>Now that you know how to use Sprytile, let's focus on tile grids. Tile maps might be made up of tiles in different scales. To account for this, Sprytile allows you to paint tiles in different sizes. This part of the Sprytile panel allows you to create and organize the grid settings used in the tile map.</p>
+<p>Now that you know how to use Sprytile, let's focus on tile grids. Tile maps might be made up of tiles in different scales. To account for this, Sprytile allows you to paint tiles in different sizes. This part of the Sprytile panel allows you to create and organize the grid settings used with the tile map.</p>
 <p>Press the <code>+</code> button at the panel and select the newly created entry. The settings for this new tile grid can be changed in the boxes below. For this tile grid, lets change it to a 16 x 16 tile size.</p>
 <p><img alt="Tile Grid Panel" src="../img/tile-grid-panel.png" />
 <img alt="Tile Grid Editing" src="../img/tile-grid-edit.png" /></p>
 <p>You can see that the tile selection UI updates to show the currently selected tile grid as well. You can change the tile grid selection by using the tile grid selector in the tools panel.</p>
 <p>You can also change tile grids by holding <code>Ctrl</code> with your mouse over the tile selection UI and scrolling the mousewheel up or down.</p>
-<p><img alt="Tile Selection Update" src="../img/tile-selection-update.png" /></p>
 <h3 id="tile-flippingrotation">Tile Flipping/Rotation<a class="headerlink" href="#tile-flippingrotation" title="Permanent link">&para;</a></h3>
 <p>Looking closely at the last wall we created, we can see that the texture gets very repetitive. Delete part of that wall and recreate the wall using the 16x16 tile grid. By using the smaller grid, we can break up the pattern created by the larger tile size.</p>
 <p><img alt="Wall Small Tiles" src="../img/wall-small-tiles.png" /></p>
 <p>But even with the smaller tiles, the repetition is still visible. With tile map editors, you can further break up the patterns by rotating and flipping tiles. To do that, we use this part of the Sprytile panel.</p>
 <p><img alt="Flip/Rotate Panel" src="../img/flip-rotate.png" /></p>
-<p>For convenience, the keyboard shortcuts for rotating tiles left and right are the <code>1</code> and <code>2</code> keys. The <code>3</code> key toggles X tile flip, the <code>4</code> key toggles the Y tile flip. Repaint the wall using the tile flipping and rotation options.</p>
+<p>The keyboard shortcuts for rotating tiles left and right are the <code>1</code> and <code>2</code> keys.</p>
+<p>The <code>3</code> key toggles Flip X and the <code>4</code> key toggles Flip Y.</p>
+<p>Repaint the wall using the tile flipping and rotation options.</p>
+<div class="admonition info">
+<p class="admonition-title">Tile Picker</p>
+<p>You can pick tiles from your scene like in Photoshop. Hold down the <code>alt</code> key and select a tile from the scene with a left mouse click.</p>
+</div>
 <p><img alt="Wall with tile rotations" src="../img/wall-tile-rotation.png" /></p>
 <h2 id="pixel-translate">Pixel Translate<a class="headerlink" href="#pixel-translate" title="Permanent link">&para;</a></h2>
 <p>This wall is placed in an awkward position. Sprytile makes moving faces easier in tile map mode by constraining movement to the pixel grid. Select the wall faces and split them by pressing the <code>Y</code> key. Now translate the selection by pressing the <code>G</code> key. The movement snaps to the pixel grid and a readout showing the movement is shown on the top left corner.</p>
@@ -581,7 +612,7 @@
 <p>It's necessary to split the faces because build mode automatically merges close vertices by default. You can turn off this option by toggling <code>Auto Merge</code> beneath the tile rotation/flip section.</p>
 </div>
 <p><img alt="Pixel Rotation" src="../img/pixel-translation.png" /></p>
-<p>The movement is restricted to the global axis the 3D view is facing. Use the pixel translation tool to move the wall to a more sensible place. Pixel translate is automatically used when in tile map mode, but can also be invoked manually outside of tile map mode.</p>
+<p>Use the pixel translation tool to move the wall to a more sensible place. The movement is restricted along the work plane, so rotate the 3D view when necessary. Pixel translate is automatically used when in tile map mode.</p>
 <p><img alt="Moving the wall" src="../img/wall-move.png" /></p>
 <div class="admonition note">
 <p class="admonition-title">Snap Translate Vertices</p>
@@ -590,10 +621,12 @@
 <h2 id="paint-mode">Paint Mode<a class="headerlink" href="#paint-mode" title="Permanent link">&para;</a></h2>
 <p>Finally, we'll cover paint mode. Paint mode gives you tools to quickly UV map faces to tiles, allowing you to build your mesh with other Blender tools. Let's extrude the edges of the grass without using tile map mode so that the geometry isn't on the pixel grid anymore.</p>
 <p><img alt="Mesh Extrude" src="../img/mesh-extrude.gif" /></p>
-<p>Next, bring tile map mode into paint mode by pressing the <code>Paint</code> button in the Sprytile panel. Using the 32x32 tile grid, select the tile that is the border of the grass and the ground.</p>
+<p>Next, turn on paint mode by pressing the <code>Paint</code> button in the Sprytile panel. Using the 32x32 tile grid, select the tile that is the border of the grass and the ground.</p>
 <p><img alt="Paint Mode Selected" src="../img/paint-mode-select.png" /></p>
-<p>Now try painting the tile on one of the extruded faces. The texture that appears is just the ground because the UV alignment is set to center. Change the alignment to top and try painting the faces again.</p>
-<p><img alt="UV Align Selection" src="../img/uv-align.png" /></p>
+<p>Now try painting the tile on one of the extruded faces. The texture appears stretched because of the current paint settings.</p>
+<p><img alt="Paint Mode Misalign" src="../img/paint-mode-misalign.png" /></p>
+<p>Change the paint settings to the following and try painting the faces again.</p>
+<p><img alt="Paint Settings" src="../img/paint-settings.jpg" /></p>
 <p>Now the grass/ground boundary appears because UV mapping of the face is being aligned to the top of the tile. Continue painting the other extruded faces.</p>
 <p><img alt="UV Aligned Painting" src="../img/paint-aligned.png" /></p>
 <h3 id="advanced-painting">Advanced Painting<a class="headerlink" href="#advanced-painting" title="Permanent link">&para;</a></h3>
@@ -602,19 +635,25 @@ cylinder and rotate it so it is not aligned to the global XYZ axis.</p>
 <p><img alt="Create Tab" src="../img/create-tab.png" /></p>
 <p>Switch to the 16x16 tile grid and select the following tile. Make sure that grid rotation is back at 0 and that Flip X and Y are off.</p>
 <p><img alt="Cylinder Creation" src="../img/create-cylinder.png" /></p>
-<p>If you try painting the cylinder faces, you will notice that the alignment of the UV is not correct. To fix this, we can use hinting mode. Toggle on hinting in the Sprytile panel.</p>
+<p>If you try painting the outer faces of the cylinder, you will notice that the alignment of the UV is not correct. To fix this, we can use hinting mode. Toggle on hinting in the Sprytile panel.</p>
 <p><img alt="Hinting Toggle" src="../img/hinting-toggle.png" /></p>
 <p>Switch to edge selection mode and select one of the cylinder's edges along the long side. Then paint on the faces connected to the selected edge and notice that the UV mapping is now properly aligned to the face.</p>
 <p><img alt="Hinted Painting" src="../img/hinted-painting.gif" /></p>
 <p>What hinting does is indicate to Sprytile which side of the face will be aligned to the horizontal axis of the tile map.</p>
 <p>The cylinder still doesn't look like our selected tile. To fix this, we can use the stretch options on the paint tool.</p>
 <p><img alt="Stretch Options" src="../img/stretch-options.png" /></p>
-<p>With the stretch options on, repeat painting the faces as with the previous step. Now the faces will be UV mapped with the selected tile stretched out over it, looking more like the metallic pipe of the selected tile.</p>
+<p>With the stretch options on, repeat painting the faces as with the previous step. Now the faces will be UV mapped with the selected tile stretched out over each face, looking more like the metallic pipe of the selected tile.</p>
 <p><img alt="Pipe Cylinder" src="../img/pipe-cylinder.png" /></p>
 <h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
-<p>This tutorial gives an overview of Sprytile's basic functions, hopefully enough to help you to build cool things with it. A video version of this tutorial will be coming soon.</p>
-<p>For a more in-depth view of Sprytile's functonality, see the individual topic pages.</p>
+<p>This tutorial gives an overview of Sprytile's basic functions, hopefully enough to help you to build cool things with it.</p>
+<p>For more advanced uses of Sprytile, check the <a href="../advanced-features">Advanced Features</a> tutorial page.</p>
 <p>If you have any questions, feel free to contact me on <a href="https://twitter.com/chemikhazi">twitter</a> or via the <a href="https://chemikhazi.itch.io/sprytile/community">itch.io discussion boards</a>.</p>
+                
+                  
+                
+              
+              
+                
               
             </article>
           </div>
@@ -694,8 +733,10 @@ cylinder and rotate it so it is not aligned to the global XYZ axis.</p>
       
     </div>
     
-      <script src="../assets/javascripts/application-16f434a21a.js"></script>
-      <script>var config={url:{base:".."}},app=new Application(config);app.initialize()</script>
+      <script src="../assets/javascripts/application-1d6ee6ee6c.js"></script>
+      
+      
+      <script>app.initialize({url:{base:".."}})</script>
       
     
     
