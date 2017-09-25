@@ -24,7 +24,7 @@ Please don't use GitHub releases, they are used for automatic updates.
 
 ### Getting Started:
 
-* [Sprytile Basics Tutorial](https://youtu.be/-ezYZgMp-R0)
+* [Sprytile Basics Tutorial](http://docs.sprytile.xyz/quick-start/) ([video](https://youtu.be/-ezYZgMp-R0))
 
 ### Community:
 
