@@ -19,7 +19,8 @@
 
 ### Download:
 
-Download from [itch.io](https://chemikhazi.itch.io/sprytile). <br>
+Download from [itch.io](https://chemikhazi.itch.io/sprytile).
+
 Please don't use GitHub releases, they are used for automatic updates.
 
 ### Getting Started:
@@ -28,21 +29,21 @@ Please don't use GitHub releases, they are used for automatic updates.
 
 ### Community:
 
-* Chat with the fellow users in [discord](https://discordapp.com/invite/Xj4Bc4U)
-* Showcase your work in the [forum](https://chemikhazi.itch.io/sprytile/community)
+* Chat with the fellow users in the [Discord server](https://discordapp.com/invite/Xj4Bc4U)
+* Showcase your work or ask for support in the [forum](https://chemikhazi.itch.io/sprytile/community)
 
 ### Issue/Feature requests:
 
-log them in the [github issues](https://github.com/Sprytile/Sprytile/issues) 
+Feature request or bug reports can be submitted to [GitHub issues](https://github.com/Sprytile/Sprytile/issues)
 
-### Inspiration:
+### Acknowledgments:
 
 Inspired by [Crocotile3D](http://www.crocotile3d.com/). 
 
 ### Contributing:
 
-Sprytile adopts the [contributor covenant](CodeOfConduct.md) as the project code of conduct. The project highly values having a welcoming community. [Contributions](contributing.md) (bug reports, feature requests, documentation... ) are welcome!
+Sprytile adopts the [contributor covenant](CodeOfConduct.md) as the project code of conduct. The project highly values having a welcoming community. [Contributions](contributing.md) (bug reports, feature requests, documentation, etc.) are welcome!
 
-### Support:
+### Donations:
 
 Any support you give will help further the development of Sprytile and is much appreciated!
