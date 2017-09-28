@@ -1314,8 +1314,13 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         layout = self.layout
         data = context.scene.sprytile_data
 
+        icon_id = "VIEW3D_VEC"
+        # For some reason VIEW3D_VEC does not exist in 2.79?
+        if bpy.app.version > (2, 78, 0):
+            icon_id = "GRID"
+
         row = layout.row(align=False)
-        row.label("", icon="VIEW3D_VEC")
+        row.label("", icon=icon_id)
 
         dropdown_icon = "TRIA_DOWN" if data.axis_plane_settings else "TRIA_RIGHT"
 

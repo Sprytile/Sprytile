@@ -5,3 +5,4 @@ __pycache__/
 *.xml
 *.iml
 sprytile_updater/
+*/updater_status.json
