@@ -1370,6 +1370,9 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
         layout.separator()
+        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.texture_setup")
+        layout.separator()
         layout.operator("sprytile.make_double_sided")
 
 

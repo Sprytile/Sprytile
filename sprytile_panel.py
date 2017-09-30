@@ -46,10 +46,7 @@ class SprytileGridDropDown(bpy.types.Menu):
         layout = self.layout
         layout.operator("sprytile.validate_grids", icon="GRID")
         layout.separator()
-        layout.operator("sprytile.material_setup", icon="MATERIAL_DATA")
-        layout.operator("sprytile.texture_setup", icon="FORCE_TEXTURE")
-        layout.separator()
-        layout.operator("sprytile.add_new_material", icon="NEW")
+        layout.operator("sprytile.tileset_new", icon="NEW")
 
 class SprytilePanel(bpy.types.Panel):
     bl_label = "Sprytile Painter"
