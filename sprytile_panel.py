@@ -44,9 +44,9 @@ class SprytileGridDropDown(bpy.types.Menu):
     bl_label = "Grid drop down"
     def draw(self, context):
         layout = self.layout
-        layout.operator("sprytile.validate_grids", icon="GRID")
-        layout.separator()
         layout.operator("sprytile.tileset_new", icon="NEW")
+        layout.separator()
+        layout.operator("sprytile.validate_grids", icon="GRID")
 
 class SprytilePanel(bpy.types.Panel):
     bl_label = "Sprytile Painter"
