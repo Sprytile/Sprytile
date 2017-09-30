@@ -716,6 +716,45 @@ class SprytileSetupMaterial(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
+
+    bl_idname = "sprytile.tileset_load"
+    bl_label = "Load Tileset"
+
+    # For some reason this full list doesn't really work,
+    # reordered the list to prioritize common file types
+    # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
+
+    filter_glob = StringProperty(
+        default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
+        options={'HIDDEN'},
+    )
+
+    def execute(self, context):
+        texture_name = self.filepath[self.filepath.rindex('\\') + 1:]
+        material_name = self.filepath[self.filepath.rindex('\\') + 1: self.filepath.rindex('.')]
+
+        bpy.ops.sprytile.material_setup()
+
+        target_mat = bpy.data.materials[context.object.active_material_index]
+        target_mat.name = material_name
+
+        target_mat.texture_slots.clear(0)
+        target_slot = target_mat.texture_slots.create(0)
+
+        loaded_img = bpy.data.images.load(self.filepath)
+
+        target_texture = bpy.data.textures.new(texture_name, type='IMAGE')
+        target_texture.image = loaded_img
+
+        target_slot.texture = target_texture
+
+        bpy.ops.sprytile.texture_setup()
+        bpy.ops.sprytile.validate_grids()
+        bpy.data.textures.update()
+        return {'FINISHED'}
+
+
 class SprytileSetupTexture(bpy.types.Operator):
     bl_idname = "sprytile.texture_setup"
     bl_label = "Setup Pixel Texture"
@@ -1265,7 +1304,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         box.operator("sprytile.material_setup")
         box.operator("sprytile.texture_setup")
         box.operator("sprytile.add_new_material")
-        box.operator("sprytile.texture_wizard")
+        box.operator("sprytile.tileset_load")
 
         layout.separator()
         help_text = "Enter edit mode to use Sprytile Paint Tools"
@@ -1355,23 +1394,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
         addon_updater_ops.update_notice_box_ui(self, context)
 
-class SprytileTextureWizard(bpy.types.Operator, ImportHelper):
 
-    bl_idname = "sprytile.texture_wizard"
-    bl_label = "Texture Wizard"
-
-    # For some reason this full list doesn't really work,
-    # reordered the list to prioritize common file types
-    # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
-
-    filter_glob = StringProperty(
-        default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
-        options={'HIDDEN'},
-    )
-
-    def execute(self, context):
-        print("Path: {0}".format(self.filepath))
-        return {'FINISHED'}
 
 def register():
     bpy.utils.register_module(__name__)
