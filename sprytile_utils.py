@@ -840,7 +840,8 @@ class SprytileSetupTexture(bpy.types.Operator):
 
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
-    bl_label = "Validate Material Grids"
+    bl_label = "Validate Tile Grids"
+    bl_description = "Press if tile grids are not displaying properly"
 
     @classmethod
     def poll(cls, context):
