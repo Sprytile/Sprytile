@@ -725,7 +725,7 @@ class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
 
     bl_idname = "sprytile.tileset_load"
     bl_label = "Load Tileset"
-    bl_description = "Load a tileset image into the current material"
+    bl_description = "Load a tileset into the current material"
 
     # For some reason this full list doesn't really work,
     # reordered the list to prioritize common file types
@@ -771,7 +771,7 @@ class SprytileNewTileset(bpy.types.Operator, ImportHelper):
 
     bl_idname = "sprytile.tileset_new"
     bl_label = "Add Tileset"
-    bl_description = "Create a new material and load a tileset"
+    bl_description = "Create a new material and load another tileset"
 
     # For some reason this full list doesn't really work,
     # reordered the list to prioritize common file types
@@ -1314,6 +1314,9 @@ class SprytileObjectDropDown(bpy.types.Menu):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
         layout.separator()
+        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.texture_setup")
+        layout.operator("sprytile.add_new_material")
 
 
 class SprytileObjectPanel(bpy.types.Panel):
@@ -1335,9 +1338,6 @@ class SprytileObjectPanel(bpy.types.Panel):
 
         box = layout.box()
         box.label("Material Setup")
-        box.operator("sprytile.material_setup")
-        box.operator("sprytile.texture_setup")
-        box.operator("sprytile.add_new_material")
         box.operator("sprytile.tileset_load")
         box.operator("sprytile.tileset_new")
 
