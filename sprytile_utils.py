@@ -6,6 +6,8 @@ import math
 
 import sys
 from bpy_extras import view3d_utils
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
@@ -1263,6 +1265,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         box.operator("sprytile.material_setup")
         box.operator("sprytile.texture_setup")
         box.operator("sprytile.add_new_material")
+        box.operator("sprytile.texture_wizard")
 
         layout.separator()
         help_text = "Enter edit mode to use Sprytile Paint Tools"
@@ -1352,6 +1355,23 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
         addon_updater_ops.update_notice_box_ui(self, context)
 
+class SprytileTextureWizard(bpy.types.Operator, ImportHelper):
+
+    bl_idname = "sprytile.texture_wizard"
+    bl_label = "Texture Wizard"
+
+    # For some reason this full list doesn't really work,
+    # reordered the list to prioritize common file types
+    # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
+
+    filter_glob = StringProperty(
+        default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
+        options={'HIDDEN'},
+    )
+
+    def execute(self, context):
+        print("Path: {0}".format(self.filepath))
+        return {'FINISHED'}
 
 def register():
     bpy.utils.register_module(__name__)
