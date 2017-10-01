@@ -836,6 +836,7 @@ class SprytileSetupTexture(bpy.types.Operator):
         target_slot.use_map_alpha = True
         target_slot.alpha_factor = 1.0
         target_slot.diffuse_color_factor = 1.0
+        target_slot.texture_coords = 'UV'
 
 
 class SprytileValidateGridList(bpy.types.Operator):
