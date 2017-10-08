@@ -6,6 +6,8 @@ import math
 
 import sys
 from bpy_extras import view3d_utils
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
@@ -685,12 +687,15 @@ class SprytileNewMaterial(bpy.types.Operator):
 
         mat = bpy.data.materials.new(name="Material")
 
-        set_idx = len(obj.data.materials)
-        obj.data.materials.append(mat)
-        obj.active_material_index = set_idx
+        set_idx = len(obj.material_slots)
+        bpy.ops.object.material_slot_add()
 
-        bpy.ops.sprytile.material_setup()
-        bpy.ops.sprytile.validate_grids()
+        obj.active_material_index = set_idx
+        obj.material_slots[set_idx].material = mat
+
+        bpy.ops.sprytile.material_setup('INVOKE_DEFAULT')
+        bpy.ops.sprytile.validate_grids('INVOKE_DEFAULT')
+        bpy.data.materials.update()
         return {'FINISHED'}
 
 
@@ -706,11 +711,80 @@ class SprytileSetupMaterial(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
-        mat = bpy.data.materials[context.object.active_material_index]
+        obj = context.object
+
+        mat = obj.material_slots[obj.active_material_index].material
         mat.use_shadeless = True
         mat.use_transparency = True
         mat.transparency_method = 'Z_TRANSPARENCY'
         mat.alpha = 0.0
+        return {'FINISHED'}
+
+
+class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
+
+    bl_idname = "sprytile.tileset_load"
+    bl_label = "Load Tileset"
+    bl_description = "Load a tileset into the current material"
+
+    # For some reason this full list doesn't really work,
+    # reordered the list to prioritize common file types
+    # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
+
+    filter_glob = StringProperty(
+        default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
+        options={'HIDDEN'},
+    )
+
+    def execute(self, context):
+        SprytileLoadTileset.load_tileset_file(context, self.filepath)
+        return {'FINISHED'}
+
+    @staticmethod
+    def load_tileset_file(context, filepath):
+        obj = context.object
+
+        texture_name = filepath[filepath.rindex('\\') + 1:]
+        material_name = filepath[filepath.rindex('\\') + 1: filepath.rindex('.')]
+
+        bpy.ops.sprytile.material_setup()
+
+        target_mat = obj.material_slots[obj.active_material_index].material
+        target_mat.name = material_name
+
+        target_mat.texture_slots.clear(0)
+        target_slot = target_mat.texture_slots.create(0)
+
+        loaded_img = bpy.data.images.load(filepath)
+
+        target_texture = bpy.data.textures.new(texture_name, type='IMAGE')
+        target_texture.image = loaded_img
+
+        target_slot.texture = target_texture
+
+        bpy.ops.sprytile.texture_setup('INVOKE_DEFAULT')
+        bpy.ops.sprytile.validate_grids('INVOKE_DEFAULT')
+        bpy.data.textures.update()
+
+
+class SprytileNewTileset(bpy.types.Operator, ImportHelper):
+
+    bl_idname = "sprytile.tileset_new"
+    bl_label = "Add Tileset"
+    bl_description = "Create a new material and load another tileset"
+
+    # For some reason this full list doesn't really work,
+    # reordered the list to prioritize common file types
+    # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
+
+    filter_glob = StringProperty(
+        default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
+        options={'HIDDEN'},
+    )
+
+    def execute(self, context):
+        bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
+        SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
 
 
@@ -728,7 +802,8 @@ class SprytileSetupTexture(bpy.types.Operator):
     @staticmethod
     def setup_tex(context):
         """"""
-        material = bpy.data.materials[context.object.active_material_index]
+        obj = context.object
+        material = obj.material_slots[obj.active_material_index].material
         target_texture = None
         target_img = None
         target_slot = None
@@ -761,11 +836,13 @@ class SprytileSetupTexture(bpy.types.Operator):
         target_slot.use_map_alpha = True
         target_slot.alpha_factor = 1.0
         target_slot.diffuse_color_factor = 1.0
+        target_slot.texture_coords = 'UV'
 
 
 class SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
-    bl_label = "Validate Material Grids"
+    bl_label = "Validate Tile Grids"
+    bl_description = "Press if tile grids are not displaying properly"
 
     @classmethod
     def poll(cls, context):
@@ -1239,6 +1316,9 @@ class SprytileObjectDropDown(bpy.types.Menu):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
         layout.separator()
+        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.texture_setup")
+        layout.operator("sprytile.add_new_material")
 
 
 class SprytileObjectPanel(bpy.types.Panel):
@@ -1260,9 +1340,8 @@ class SprytileObjectPanel(bpy.types.Panel):
 
         box = layout.box()
         box.label("Material Setup")
-        box.operator("sprytile.material_setup")
-        box.operator("sprytile.texture_setup")
-        box.operator("sprytile.add_new_material")
+        box.operator("sprytile.tileset_load")
+        box.operator("sprytile.tileset_new")
 
         layout.separator()
         help_text = "Enter edit mode to use Sprytile Paint Tools"
@@ -1292,6 +1371,9 @@ class SprytileWorkDropDown(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
+        layout.separator()
+        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.texture_setup")
         layout.separator()
         layout.operator("sprytile.make_double_sided")
 
@@ -1351,6 +1433,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         split.operator("sprytile.reload_imgs")
 
         addon_updater_ops.update_notice_box_ui(self, context)
+
 
 
 def register():
