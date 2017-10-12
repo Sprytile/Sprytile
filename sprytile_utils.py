@@ -744,8 +744,8 @@ class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
     def load_tileset_file(context, filepath):
         obj = context.object
 
-        texture_name = filepath[filepath.rindex('\\') + 1:]
-        material_name = filepath[filepath.rindex('\\') + 1: filepath.rindex('.')]
+        texture_name = filepath[filepath.rindex(path.sep) + 1:]
+        material_name = filepath[filepath.rindex(path.sep) + 1: filepath.rindex('.')]
 
         bpy.ops.sprytile.material_setup()
 

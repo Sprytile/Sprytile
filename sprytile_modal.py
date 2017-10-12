@@ -324,6 +324,9 @@ class SprytileModalTool(bpy.types.Operator):
             for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
+
+            self.bmesh.loops.layers.uv.verify()
+            self.bmesh.faces.layers.tex.verify()
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
