@@ -39,6 +39,11 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
     flip_y = -1 if data.uv_flip_y else 1
     flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
 
+    pad_offset = 0.1
+    pad_x = (size_x - pad_offset) / size_x
+    pad_y = (size_y - pad_offset) / size_y
+    pad_matrix = Matrix.Scale(pad_x, 4, right_vector) * Matrix.Scale(pad_y, 4, up_vector)
+
     uv_min = Vector((float('inf'), float('inf')))
     uv_max = Vector((float('-inf'), float('-inf')))
 
@@ -48,6 +53,8 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         vert_pos = vert - vtx_center
         # Apply flip scaling
         vert_pos = flip_matrix * vert_pos
+        # Apply paddingg
+        vert_pos = pad_matrix * vert_pos
         # Get x/y values by using the right/up vectors
         vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
         vert_xy = Vector(vert_xy)
@@ -92,8 +99,8 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
                 return None
             uv_pixel_x = int(round(p_x))
             uv_pixel_y = int(round(p_y))
-            uv_vert.x = uv_pixel_x * pixel_uv_x
-            uv_vert.y = uv_pixel_y * pixel_uv_y
+            uv_vert.x = min(uv_max.x, max(uv_pixel_x * pixel_uv_x, uv_min.x))
+            uv_vert.y = min(uv_max.y, max(uv_pixel_y * pixel_uv_y, uv_min.y))
 
     return uv_verts
 
