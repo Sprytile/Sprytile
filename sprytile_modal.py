@@ -433,7 +433,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         if did_build and data.auto_merge:
             if threshold is None:
-                threshold = (1 / data.world_pixels) * 2
+                threshold = (1 / data.world_pixels) * 1.25
 
             face = self.bmesh.faces[face_index]
 
