@@ -7,6 +7,7 @@ import sprytile_utils
 import sprytile_uv
 from sprytile_tools import tool_paint
 
+
 class ToolBuild:
     modal = None
     left_down = False
@@ -167,7 +168,7 @@ class ToolBuild:
                 threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
                 face = self.modal.bmesh.faces[face_index]
                 self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
-        elif hit_face_idx is None: # Only allow building when no hit
+        elif hit_face_idx is None:  # Only allow building when no hit
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
                              (grid_coord[1] * grid_up)
@@ -186,8 +187,8 @@ class ToolBuild:
                                           up_vector, right_vector, plane_normal,
                                           shift_vec=shift_vec)
 
-        # if data.cursor_flow and face_index is not None and face_index > -1:
-        #     self.modal.flow_cursor(context, face_index, plane_pos)
+            # if data.cursor_flow and face_index is not None and face_index > -1:
+            #     self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
