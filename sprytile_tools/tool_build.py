@@ -98,12 +98,11 @@ class ToolBuild:
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
 
-        face_index = None
+        # Raycast under mouse
+        hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
+            context.object, ray_origin, ray_vector)
 
         if do_join:
-            # Raycast under mouse
-            hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
-                context.object, ray_origin, ray_vector)
             # Hit something, check if hit is closer than plane pos
             if hit_face_idx is not None:
                 plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
@@ -168,7 +167,7 @@ class ToolBuild:
                 threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
                 face = self.modal.bmesh.faces[face_index]
                 self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
-        else:
+        elif hit_face_idx is None: # Only allow building when no hit
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
                              (grid_coord[1] * grid_up)
