@@ -180,14 +180,8 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit
             uv_pixel_y = int(round(uv.y / pixel_uv.y))
             snap_x = uv_pixel_x * pixel_uv.x
             snap_y = uv_pixel_y * pixel_uv.y
-            if tile_bound_min.x >= pixel_uv.x <= tile_bound_max.x:
-                uv.x = min(tile_max.x, max(tile_min.x, snap_x))
-            else:
-                uv.x = snap_x
-            if tile_bound_min.y >= pixel_uv.y <= tile_bound_max.y:
-                uv.y = min(tile_max.y, max(tile_min.y, snap_y))
-            else:
-                uv.y = snap_y
+            uv.x = snap_x
+            uv.y = snap_y
         # Record min/max for tile alignment step
         uv_min.x = min(uv_min.x, uv.x)
         uv_min.y = min(uv_min.y, uv.y)
@@ -214,6 +208,12 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit
         for uv_vert in uv_verts:
             uv_vert.x += uv_offset.x
             uv_vert.y += uv_offset.y
+    # One final loop to keep in auto pad
+    for uv_vert in uv_verts:
+        if tile_bound_min.x <= uv_vert.x <= tile_bound_max.x:
+            uv_vert.x = min(tile_max.x, max(tile_min.x, uv_vert.x))
+        if tile_bound_min.y <= uv_vert.y <= tile_bound_max.y:
+            uv_vert.y = min(tile_max.y, max(tile_min.y, uv_vert.y))
 
     return uv_verts
 
