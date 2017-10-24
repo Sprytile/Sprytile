@@ -332,8 +332,8 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Stretch face over Y axis of tile"
     )
     paint_edge_snap = BoolProperty(
-        name="Stretch Edge Snap",
-        description="Snap UV vertices to edges of tile when stretching.",
+        name="Snap To Edge",
+        description="Snap UV vertices to edges of tile when close enough.",
         default=True
     )
     edge_threshold = FloatProperty(

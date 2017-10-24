@@ -121,10 +121,13 @@ class SprytilePanel(bpy.types.Panel):
 
             left_col = split.column(align=True)
             left_col.prop(sprytile_data, "paint_uv_snap", text="Pixel Snap")
-            left_col.prop(sprytile_data, "paint_edge_snap")
-            left_col.prop(sprytile_data, "edge_threshold")
             left_col.prop(sprytile_data, "paint_stretch_x")
             left_col.prop(sprytile_data, "paint_stretch_y")
+
+            sub_col = left_col.column(align=True)
+            sub_col.enabled = sprytile_data.paint_stretch_x or sprytile_data.paint_stretch_y
+            sub_col.prop(sprytile_data, "paint_edge_snap")
+            sub_col.prop(sprytile_data, "edge_threshold")
 
             right_col = split.column(align=True)
             right_col.label(text="UV Align")
