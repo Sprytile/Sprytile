@@ -307,7 +307,7 @@ class SprytileGui(bpy.types.Operator):
 
         import gpu
         try:
-            offscreen = gpu.offscreen.new(tex_size[0], tex_size[1])
+            offscreen = gpu.offscreen.new(tex_size[0], tex_size[1], samples=0)
         except Exception as e:
             print(e)
             SprytileGui.clear_offscreen(self)
@@ -715,11 +715,20 @@ class SprytileGui(bpy.types.Operator):
         # Setup GL for drawing the offscreen texture
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
-        # Backup texture filter
-        old_mag_filter = Buffer(bgl.GL_INT, [1])
-        bgl.glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        # Backup texture settings
+        old_mag_filter = Buffer(bgl.GL_INT, 1)
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+
+        old_wrap_S = Buffer(GL_INT, 1)
+        old_wrap_T = Buffer(GL_INT, 1)
+
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, old_wrap_S)
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, old_wrap_T)
+
         # Set texture filter
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
+        bgl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        bgl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
@@ -742,7 +751,9 @@ class SprytileGui(bpy.types.Operator):
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
         bgl.glLineWidth(1)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter[0])
+        bgl.glTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        bgl.glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, old_wrap_S)
+        bgl.glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, old_wrap_T)
 
         # Draw label
         font_id = 0
