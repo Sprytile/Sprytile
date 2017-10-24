@@ -39,7 +39,7 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
     flip_y = -1 if data.uv_flip_y else 1
     flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
 
-    pad_offset = 0.1
+    pad_offset = 0.05
     if data.auto_pad is False:
         pad_offset = 0
     pad_scale = Vector(((size_x - pad_offset) / size_x, (size_y - pad_offset) / size_y))
