@@ -240,7 +240,6 @@ class SprytileGui(bpy.types.Operator):
                 SprytileGui.sel_start = grid_pos
 
             if SprytileGui.is_selecting:
-
                 sel_min = Vector((
                     min(grid_pos.x, SprytileGui.sel_start.x),
                     min(grid_pos.y, SprytileGui.sel_start.y)

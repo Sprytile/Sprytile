@@ -385,6 +385,11 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Join multi tile faces when possible",
         default=False
     )
+    auto_pad = BoolProperty(
+        name="Pad",
+        description="Automatically add subpixel padding to tiles",
+        default=True
+    )
 
     def set_reload(self, value):
         self["auto_reload"] = value
