@@ -26,7 +26,9 @@ class SprytileGui(bpy.types.Operator):
     mouse_pt = None
     label_frames = 50
     is_selecting = False
+    is_moving = False
     sel_start = None
+    sel_origin = None
 
     # ================
     # Modal functions
@@ -236,11 +238,18 @@ class SprytileGui(bpy.types.Operator):
             SprytileGui.cursor_grid_pos = grid_pos
 
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and SprytileGui.is_selecting is False:
-                SprytileGui.is_selecting = True
-                SprytileGui.sel_start = grid_pos
+                SprytileGui.is_selecting = event.ctrl is False
+                SprytileGui.is_moving = event.ctrl is True
+                if SprytileGui.is_selecting or SprytileGui.is_moving:
+                    SprytileGui.sel_start = grid_pos
+                    SprytileGui.sel_origin = (tilegrid.tile_selection[0], tilegrid.tile_selection[1])
+
+            if SprytileGui.is_moving:
+                move_delta = Vector((grid_pos.x - SprytileGui.sel_start.x, grid_pos.y - SprytileGui.sel_start.y))
+                tilegrid.tile_selection[0] = SprytileGui.sel_origin[0] + move_delta.x
+                tilegrid.tile_selection[1] = SprytileGui.sel_origin[1] + move_delta.y
 
             if SprytileGui.is_selecting:
-
                 sel_min = Vector((
                     min(grid_pos.x, SprytileGui.sel_start.x),
                     min(grid_pos.y, SprytileGui.sel_start.y)
@@ -255,9 +264,12 @@ class SprytileGui(bpy.types.Operator):
                 tilegrid.tile_selection[2] = (sel_max.x - sel_min.x) + 1
                 tilegrid.tile_selection[3] = (sel_max.y - sel_min.y) + 1
 
-            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE' and SprytileGui.is_selecting:
+            do_release = event.type == 'LEFTMOUSE' and event.value == 'RELEASE'
+            if do_release and (SprytileGui.is_selecting or SprytileGui.is_moving):
                 SprytileGui.is_selecting = False
+                SprytileGui.is_moving = False
                 SprytileGui.sel_start = None
+                SprytileGui.sel_origin = None
 
         # Cycle through grids on same material when right click
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
@@ -295,7 +307,7 @@ class SprytileGui(bpy.types.Operator):
 
         import gpu
         try:
-            offscreen = gpu.offscreen.new(tex_size[0], tex_size[1])
+            offscreen = gpu.offscreen.new(tex_size[0], tex_size[1], samples=0)
         except Exception as e:
             print(e)
             SprytileGui.clear_offscreen(self)
@@ -427,7 +439,10 @@ class SprytileGui(bpy.types.Operator):
         # Draw box for currently selected tile(s)
         # Pixel grid selection is drawn in draw_tile_select_ui
         if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1):
-            glColor4f(1.0, 1.0, 1.0, 1.0)
+            if SprytileGui.is_moving:
+                glColor4f(1.0, 0.0, 0.0, 1.0)
+            else:
+                glColor4f(1.0, 1.0, 1.0, 1.0)
             curr_sel_min, curr_sel_max = SprytileGui.get_sel_bounds(
                                                     grid_size, padding, margin,
                                                     curr_sel[0], curr_sel[1],
@@ -440,7 +455,7 @@ class SprytileGui(bpy.types.Operator):
 
             cursor_pos = SprytileGui.cursor_grid_pos
             # In pixel grid, draw cross hair
-            if is_pixel_grid:
+            if is_pixel_grid and SprytileGui.is_moving is False:
                 glColor4f(1.0, 1.0, 1.0, 0.5)
                 glBegin(GL_LINE_STRIP)
                 glVertex2i(0, int(cursor_pos.y + 1))
@@ -452,7 +467,7 @@ class SprytileGui(bpy.types.Operator):
                 glVertex2i(int(cursor_pos.x + 1), tex_size[1])
                 glEnd()
             # Draw box around selection
-            else:
+            elif SprytileGui.is_moving is False:
                 glColor4f(1.0, 0.0, 0.0, 1.0)
                 cursor_min, cursor_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                                     int(cursor_pos.x), int(cursor_pos.y),)
@@ -700,11 +715,20 @@ class SprytileGui(bpy.types.Operator):
         # Setup GL for drawing the offscreen texture
         bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, SprytileGui.texture)
-        # Backup texture filter
-        old_mag_filter = Buffer(bgl.GL_INT, [1])
-        bgl.glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        # Backup texture settings
+        old_mag_filter = Buffer(bgl.GL_INT, 1)
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+
+        old_wrap_S = Buffer(GL_INT, 1)
+        old_wrap_T = Buffer(GL_INT, 1)
+
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, old_wrap_S)
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, old_wrap_T)
+
         # Set texture filter
         bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, bgl.GL_NEAREST)
+        bgl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        bgl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
         bgl.glEnable(bgl.GL_TEXTURE_2D)
         bgl.glEnable(bgl.GL_BLEND)
 
@@ -727,9 +751,14 @@ class SprytileGui(bpy.types.Operator):
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
         bgl.glLineWidth(1)
-        bgl.glTexParameteri(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter[0])
+        bgl.glTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        bgl.glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, old_wrap_S)
+        bgl.glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, old_wrap_T)
 
         # Draw label
+        font_id = 0
+        font_size = 16
+        pad = 5
         if label_counter > 0:
             import math
 
@@ -737,10 +766,6 @@ class SprytileGui(bpy.types.Operator):
                 t /= d
                 t -= 1
                 return c * math.sqrt(1 - t * t) + b
-
-            font_id = 0
-            font_size = 16
-            pad = 5
             box_pad = font_size + (pad * 2)
             fade = label_counter
             fade = ease_out_circ(fade, 0, SprytileGui.label_frames, SprytileGui.label_frames)
@@ -766,6 +791,14 @@ class SprytileGui(bpy.types.Operator):
                 label_string = "%s - %s" % (label_string, tilegrid.name)
             blf.position(font_id, x_pos, y_pos, 0)
             blf.draw(font_id, label_string)
+        if tilegrid.grid[0] == 1 and tilegrid.grid[1] == 1:
+            size_text = "%dx%d" % (tile_sel[2], tile_sel[3])
+            blf.size(font_id, font_size, 72)
+            size = blf.dimensions(font_id, size_text)
+            x_pos = view_max.x - size[0] - pad
+            y_pos = view_max.y + pad
+            blf.position(font_id, x_pos, y_pos, 0)
+            blf.draw(font_id, size_text)
 
         bgl.glDisable(bgl.GL_BLEND)
         bgl.glDisable(bgl.GL_TEXTURE_2D)

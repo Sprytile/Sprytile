@@ -332,8 +332,8 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Stretch face over Y axis of tile"
     )
     paint_edge_snap = BoolProperty(
-        name="Stretch Edge Snap",
-        description="Snap UV vertices to edges of tile when stretching.",
+        name="Snap To Edge",
+        description="Snap UV vertices to edges of tile when close enough.",
         default=True
     )
     edge_threshold = FloatProperty(
@@ -520,6 +520,18 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
         name="Tile Selection",
         size=4,
         default=(0, 0, 1, 1)
+    )
+    auto_pad = BoolProperty(
+        name="Auto Pad",
+        description="Apply a subpixel padding to tiles of this grid",
+        default=True
+    )
+    auto_pad_offset = FloatProperty(
+        name="Pad Offset",
+        description="Subpixel padding amount",
+        default=0.05,
+        min=0.05,
+        max=0.20
     )
 
 

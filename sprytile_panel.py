@@ -121,10 +121,13 @@ class SprytilePanel(bpy.types.Panel):
 
             left_col = split.column(align=True)
             left_col.prop(sprytile_data, "paint_uv_snap", text="Pixel Snap")
-            left_col.prop(sprytile_data, "paint_edge_snap")
-            left_col.prop(sprytile_data, "edge_threshold")
             left_col.prop(sprytile_data, "paint_stretch_x")
             left_col.prop(sprytile_data, "paint_stretch_y")
+
+            sub_col = left_col.column(align=True)
+            sub_col.enabled = sprytile_data.paint_stretch_x or sprytile_data.paint_stretch_y
+            sub_col.prop(sprytile_data, "paint_edge_snap")
+            sub_col.prop(sprytile_data, "edge_threshold")
 
             right_col = split.column(align=True)
             right_col.label(text="UV Align")
@@ -179,8 +182,12 @@ class SprytilePanel(bpy.types.Panel):
         if not sprytile_data.show_extra:
             return
 
-        layout.prop(selected_grid, "offset")
-        layout.prop(selected_grid, "rotate")
+        split = layout.split(percentage=0.3, align=True)
+        split.prop(selected_grid, "auto_pad", toggle=True)
+
+        pad_row = split.row(align=True)
+        pad_row.enabled = selected_grid.auto_pad
+        pad_row.prop(selected_grid, "auto_pad_offset")
 
         layout.prop(selected_grid, "padding")
 
@@ -196,6 +203,9 @@ class SprytilePanel(bpy.types.Panel):
         row_margins = col.row(align=True)
         row_margins.prop(selected_grid, "margin", text="Top", index=0)
         row_margins.prop(selected_grid, "margin", text="Bottom", index=2)
+
+        layout.prop(selected_grid, "rotate")
+        layout.prop(selected_grid, "offset")
 
 
 def register():

@@ -61,10 +61,16 @@ class ToolPaint:
             face_verts.append(context.object.matrix_world * vert.co)
 
         # Get the center of the preview verts
-        vtx_center = Vector((0, 0, 0))
+        vtx_min = Vector((float('inf'), float('inf'), float('inf')))
+        vtx_max = Vector((float('-inf'), float('-inf'), float('-inf')))
         for vtx in face_verts:
-            vtx_center += vtx
-        vtx_center /= len(face_verts)
+            vtx_min.x = min(vtx.x, vtx_min.x)
+            vtx_min.y = min(vtx.y, vtx_min.y)
+            vtx_min.z = min(vtx.z, vtx_min.z)
+            vtx_max.x = max(vtx.x, vtx_max.x)
+            vtx_max.y = max(vtx.y, vtx_max.y)
+            vtx_max.z = max(vtx.z, vtx_max.z)
+        vtx_center = (vtx_min + vtx_max) / 2
 
         rotate_normal = plane_normal
 

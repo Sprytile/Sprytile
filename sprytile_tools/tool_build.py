@@ -7,6 +7,7 @@ import sprytile_utils
 import sprytile_uv
 from sprytile_tools import tool_paint
 
+
 class ToolBuild:
     modal = None
     left_down = False
@@ -98,34 +99,38 @@ class ToolBuild:
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
 
-        face_index = None
+        # Raycast under mouse
+        hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
+            context.object, ray_origin, ray_vector)
 
+        # Hit a face
+        if hit_face_idx is not None:
+            # Determine if face can be painted
+            plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
+                                             scene.cursor_location, plane_normal)
+            plane_dist = (plane_hit - ray_origin).magnitude
+            difference = abs(hit_dist - plane_dist)
+            # If valid for painting instead of creating…
+            if difference < 0.01 or hit_dist < plane_dist:
+                check_dot = abs(plane_normal.dot(hit_normal))
+                check_dot -= 1
+                check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+
+                check_coplanar = abs(check_coplanar) < 0.05
+                check_dot = abs(check_dot) < 0.05
+                # Paint if coplanar and dot angle checks out
+                if check_coplanar and check_dot:
+                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
+                                                    self.modal, context,
+                                                    scene, hit_face_idx)
+                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
+                                          self.modal.bmesh, data, target_img,
+                                          tile_xy, origin_xy=tile_xy)
+                # Hit a face, that could have been painted, don't do anything else
+                return
+
+        # Build mode with auto join
         if do_join:
-            # Raycast under mouse
-            hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
-                context.object, ray_origin, ray_vector)
-            # Hit something, check if hit is closer than plane pos
-            if hit_face_idx is not None:
-                plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
-                                                 scene.cursor_location, plane_normal)
-                plane_dist = (plane_hit - ray_origin).magnitude
-                difference = abs(hit_dist - plane_dist)
-                if difference < 0.01 or hit_dist < plane_dist:
-                    check_dot = abs(plane_normal.dot(hit_normal))
-                    check_dot -= 1
-                    check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-                    check_coplanar = abs(check_coplanar) < 0.05
-                    check_dot = abs(check_dot) < 0.05
-                    if check_coplanar and check_dot:
-                        face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
-                                                        self.modal, context,
-                                                        scene, hit_face_idx)
-                        sprytile_uv.apply_uvs(context, face, uvs, target_grid,
-                                              self.modal.bmesh, data, target_img,
-                                              tile_xy, origin_xy=tile_xy)
-                    return
-
             origin_coord = scene.cursor_location + \
                            (grid_coord[0] + coord_min[0]) * grid_right + \
                            (grid_coord[1] + coord_min[1]) * grid_up
@@ -168,6 +173,7 @@ class ToolBuild:
                 threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
                 face = self.modal.bmesh.faces[face_index]
                 self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
+        # Build mode without auto join
         else:
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
@@ -187,8 +193,8 @@ class ToolBuild:
                                           up_vector, right_vector, plane_normal,
                                           shift_vec=shift_vec)
 
-        # if data.cursor_flow and face_index is not None and face_index > -1:
-        #     self.modal.flow_cursor(context, face_index, plane_pos)
+            # if data.cursor_flow and face_index is not None and face_index > -1:
+            #     self.modal.flow_cursor(context, face_index, plane_pos)
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object

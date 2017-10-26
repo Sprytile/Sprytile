@@ -39,6 +39,12 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
     flip_y = -1 if data.uv_flip_y else 1
     flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
 
+    pad_offset = target_grid.auto_pad_offset
+    if target_grid.auto_pad is False:
+        pad_offset = 0
+    pad_scale = Vector(((size_x - pad_offset) / size_x, (size_y - pad_offset) / size_y))
+    pad_matrix = Matrix.Scale(pad_scale.x, 4, right_vector) * Matrix.Scale(pad_scale.y, 4, up_vector)
+
     uv_min = Vector((float('inf'), float('inf')))
     uv_max = Vector((float('-inf'), float('-inf')))
 
@@ -48,6 +54,8 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         vert_pos = vert - vtx_center
         # Apply flip scaling
         vert_pos = flip_matrix * vert_pos
+        # Apply padding
+        vert_pos = pad_matrix * vert_pos
         # Get x/y values by using the right/up vectors
         vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
         vert_xy = Vector(vert_xy)
@@ -76,7 +84,7 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         uv_center.x *= uv_unit_x
         uv_center.y *= uv_unit_y
         uv_center = uv_matrix * uv_center
-        uv_verts = get_uv_paint_modify(data, uv_verts, uv_matrix,
+        uv_verts = get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale,
                                        uv_unit_x, uv_unit_y, uv_min, uv_max,
                                        uv_center, Vector((pixel_uv_x, pixel_uv_y)))
 
@@ -92,8 +100,8 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
                 return None
             uv_pixel_x = int(round(p_x))
             uv_pixel_y = int(round(p_y))
-            uv_vert.x = uv_pixel_x * pixel_uv_x
-            uv_vert.y = uv_pixel_y * pixel_uv_y
+            uv_vert.x = min(uv_max.x, max(uv_pixel_x * pixel_uv_x, uv_min.x))
+            uv_vert.y = min(uv_max.y, max(uv_pixel_y * pixel_uv_y, uv_min.y))
 
     return uv_verts
 
@@ -107,7 +115,7 @@ def get_uv_positions(data, image_size, target_grid, up_vector, right_vector, til
                            verts, vtx_center)
 
 
-def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
+def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit_y, uv_min, uv_max, uv_center, pixel_uv):
     paint_align = data.paint_align
     # Stretching will change how the tile will be aligned
     if data.paint_stretch_x:
@@ -125,9 +133,16 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min,
         if paint_align in {'TOP_RIGHT', 'BOTTOM_RIGHT'}:
             paint_align = 'RIGHT'
 
-    # Generate where tile min/max points are
-    tile_min = uv_matrix * Vector((0, 0, 0))
-    tile_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
+    # Generate tile bounds with auto padding
+    half_uv = Vector((uv_unit_x / 2, uv_unit_y / 2, 0))
+    pad_matrix = Matrix.Scale(pad_scale.x, 4, Vector((1, 0, 0))) * Matrix.Scale(pad_scale.y, 4, Vector((0, 1, 0)))
+    tile_min = pad_matrix * Vector((-half_uv.x, -half_uv.y, 0)) + half_uv
+    tile_max = pad_matrix * Vector((half_uv.x, half_uv.y, 0)) + half_uv
+    tile_min = uv_matrix * tile_min
+    tile_max = uv_matrix * tile_max
+    # Actual bounds without auto padding
+    tile_bound_min = uv_matrix * Vector((0, 0, 0))
+    tile_bound_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
 
     # Calculate tile stretch
     scale_x = 1
@@ -165,8 +180,10 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min,
         if data.paint_uv_snap and pixel_uv.x > 0 and pixel_uv.y > 0 and uv.x > 0 and uv.y > 0:
             uv_pixel_x = int(round(uv.x / pixel_uv.x))
             uv_pixel_y = int(round(uv.y / pixel_uv.y))
-            uv.x = uv_pixel_x * pixel_uv.x
-            uv.y = uv_pixel_y * pixel_uv.y
+            snap_x = uv_pixel_x * pixel_uv.x
+            snap_y = uv_pixel_y * pixel_uv.y
+            uv.x = snap_x
+            uv.y = snap_y
         # Record min/max for tile alignment step
         uv_min.x = min(uv_min.x, uv.x)
         uv_min.y = min(uv_min.y, uv.y)
@@ -193,6 +210,12 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, uv_unit_x, uv_unit_y, uv_min,
         for uv_vert in uv_verts:
             uv_vert.x += uv_offset.x
             uv_vert.y += uv_offset.y
+    # One final loop to keep in auto pad
+    for uv_vert in uv_verts:
+        if tile_bound_min.x <= uv_vert.x <= tile_bound_max.x:
+            uv_vert.x = min(tile_max.x, max(tile_min.x, uv_vert.x))
+        if tile_bound_min.y <= uv_vert.y <= tile_bound_max.y:
+            uv_vert.y = min(tile_max.y, max(tile_min.y, uv_vert.y))
 
     return uv_verts
 
