@@ -1426,10 +1426,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
 
         # layout.prop(data, "snap_translate", toggle=True)
         layout.prop(data, "world_pixels")
-
-        split = layout.split(percentage=0.3, align=True)
-        split.prop(data, "auto_pad")
-        split.menu("SPRYTILE_work_drop")
+        layout.menu("SPRYTILE_work_drop")
 
         split = layout.split(percentage=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
