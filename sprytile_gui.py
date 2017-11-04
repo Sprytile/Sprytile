@@ -649,6 +649,8 @@ class SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_preview_tile(context, region, rv3d):
+        if sprytile_modal.SprytileModalTool.no_undo is True:
+            return
         if sprytile_modal.SprytileModalTool.preview_verts is None:
             return
         if sprytile_modal.SprytileModalTool.preview_uvs is None:
