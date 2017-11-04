@@ -1105,6 +1105,23 @@ class SprytileMakeDoubleSided(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SprytileSetupGrid(bpy.types.Operator):
+    bl_idname = "sprytile.setup_grid"
+    bl_label = "Floor Grid To Pixels"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        pixel_unit = (1 / context.scene.sprytile_data.world_pixels)
+        space_data = context.space_data
+        space_data.grid_scale = pixel_unit
+        space_data.grid_subdivisions = 1
+        context.scene.tool_settings.use_snap = True
+        context.scene.tool_settings.snap_element = 'INCREMENT'
+        return {'FINISHED'}
+
+
 class SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
     bl_label = "Pixel Translate (Sprytile)"
@@ -1371,6 +1388,8 @@ class SprytileWorkDropDown(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
+        layout.separator()
+        layout.operator("sprytile.setup_grid")
         layout.separator()
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
