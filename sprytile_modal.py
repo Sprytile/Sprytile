@@ -46,6 +46,7 @@ class SprytileModalTool(bpy.types.Operator):
     preview_verts = None
     preview_uvs = None
     preview_is_quads = True
+    no_undo = False
 
     modal_map = bpy.props.EnumProperty(
         items=[
@@ -700,9 +701,8 @@ class SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
-        if self.no_undo and sprytile_data.is_grid_translate is False:
-            # print("no undo on, grid translate off")
-            self.no_undo = False
+        if SprytileModalTool.no_undo and sprytile_data.is_grid_translate is False:
+            SprytileModalTool.no_undo = False
 
         if event.type == 'TIMER':
             view_axis = self.find_view_axis(context)
@@ -809,21 +809,21 @@ class SprytileModalTool(bpy.types.Operator):
                 self.cursor_move_layer(context, direction)
                 return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
-        if self.no_undo:
+        if SprytileModalTool.no_undo:
             # print("No undo flag is on", event.type, event.value)
             clear_types = {'LEFTMOUSE', 'RIGHTMOUSE'}
             if event.type in clear_types and event.value == 'RELEASE':
                 print("Clearing no undo")
                 self.refresh_mesh = True
-                self.no_undo = False
-            return {'PASS_THROUGH'} if self.no_undo else {'RUNNING_MODAL'}
+                SprytileModalTool.no_undo = False
+            return {'PASS_THROUGH'} if SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             self.left_down = event.value == 'PRESS' and event.alt is False
             if event.alt is True and event.value == 'PRESS':
                 self.find_face_tile(context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
-            if draw_preview and not self.no_undo and event.type not in self.is_keyboard_list:
+            if draw_preview and not SprytileModalTool.no_undo and event.type not in self.is_keyboard_list:
                 self.draw_preview = True
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
@@ -851,11 +851,10 @@ class SprytileModalTool(bpy.types.Operator):
                 continue
             # print("Special key is", arg)
             if arg == 'move_sel':
-                bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 SprytileModalTool.preview_uvs = None
                 SprytileModalTool.preview_verts = None
-                # print("No undo on")
-                self.no_undo = True
+                SprytileModalTool.no_undo = True
+                bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 return {'RUNNING_MODAL'}
             if arg == 'sel_mesh':
                 return {'PASS_THROUGH'}
@@ -937,7 +936,7 @@ class SprytileModalTool(bpy.types.Operator):
             context.space_data.viewport_shade = 'MATERIAL'
 
         self.virtual_cursor = deque([], 3)
-        self.no_undo = False
+        SprytileModalTool.no_undo = False
         self.left_down = False
         self.update_bmesh_tree(context)
         self.refresh_mesh = False
