@@ -18,7 +18,7 @@ class ToolSetNormal:
         if self.modal.rx_data is None:
             return
 
-        self.modal.set_preview_data(None, None)
+        self.modal.clear_preview_data()
         if modal_evt.left_down is False:
             return
 

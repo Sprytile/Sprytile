@@ -343,6 +343,12 @@ class SprytileModalTool(bpy.types.Operator):
         SprytileModalTool.preview_uvs = uvs
         SprytileModalTool.preview_is_quads = is_quads
 
+    def clear_preview_data(self):
+        SprytileModalTool.preview_verts = None
+        SprytileModalTool.preview_uvs = None
+        SprytileModalTool.preview_is_quads = True
+
+
     @staticmethod
     def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
         """Get the world position vertices for a new face, at the given position"""
@@ -715,7 +721,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Mouse in Sprytile UI, eat this event without doing anything
         if context.scene.sprytile_ui.use_mouse:
-            self.set_preview_data(None, None)
+            self.clear_preview_data()
             return {'RUNNING_MODAL'}
 
         # Mouse move triggers preview drawing
@@ -744,7 +750,7 @@ class SprytileModalTool(bpy.types.Operator):
         if out_of_region:
             # If preview data exists, clear it
             if SprytileModalTool.preview_verts is not None:
-                self.set_preview_data(None, None)
+                self.clear_preview_data()
             return {'PASS_THROUGH'}
 
         modal_return = {'PASS_THROUGH'}
@@ -752,7 +758,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Process keyboard events, if returned something end here
         key_return = self.handle_keys(context, event)
         if key_return is not None:
-            self.set_preview_data(None, None)
+            self.clear_preview_data()
             modal_return = key_return
         # Didn't process keyboard, process mouse now
         else:
