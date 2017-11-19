@@ -144,7 +144,7 @@ class ToolPaint:
                                                                         scene,
                                                                         face_index)
         if face is None:
-            self.modal.set_preview_data(None, None)
+            self.modal.clear_preview(data)
             return
 
         self.modal.set_preview_data(verts, uvs, is_quads=False)
