@@ -112,6 +112,8 @@ class ToolBuild:
             difference = abs(hit_dist - plane_dist)
             # If valid for painting instead of creating…
             if difference < 0.01 or hit_dist < plane_dist:
+                if do_join is False:
+                    return
                 check_dot = abs(plane_normal.dot(hit_normal))
                 check_dot -= 1
                 check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
