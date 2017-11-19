@@ -42,7 +42,7 @@ Inspired by [Crocotile3D](http://www.crocotile3d.com/).
 
 ### Contributing:
 
-Sprytile adopts the [contributor covenant](CodeOfConduct.md) as the project code of conduct. The project highly values having a welcoming community. [Contributions](contributing.md) (bug reports, feature requests, documentation, etc.) are welcome!
+Sprytile adopts the [contributor covenant](CodeOfConduct.md) as the project code of conduct. The project values having a community that welcomes diversity. [Contributions](contributing.md) (bug reports, feature requests, documentation, etc.) are welcome!
 
 ### Donations:
 
