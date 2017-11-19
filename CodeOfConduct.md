@@ -14,7 +14,9 @@ Please Don't:
 * Use gendered / racial / etc slurs
 * Do things that would be considered inappropriate in a professional setting
 
-TL;DR: Heckin' swares okay to a point, slurs / trolling / harassment is a fuck off.
+TL;DR:
+* This project and community places importance on being welcoming to a diverse group of people.
+* Heckin' swares okay to a point, slurs / trolling / harassment is a fuck off.
 
 ## Code of Conduct Proper
 
@@ -26,6 +28,8 @@ our community a harassment-free experience for everyone, regardless of age, body
 size, disability, ethnicity, gender identity and expression, level of experience,
 nationality, personal appearance, race, religion, or sexual identity and
 orientation.
+
+Diversity is important, and we will do our best to make the project welcoming to everyone.
 
 ### Our Standards
 
