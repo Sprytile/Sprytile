@@ -1376,6 +1376,8 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.texture_setup")
         layout.separator()
         layout.operator("sprytile.make_double_sided")
+        layout.separator()
+        layout.operator("sprytile.props_teardown")
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
