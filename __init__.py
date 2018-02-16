@@ -622,30 +622,54 @@ class SprytileGridList(bpy.types.PropertyGroup):
     )
 
 
-def setup_props():
-    bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
-    bpy.types.Scene.sprytile_mats = bpy.props.CollectionProperty(type=SprytileMaterialData)
+class SprytilePropsSetup(bpy.types.Operator):
+    bl_idname = "sprytile.props_setup"
+    bl_label = "Setup Sprytile data"
 
-    bpy.types.Scene.sprytile_list = bpy.props.PointerProperty(type=SprytileGridList)
+    def execute(self, context):
+        return self.invoke(context, None)
 
-    bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.SprytileGuiData)
+    def invoke(self, context, event):
+        self.props_setup()
+        return {'FINISHED'}
 
-    bpy.types.Object.sprytile_gridid = IntProperty(
-        name="Grid ID",
-        description="Grid index used for object",
-        default=-1
-    )
+    @staticmethod
+    def props_setup():
+        bpy.types.Scene.sprytile_data = bpy.props.PointerProperty(type=SprytileSceneSettings)
+        bpy.types.Scene.sprytile_mats = bpy.props.CollectionProperty(type=SprytileMaterialData)
+
+        bpy.types.Scene.sprytile_list = bpy.props.PointerProperty(type=SprytileGridList)
+
+        bpy.types.Scene.sprytile_ui = bpy.props.PointerProperty(type=sprytile_gui.SprytileGuiData)
+
+        bpy.types.Object.sprytile_gridid = IntProperty(
+            name="Grid ID",
+            description="Grid index used for object",
+            default=-1
+        )
 
 
-def teardown_props():
-    del bpy.types.Scene.sprytile_data
-    del bpy.types.Scene.sprytile_mats
+class SprytilePropsTeardown(bpy.types.Operator):
+    bl_idname = "sprytile.props_teardown"
+    bl_label = "Remove Sprytile data"
 
-    del bpy.types.Scene.sprytile_list
+    def execute(self, context):
+        return self.invoke(context, None)
 
-    del bpy.types.Scene.sprytile_ui
+    def invoke(self, context, event):
+        self.props_teardown()
+        return {'FINISHED'}
 
-    del bpy.types.Object.sprytile_gridid
+    @staticmethod
+    def props_teardown():
+        del bpy.types.Scene.sprytile_data
+        del bpy.types.Scene.sprytile_mats
+
+        del bpy.types.Scene.sprytile_list
+
+        del bpy.types.Scene.sprytile_ui
+
+        del bpy.types.Object.sprytile_gridid
 
 
 class SprytileAddonPreferences(bpy.types.AddonPreferences):
@@ -772,13 +796,13 @@ def register():
 
     bpy.utils.register_class(sprytile_panel.SprytilePanel)
     bpy.utils.register_module(__name__)
-    setup_props()
+    SprytilePropsSetup.props_setup()
     setup_keymap()
 
 
 def unregister():
     teardown_keymap()
-    teardown_props()
+    SprytilePropsTeardown.props_teardown()
     bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
     bpy.utils.unregister_module(__name__)
 
