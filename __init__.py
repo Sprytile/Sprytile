@@ -652,13 +652,22 @@ class SprytilePropsSetup(bpy.types.Operator):
 class SprytilePropsTeardown(bpy.types.Operator):
     bl_idname = "sprytile.props_teardown"
     bl_label = "Remove Sprytile data"
+    bl_description = "WARNING: This will clear all Sprytile data, tile grids will be lost. Continue?"
+
+    @classmethod
+    def poll(cls, context):
+        return True
 
     def execute(self, context):
-        return self.invoke(context, None)
-
-    def invoke(self, context, event):
         self.props_teardown()
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def draw(self, context):
+        layout = self.layout
+
 
     @staticmethod
     def props_teardown():
