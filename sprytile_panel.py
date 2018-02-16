@@ -65,6 +65,11 @@ class SprytilePanel(bpy.types.Panel):
         layout = self.layout
         scene = context.scene
         obj = context.object
+
+        if hasattr(context.scene, "sprytile_data") is False:
+            layout.label("No Sprytile Data")
+            return
+
         sprytile_data = context.scene.sprytile_data
 
         if icons is not None:

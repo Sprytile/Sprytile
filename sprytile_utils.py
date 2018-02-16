@@ -1319,6 +1319,8 @@ class SprytileObjectDropDown(bpy.types.Menu):
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
         layout.operator("sprytile.add_new_material")
+        layout.separator()
+        layout.operator("sprytile.props_teardown")
 
 
 class SprytileObjectPanel(bpy.types.Panel):
@@ -1336,6 +1338,13 @@ class SprytileObjectPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+
+        if hasattr(context.scene, "sprytile_data") is False:
+            box = layout.box()
+            box.label("Sprytile Data Empty")
+            box.operator("sprytile.props_setup")
+            return
+
         layout.menu("SPRYTILE_object_drop")
 
         box = layout.box()
@@ -1396,6 +1405,13 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         addon_updater_ops.check_for_update_background(context)
 
         layout = self.layout
+
+        if hasattr(context.scene, "sprytile_data") is False:
+            box = layout.box()
+            box.label("Sprytile Data Empty")
+            box.operator("sprytile.props_setup")
+            return
+
         data = context.scene.sprytile_data
 
         icon_id = "VIEW3D_VEC"
