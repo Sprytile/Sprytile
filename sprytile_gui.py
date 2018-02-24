@@ -603,11 +603,7 @@ class SprytileGui(bpy.types.Operator):
             glTexCoord2f(uv[i][0], uv[i][1])
             glVertex2f(vtx[i][0], vtx[i][1])
         bgl.glEnd()
-
-        # Not drawing tile grid overlay
-        if show_extra is False:
-            return
-
+        
         # Translate the gl context by grid matrix
         scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
 
@@ -625,7 +621,8 @@ class SprytileGui(bpy.types.Operator):
 
         glLineWidth(1)
 
-        if is_pixel is False:
+        # Draw tileset grid, if not pixel size and show extra is on
+        if show_extra and is_pixel is False:
             glColor4f(0.0, 0.0, 0.0, 0.5)
             # Draw the grid
             cell_size = (
