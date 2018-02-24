@@ -648,12 +648,12 @@ class SprytileGui(bpy.types.Operator):
                 glVertex2f(x_end, y_pos)
                 glEnd()
 
-        if SprytileGui.is_selecting or (is_pixel and tile_selection[2] == 1 or tile_selection[3] == 1):
-            sel_min, sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
-                                                          tile_selection[0], tile_selection[1],
-                                                          tile_selection[2], tile_selection[3])
-            glColor4f(1.0, 1.0, 1.0, 1.0)
-            SprytileGui.draw_selection(sel_min, sel_max, 0)
+        # Draw selected tile outline
+        sel_min, sel_max = SprytileGui.get_sel_bounds(grid_size, padding, margin,
+                                                      tile_selection[0], tile_selection[1],
+                                                      tile_selection[2], tile_selection[3])
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        SprytileGui.draw_selection(sel_min, sel_max, 0)
 
         glPopMatrix()
 
