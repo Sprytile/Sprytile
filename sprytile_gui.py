@@ -95,24 +95,25 @@ class SprytileGui(bpy.types.Operator):
     def set_zoom_level(self, context, zoom_shift):
         region = context.region
         zoom_level = context.scene.sprytile_ui.zoom
-        zoom_level = self.calc_zoom(zoom_level, zoom_shift)
+        zoom_level = self.calc_zoom(region, zoom_level, zoom_shift)
         display_size = SprytileGui.display_size
 
         calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
         height_min = min(128, display_size[1])
         while calc_size[1] < height_min:
-            zoom_level = self.calc_zoom(zoom_level, 1)
+            zoom_level = self.calc_zoom(region, zoom_level, 1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
         while calc_size[0] > region.width or calc_size[1] > region.height:
-            zoom_level = self.calc_zoom(zoom_level, -1)
+            zoom_level = self.calc_zoom(region, zoom_level, -1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
         context.scene.sprytile_ui.zoom = zoom_level
 
-    def calc_zoom(self, zoom, steps):
+    def calc_zoom(self, region, zoom, steps):
         if steps == 0:
             return zoom
+
         step = copysign(1, steps)
         count = 0
         while count != steps:
@@ -133,6 +134,10 @@ class SprytileGui(bpy.types.Operator):
                 else:
                     zoom -= 0.5
             count += step
+
+        if SprytileGui.display_size[1] > region.height:
+            zoom = min(region.height / SprytileGui.display_size[1], zoom)
+
         return zoom
 
     def get_zoom_level(self, context):
@@ -141,9 +146,13 @@ class SprytileGui(bpy.types.Operator):
         target_height = region.height * 0.35
 
         zoom_level = round(region.height / display_size[1])
+
+        if zoom_level <= 0:
+            zoom_level = self.calc_zoom(region, 1, -1)
+
         calc_height = round(display_size[1] * zoom_level)
         while calc_height > target_height:
-            zoom_level = self.calc_zoom(zoom_level, -1)
+            zoom_level = self.calc_zoom(region, zoom_level, -1)
             calc_height = round(display_size[1] * zoom_level)
 
         context.scene.sprytile_ui.zoom = zoom_level
