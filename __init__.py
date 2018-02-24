@@ -375,6 +375,11 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Show Grid Overlay",
         default=True
     )
+    outline_preview = BoolProperty(
+        name="Outline Preview",
+        description="Draw an outline on tile placement preview",
+        default=True
+    )
     auto_merge = BoolProperty(
         name="Auto Merge",
         description="Automatically merge vertices when creating faces",

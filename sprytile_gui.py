@@ -448,7 +448,8 @@ class SprytileGui(bpy.types.Operator):
 
         # Draw box for currently selected tile(s)
         # Pixel grid selection is drawn in draw_tile_select_ui
-        if is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1):
+        draw_outline = context.scene.sprytile_data.outline_preview
+        if draw_outline and (is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1)):
             if SprytileGui.is_moving:
                 glColor4f(1.0, 0.0, 0.0, 1.0)
             else:

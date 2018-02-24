@@ -1462,6 +1462,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         # row.prop(data, "cursor_flow", toggle=True)
 
         # layout.prop(data, "snap_translate", toggle=True)
+
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
 
