@@ -327,6 +327,7 @@ class SprytileGui(bpy.types.Operator):
         SprytileGui.display_size = tex_size
         SprytileGui.current_grid = grid_id
         SprytileGui.loaded_grid = tilegrid
+        self.get_zoom_level(context)
         return offscreen
 
     @staticmethod
