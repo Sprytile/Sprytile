@@ -1354,6 +1354,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         return True
 
     def draw(self, context):
+        addon_updater_ops.check_for_update_background()
         layout = self.layout
 
         if hasattr(context.scene, "sprytile_data") is False:
@@ -1389,6 +1390,8 @@ class SprytileObjectPanel(bpy.types.Panel):
         split.prop(context.scene.sprytile_data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
 
+        addon_updater_ops.update_notice_box_ui(self, context)
+
 
 class SprytileWorkDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_work_drop"
@@ -1421,7 +1424,7 @@ class SprytileWorkflowPanel(bpy.types.Panel):
             return context.object.mode == 'EDIT'
 
     def draw(self, context):
-        addon_updater_ops.check_for_update_background(context)
+        addon_updater_ops.check_for_update_background()
 
         layout = self.layout
 
@@ -1469,8 +1472,6 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         split = layout.split(percentage=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
-
-        addon_updater_ops.update_notice_box_ui(self, context)
 
 
 
