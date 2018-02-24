@@ -486,6 +486,7 @@ class SprytileAxisUpdate(bpy.types.Operator):
 class SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
     bl_label = "Add New Grid"
+    bl_description = "Add new tile grid"
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -536,6 +537,7 @@ class SprytileGridAdd(bpy.types.Operator):
 class SprytileGridRemove(bpy.types.Operator):
     bl_idname = "sprytile.grid_remove"
     bl_label = "Remove Grid"
+    bl_description = "Remove selected tile grid"
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -636,6 +638,7 @@ class SprytileStartTool(bpy.types.Operator):
 class SprytileGridMove(bpy.types.Operator):
     bl_idname = "sprytile.grid_move"
     bl_label = "Move Grid"
+    bl_description = "Move selected tile grid up or down"
 
     direction = bpy.props.IntProperty(default=1)
 
@@ -677,6 +680,7 @@ class SprytileGridMove(bpy.types.Operator):
 class SprytileNewMaterial(bpy.types.Operator):
     bl_idname = "sprytile.add_new_material"
     bl_label = "New Shadeless Material"
+    bl_description = "Create a new shadeless material"
 
     @classmethod
     def poll(cls, context):
@@ -702,6 +706,7 @@ class SprytileNewMaterial(bpy.types.Operator):
 class SprytileSetupMaterial(bpy.types.Operator):
     bl_idname = "sprytile.material_setup"
     bl_label = "Set Material to Shadeless"
+    bl_description = "Make current selected material shadeless, for pixel art texture purposes"
 
     @classmethod
     def poll(cls, context):
@@ -791,6 +796,7 @@ class SprytileNewTileset(bpy.types.Operator, ImportHelper):
 class SprytileSetupTexture(bpy.types.Operator):
     bl_idname = "sprytile.texture_setup"
     bl_label = "Setup Pixel Texture"
+    bl_description = "Change texture settings for crunchy pixelart style"
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -989,6 +995,7 @@ class SprytileRotateRight(bpy.types.Operator):
 class SprytileReloadImages(bpy.types.Operator):
     bl_idname = "sprytile.reload_imgs"
     bl_label = "Reload All Images"
+    bl_description = "Automatically reload images referenced by the scene"
 
     def invoke(self, context, event):
         for img in bpy.data.images:
@@ -1108,6 +1115,7 @@ class SprytileMakeDoubleSided(bpy.types.Operator):
 class SprytileSetupGrid(bpy.types.Operator):
     bl_idname = "sprytile.setup_grid"
     bl_label = "Floor Grid To Pixels"
+    bl_description = "Make floor grid display follow world pixel settings"
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -1328,6 +1336,7 @@ class SprytileResetData(bpy.types.Operator):
 class SprytileObjectDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_object_drop"
     bl_label = "Sprytile Utilites"
+    bl_description = "Sprytile helper functions"
 
     def draw(self, context):
         layout = self.layout
@@ -1396,6 +1405,7 @@ class SprytileObjectPanel(bpy.types.Panel):
 class SprytileWorkDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_work_drop"
     bl_label = "Sprytile Utilites"
+    bl_description = "Sprytile helper functions"
 
     def draw(self, context):
         layout = self.layout

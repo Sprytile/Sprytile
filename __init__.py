@@ -67,7 +67,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             ("Z", "Z", "World X-Axis", 3)
         ],
         name="Normal Mode",
-        description="Normal to create the mesh on",
+        description="World axis tiles will be built on",
         default='Z',
         set=set_normal,
         get=get_normal
@@ -75,7 +75,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     lock_normal = BoolProperty(
         name="Lock",
-        description="Lock normal used to create meshes",
+        description="Lock axis used to create tiles",
         default=False
     )
 
@@ -199,15 +199,17 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
 
     uv_flip_x = BoolProperty(
         name="Flip X",
+        description="Flip tile horizontally",
         default=False
     )
     uv_flip_y = BoolProperty(
         name="Flip Y",
+        description="Flip tile vertically",
         default=False
     )
     mesh_rotate = FloatProperty(
         name="Grid Rotation",
-        description="Rotation of mesh creation",
+        description="Rotation of tile",
         subtype='ANGLE',
         unit='ROTATION',
         step=9000,
@@ -373,6 +375,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
     )
     show_overlay = BoolProperty(
         name="Show Grid Overlay",
+        description="Show grid on tile selection UI",
         default=True
     )
     outline_preview = BoolProperty(
@@ -564,6 +567,7 @@ class SprytileMaterialData(bpy.types.PropertyGroup):
     )
     is_expanded = BoolProperty(
         default=True,
+        description="Toggle tile material",
         get=get_expanded,
         set=set_expanded
     )
