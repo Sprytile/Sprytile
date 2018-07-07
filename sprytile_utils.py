@@ -688,6 +688,8 @@ class SprytileNewMaterial(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = context.object
+        if obj.type != 'MESH':
+            return {'FINISHED'}
 
         mat = bpy.data.materials.new(name="Material")
 
@@ -717,6 +719,8 @@ class SprytileSetupMaterial(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = context.object
+        if obj.type != 'MESH':
+            return {'FINISHED'}
 
         mat = obj.material_slots[obj.active_material_index].material
         mat.use_shadeless = True
@@ -742,6 +746,11 @@ class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
+        if context.object.type != 'MESH':
+            return {'FINISHED'}
+        # Check object material count, if 0 create a new material before loading
+        if len(context.object.material_slots.items()) < 1:
+            bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
         SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
 
@@ -788,6 +797,8 @@ class SprytileNewTileset(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
+        if context.object.type != 'MESH':
+            return {'FINISHED'}
         bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
         SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
@@ -809,6 +820,8 @@ class SprytileSetupTexture(bpy.types.Operator):
     def setup_tex(context):
         """"""
         obj = context.object
+        if obj.type != 'MESH':
+            return
         material = obj.material_slots[obj.active_material_index].material
         target_texture = None
         target_img = None
@@ -1378,17 +1391,22 @@ class SprytileObjectPanel(bpy.types.Panel):
 
         layout.menu("SPRYTILE_object_drop")
 
+        selection_enabled = True
+        if context.object is None:
+            selection_enabled = False
+        elif context.object.type != 'MESH':
+            selection_enabled = False
+
         box = layout.box()
         box.label("Material Setup")
-        box.operator("sprytile.tileset_load")
-        box.operator("sprytile.tileset_new")
+        if selection_enabled:
+            box.operator("sprytile.tileset_load")
+            box.operator("sprytile.tileset_new")
+        else:
+            box.label("Select a mesh object to use Sprytile")
 
         layout.separator()
-        help_text = "Enter edit mode to use Sprytile Paint Tools"
-        if context.object is None:
-            help_text = "Select a mesh object to use Sprytile"
-        elif context.object.type != 'MESH':
-            help_text = "Select a mesh object to use Sprytile"
+        help_text = "Enter edit mode to use Paint Tools"
         label_wrap(layout.column(), help_text)
 
         # layout.separator()
