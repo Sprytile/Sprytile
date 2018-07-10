@@ -371,8 +371,8 @@ class SprytileModalTool(bpy.types.Operator):
 
         return face_order
 
-    def construct_face(self, context, grid_coord,
-                       tile_xy, origin_xy,
+    def construct_face(self, context, grid_coord, grid_size,
+                       tile_xy, tile_origin,
                        grid_up, grid_right,
                        up_vector, right_vector, plane_normal,
                        face_index=None, check_exists=True,
@@ -380,9 +380,10 @@ class SprytileModalTool(bpy.types.Operator):
         """
         Create a new face at grid_coord or remap the existing face
         :param context:
-        :param grid_coord:
-        :param tile_xy:
-        :param origin_xy:
+        :param grid_coord: Grid coordinate to create at
+        :param grid_size: Tile unit size of face
+        :param tile_xy: Tilegrid coordinate to map
+        :param tile_origin: Origin of tilegrid coordinate, for mapping data
         :param grid_up:
         :param grid_right:
         :param up_vector:
@@ -410,7 +411,7 @@ class SprytileModalTool(bpy.types.Operator):
         if face_index is None or face_index < 0:
             face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
             face_verts = self.get_build_vertices(face_position,
-                                                 grid_right, grid_up,
+                                                 grid_right * grid_size[0], grid_up * grid_size[1],
                                                  up_vector, right_vector)
             face_index = self.create_face(context, face_verts)
             did_build = True
@@ -436,7 +437,9 @@ class SprytileModalTool(bpy.types.Operator):
             if not check_coplanar or not check_dot:
                 return None
 
-        sprytile_uv.uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, self.bmesh)
+        sprytile_uv.uv_map_face(context, up_vector, right_vector,
+                                tile_xy, tile_origin, face_index,
+                                self.bmesh, grid_size)
 
         if did_build and data.auto_merge:
             if threshold is None:
