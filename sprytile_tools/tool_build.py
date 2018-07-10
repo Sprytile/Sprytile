@@ -99,83 +99,25 @@ class ToolBuild:
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
 
-        # Raycast under mouse
-        hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
-            context.object, ray_origin, ray_vector)
-
-        # Hit a face
-        if hit_face_idx is not None:
-            # Determine if face can be painted
-            plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
-                                             scene.cursor_location, plane_normal)
-            plane_dist = (plane_hit - ray_origin).magnitude
-            difference = abs(hit_dist - plane_dist)
-            # If valid for painting instead of creating…
-            if difference < 0.01 or hit_dist < plane_dist:
-                if do_join is False:
-                    return
-                check_dot = abs(plane_normal.dot(hit_normal))
-                check_dot -= 1
-                check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-                check_coplanar = abs(check_coplanar) < 0.05
-                check_dot = abs(check_dot) < 0.05
-                # Paint if coplanar and dot angle checks out
-                if check_coplanar and check_dot:
-                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
-                                                    self.modal, context,
-                                                    scene, hit_face_idx)
-                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
-                                          self.modal.bmesh, data, target_img,
-                                          tile_xy, origin_xy=tile_xy)
-                # Hit a face, that could have been painted, don't do anything else
-                return
-
-        # Build mode with auto join
+        # Build mode with join multi
         if do_join:
-            origin_coord = scene.cursor_location + \
-                           (grid_coord[0] + coord_min[0]) * grid_right + \
-                           (grid_coord[1] + coord_min[1]) * grid_up
-            self.modal.add_virtual_cursor(origin_coord)
+            origin_coord = ((grid_coord[0] + coord_min[0]),
+                            (grid_coord[1] + coord_min[1]))
 
             size_x = (coord_max[0] - coord_min[0]) + 1
             size_y = (coord_max[1] - coord_min[1]) + 1
 
-            size_x *= grid.grid[0]
-            size_y *= grid.grid[1]
+            tile_origin = (grid.tile_selection[0],
+                           grid.tile_selection[1])
+            tile_coord = (tile_origin[0] + grid.tile_selection[2],
+                          tile_origin[1] + grid.tile_selection[3])
 
-            grid_right *= size_x / grid.grid[0]
-            grid_up *= size_y / grid.grid[1]
-
-            verts = self.modal.get_build_vertices(origin_coord,
-                                                  grid_right, grid_up,
-                                                  up_vector, right_vector)
-            face_index = self.modal.create_face(context, verts)
-            if face_index is None:
-                return
-            vtx_center = Vector((0, 0, 0))
-            for vtx in verts:
-                vtx_center += vtx
-            vtx_center /= len(verts)
-
-            origin_xy = (grid.tile_selection[0],
-                         grid.tile_selection[1])
-
-            target_img = sprytile_utils.get_grid_texture(context.object, grid)
-
-            uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, grid,
-                                              origin_xy, size_x, size_y,
-                                              up_vector, right_vector,
-                                              verts, vtx_center)
-            sprytile_uv.apply_uvs(context, self.modal.bmesh.faces[face_index],
-                                  uvs, grid, self.modal.bmesh,
-                                  data, target_img, origin_xy)
-
-            if data.auto_merge:
-                threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
-                face = self.modal.bmesh.faces[face_index]
-                self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
-        # Build mode without auto join
+            self.modal.construct_face(context, origin_coord, [size_x, size_y],
+                                      tile_coord, tile_origin,
+                                      grid_up, grid_right,
+                                      up_vector, right_vector, plane_normal,
+                                      shift_vec=shift_vec)
+        # Build mode without auto join, try operation on each build coordinate
         else:
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
@@ -189,7 +131,7 @@ class ToolBuild:
                 grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
                 tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-                self.modal.construct_face(context, grid_pos,
+                self.modal.construct_face(context, grid_pos, [1, 1],
                                           tile_pos, tile_xy,
                                           grid_up, grid_right,
                                           up_vector, right_vector, plane_normal,
