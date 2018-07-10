@@ -132,7 +132,7 @@ class ToolFill:
             sub_x = (grid_coord[0] - int(hit_coord.x)) % sel_size[0]
             sub_y = (grid_coord[1] - int(hit_coord.y)) % sel_size[1]
             sub_xy = sel_coords[(sub_y * sel_size[0]) + sub_x]
-            self.modal.construct_face(context, grid_coord,
+            self.modal.construct_face(context, grid_coord, [1,1],
                                       sub_xy, origin_xy,
                                       grid_up, grid_right,
                                       up_vector, right_vector,
