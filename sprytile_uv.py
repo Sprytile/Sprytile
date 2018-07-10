@@ -220,8 +220,19 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit
     return uv_verts
 
 
-def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, mesh):
-    """UV map the given face"""
+def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index, mesh, tile_size=(1, 1)):
+    """
+    UV map the given face
+    :param context:
+    :param up_vector: World up vector
+    :param right_vector: World right vector
+    :param tile_xy: Tile placement XY coordinates
+    :param origin_xy: Origin XY of tile placement
+    :param face_index: Face index to UV map
+    :param mesh:
+    :param tile_size: Tile units being UV mapped
+    :return:
+    """
     if mesh is None:
         return None, None
 
@@ -252,9 +263,19 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index
         vert = loop.vert
         verts.append(context.object.matrix_world * vert.co)
 
-    uv_verts = get_uv_positions(data, target_img.size, target_grid,
-                                up_vector, right_vector, tile_xy,
-                                verts, vert_origin)
+    tile_start = [tile_xy[0], tile_xy[1]]
+    if tile_size[0] > 1 or tile_size[1] > 1:
+        tile_start[0] -= tile_size[0]
+        tile_start[1] -= tile_size[1]
+
+    size_x = tile_size[0] * target_grid.grid[0]
+    size_y = tile_size[1] * target_grid.grid[1]
+
+    uv_verts = get_uv_pos_size(data, target_img.size,
+                               target_grid, tile_start,
+                               size_x, size_y,
+                               up_vector, right_vector,
+                               verts, vert_origin)
 
     if uv_verts is None:
         return None, None
