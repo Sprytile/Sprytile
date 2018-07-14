@@ -701,6 +701,58 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         max=1
     )
 
+    def set_picker(self, value):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 2
+        if value != self["tile_sel_move_key"]:
+            self["tile_picker_key"] = value
+
+    def get_picker(self):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        return self["tile_picker_key"]
+
+    tile_picker_key = EnumProperty(
+        items=[
+            ("Alt", "Alt", "Press Alt to pick tiles", 1),
+            ("Ctrl", "Ctrl", "Press Ctrl to pick tiles", 2),
+            ("Shift", "Shift", "Press Shift to pick tiles", 3)
+        ],
+        name="Tile Picker Key",
+        description="Key for using the tile picker eyedropper",
+        default='Alt',
+        set=set_picker,
+        get=get_picker
+    )
+
+    def set_sel_move(self, value):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 2
+        if value != self["tile_picker_key"]:
+            self["tile_sel_move_key"] = value
+
+    def get_sel_move(self):
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 1
+        return self["tile_sel_move_key"]
+
+    tile_sel_move_key = EnumProperty(
+        items=[
+            ("Alt", "Alt", "Press Alt to move tile selection", 1),
+            ("Ctrl", "Ctrl", "Press Ctrl to move tile selection", 2),
+            ("Shift", "Shift", "Press Shift to move tile selection", 3)
+        ],
+        name="Tile Selection Move Key",
+        description="Key moving the tile selection",
+        default='Ctrl',
+        set=set_sel_move,
+        get=get_sel_move
+    )
+
     # addon updater preferences
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
@@ -737,7 +789,12 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
 
+        cache_picker = self.tile_picker_key
+        cache_sel_move = self.tile_sel_move_key
+
         layout.prop(self, "preview_transparency")
+        layout.prop(self, "tile_picker_key")
+        layout.prop(self, "tile_sel_move_key")
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']

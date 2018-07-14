@@ -207,7 +207,13 @@ class SprytileGui(bpy.types.Operator):
                     cursor_data = 'CROSSHAIR'
                 elif paint_mode == 'FILL':
                     cursor_data = 'SCROLL_XY'
-                if event.alt:
+
+                addon_prefs = context.user_preferences.addons[__package__].preferences
+                if addon_prefs.tile_picker_key == 'Alt' and event.alt:
+                    cursor_data = 'EYEDROPPER'
+                if addon_prefs.tile_picker_key == 'Ctrl' and event.ctrl:
+                    cursor_data = 'EYEDROPPER'
+                if addon_prefs.tile_picker_key == 'Shift' and event.shift:
                     cursor_data = 'EYEDROPPER'
                 context.window.cursor_modal_set(cursor_data)
 
@@ -247,8 +253,17 @@ class SprytileGui(bpy.types.Operator):
             SprytileGui.cursor_grid_pos = grid_pos
 
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and SprytileGui.is_selecting is False:
-                SprytileGui.is_selecting = event.ctrl is False
-                SprytileGui.is_moving = event.ctrl is True
+                addon_prefs = context.user_preferences.addons[__package__].preferences
+                move_mod_pressed = False
+                if addon_prefs.tile_sel_move_key == 'Alt':
+                    move_mod_pressed = event.alt
+                if addon_prefs.tile_sel_move_key == 'Ctrl':
+                    move_mod_pressed = event.ctrl
+                if addon_prefs.tile_sel_move_key == 'Shift':
+                    move_mod_pressed = event.shift
+
+                SprytileGui.is_selecting = move_mod_pressed is False
+                SprytileGui.is_moving = move_mod_pressed is True
                 if SprytileGui.is_selecting or SprytileGui.is_moving:
                     SprytileGui.sel_start = grid_pos
                     SprytileGui.sel_origin = (tilegrid.tile_selection[0], tilegrid.tile_selection[1])

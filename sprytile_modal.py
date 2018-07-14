@@ -827,8 +827,17 @@ class SprytileModalTool(bpy.types.Operator):
                 SprytileModalTool.no_undo = False
             return {'PASS_THROUGH'} if SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
-            self.left_down = event.value == 'PRESS' and event.alt is False
-            if event.alt is True and event.value == 'PRESS':
+            check_modifier = False
+            addon_prefs = context.user_preferences.addons[__package__].preferences
+            if addon_prefs.tile_picker_key == 'Alt':
+                check_modifier = event.alt
+            if addon_prefs.tile_picker_key == 'Ctrl':
+                check_modifier = event.ctrl
+            if addon_prefs.tile_picker_key == 'Shift':
+                check_modifier = event.shift
+
+            self.left_down = event.value == 'PRESS' and check_modifier is False
+            if event.value == 'PRESS' and check_modifier is True:
                 self.find_face_tile(context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
