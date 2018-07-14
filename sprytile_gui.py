@@ -255,6 +255,21 @@ class SprytileGui(bpy.types.Operator):
 
             if SprytileGui.is_moving:
                 move_delta = Vector((grid_pos.x - SprytileGui.sel_start.x, grid_pos.y - SprytileGui.sel_start.y))
+                # Restrict movement inside tile grid
+                move_min = (SprytileGui.sel_origin[0] + move_delta.x,
+                            SprytileGui.sel_origin[1] + move_delta.y)
+                if move_min[0] < 0:
+                    move_delta.x -= move_min[0]
+                if move_min[1] < 0:
+                    move_delta.y -= move_min[1]
+
+                move_max = (move_min[0] + tilegrid.tile_selection[2] - 1,
+                            move_min[1] + tilegrid.tile_selection[3] - 1)
+                if move_max[0] > grid_max.x:
+                    move_delta.x -= (move_max[0] - grid_max.x)
+                if move_max[1] > grid_max.y:
+                    move_delta.y -= (move_max[1] - grid_max.y)
+
                 tilegrid.tile_selection[0] = SprytileGui.sel_origin[0] + move_delta.x
                 tilegrid.tile_selection[1] = SprytileGui.sel_origin[1] + move_delta.y
 
