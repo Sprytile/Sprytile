@@ -1,5 +1,5 @@
 import bpy
-from math import floor
+from math import floor, ceil
 from mathutils import Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 
@@ -71,19 +71,42 @@ class ToolBuild:
             as_coord=True
         )
 
-        # Record starting position of stroke
+        # Record starting grid position of stroke
         if is_start:
             self.start_coord = grid_coord
-        # Not starting, filter out when can build
+        # Not starting stroke, filter out when can build
         elif self.start_coord is not None:
-            tolerance_min = (floor(grid.tile_selection[2] * 0.25),
-                             floor(grid.tile_selection[3] * 0.25))
-            coord_offset = (
-                (grid_coord[0] - self.start_coord[0]) % grid.tile_selection[2],
-                (grid_coord[1] - self.start_coord[1]) % grid.tile_selection[3]
-            )
-            if coord_offset[0] > 0 or coord_offset[1] > 0:
-                return
+            start_offset = (grid_coord[0] - self.start_coord[0],
+                            grid_coord[1] - self.start_coord[1])
+            coord_mod = (start_offset[0] % grid.tile_selection[2],
+                         start_offset[1] % grid.tile_selection[3])
+            # Isn't at exact position for grid made by tile selection, with start_coord as origin
+            if coord_mod[0] > 0 or coord_mod[1] > 0:
+                # Try to snap grid_coord
+                tolerance_min = (floor(grid.tile_selection[2] * 0.25),
+                                 floor(grid.tile_selection[3] * 0.25))
+                tolerance_max = (grid.tile_selection[2] - tolerance_min[0],
+                                 grid.tile_selection[3] - tolerance_min[1])
+                allow_snap_x = tolerance_min[0] <= coord_mod[0] <= tolerance_max[0]
+                allow_snap_y = tolerance_min[1] <= coord_mod[1] <= tolerance_max[1]
+
+                # If neither x or y can be snapped, return
+                if not allow_snap_x and not allow_snap_y:
+                    return
+
+                coord_frac = [start_offset[0] / grid.tile_selection[2],
+                              start_offset[1] / grid.tile_selection[3]]
+                if coord_mod[0] > (grid.tile_selection[2] / 2.0):
+                    coord_frac[0] = ceil(coord_frac[0])
+                else:
+                    coord_frac[0] = floor(coord_frac[0])
+
+                if coord_mod[1] > (grid.tile_selection[3] / 2.0):
+                    coord_frac[1] = ceil(coord_frac[1])
+                else:
+                    coord_frac[1] = floor(coord_frac[1])
+                grid_coord = (self.start_coord[0] + (coord_frac[0] * grid.tile_selection[2]),
+                              self.start_coord[1] + (coord_frac[1] * grid.tile_selection[3]))
 
         # Get the area to build
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
@@ -98,84 +121,31 @@ class ToolBuild:
         do_join = is_single_pixel
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
+        
+        # 1x1 tile selections cannot be auto joined
+        tile_area = grid.tile_selection[2] * grid.tile_selection[3]
+        if do_join and tile_area == 1:
+            do_join = False
 
-        # Raycast under mouse
-        hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
-            context.object, ray_origin, ray_vector)
-
-        # Hit a face
-        if hit_face_idx is not None:
-            # Determine if face can be painted
-            plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
-                                             scene.cursor_location, plane_normal)
-            plane_dist = (plane_hit - ray_origin).magnitude
-            difference = abs(hit_dist - plane_dist)
-            # If valid for painting instead of creating…
-            if difference < 0.01 or hit_dist < plane_dist:
-                if do_join is False:
-                    return
-                check_dot = abs(plane_normal.dot(hit_normal))
-                check_dot -= 1
-                check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
-
-                check_coplanar = abs(check_coplanar) < 0.05
-                check_dot = abs(check_dot) < 0.05
-                # Paint if coplanar and dot angle checks out
-                if check_coplanar and check_dot:
-                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
-                                                    self.modal, context,
-                                                    scene, hit_face_idx)
-                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
-                                          self.modal.bmesh, data, target_img,
-                                          tile_xy, origin_xy=tile_xy)
-                # Hit a face, that could have been painted, don't do anything else
-                return
-
-        # Build mode with auto join
+        # Build mode with join multi
         if do_join:
-            origin_coord = scene.cursor_location + \
-                           (grid_coord[0] + coord_min[0]) * grid_right + \
-                           (grid_coord[1] + coord_min[1]) * grid_up
-            self.modal.add_virtual_cursor(origin_coord)
+            origin_coord = ((grid_coord[0] + coord_min[0]),
+                            (grid_coord[1] + coord_min[1]))
 
             size_x = (coord_max[0] - coord_min[0]) + 1
             size_y = (coord_max[1] - coord_min[1]) + 1
 
-            size_x *= grid.grid[0]
-            size_y *= grid.grid[1]
+            tile_origin = (grid.tile_selection[0],
+                           grid.tile_selection[1])
+            tile_coord = (tile_origin[0] + grid.tile_selection[2],
+                          tile_origin[1] + grid.tile_selection[3])
 
-            grid_right *= size_x / grid.grid[0]
-            grid_up *= size_y / grid.grid[1]
-
-            verts = self.modal.get_build_vertices(origin_coord,
-                                                  grid_right, grid_up,
-                                                  up_vector, right_vector)
-            face_index = self.modal.create_face(context, verts)
-            if face_index is None:
-                return
-            vtx_center = Vector((0, 0, 0))
-            for vtx in verts:
-                vtx_center += vtx
-            vtx_center /= len(verts)
-
-            origin_xy = (grid.tile_selection[0],
-                         grid.tile_selection[1])
-
-            target_img = sprytile_utils.get_grid_texture(context.object, grid)
-
-            uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, grid,
-                                              origin_xy, size_x, size_y,
-                                              up_vector, right_vector,
-                                              verts, vtx_center)
-            sprytile_uv.apply_uvs(context, self.modal.bmesh.faces[face_index],
-                                  uvs, grid, self.modal.bmesh,
-                                  data, target_img, origin_xy)
-
-            if data.auto_merge:
-                threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
-                face = self.modal.bmesh.faces[face_index]
-                self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
-        # Build mode without auto join
+            self.modal.construct_face(context, origin_coord, [size_x, size_y],
+                                      tile_coord, tile_origin,
+                                      grid_up, grid_right,
+                                      up_vector, right_vector, plane_normal,
+                                      shift_vec=shift_vec)
+        # Build mode without auto join, try operation on each build coordinate
         else:
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
@@ -189,7 +159,7 @@ class ToolBuild:
                 grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
                 tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-                self.modal.construct_face(context, grid_pos,
+                self.modal.construct_face(context, grid_pos, [1, 1],
                                           tile_pos, tile_xy,
                                           grid_up, grid_right,
                                           up_vector, right_vector, plane_normal,
