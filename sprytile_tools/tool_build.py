@@ -1,5 +1,5 @@
 import bpy
-from math import floor
+from math import floor, ceil
 from mathutils import Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 
@@ -71,19 +71,42 @@ class ToolBuild:
             as_coord=True
         )
 
-        # Record starting position of stroke
+        # Record starting grid position of stroke
         if is_start:
             self.start_coord = grid_coord
-        # Not starting, filter out when can build
+        # Not starting stroke, filter out when can build
         elif self.start_coord is not None:
-            tolerance_min = (floor(grid.tile_selection[2] * 0.25),
-                             floor(grid.tile_selection[3] * 0.25))
-            coord_offset = (
-                (grid_coord[0] - self.start_coord[0]) % grid.tile_selection[2],
-                (grid_coord[1] - self.start_coord[1]) % grid.tile_selection[3]
-            )
-            if coord_offset[0] > 0 or coord_offset[1] > 0:
-                return
+            start_offset = (grid_coord[0] - self.start_coord[0],
+                            grid_coord[1] - self.start_coord[1])
+            coord_mod = (start_offset[0] % grid.tile_selection[2],
+                         start_offset[1] % grid.tile_selection[3])
+            # Isn't at exact position for grid made by tile selection, with start_coord as origin
+            if coord_mod[0] > 0 or coord_mod[1] > 0:
+                # Try to snap grid_coord
+                tolerance_min = (floor(grid.tile_selection[2] * 0.25),
+                                 floor(grid.tile_selection[3] * 0.25))
+                tolerance_max = (grid.tile_selection[2] - tolerance_min[0],
+                                 grid.tile_selection[3] - tolerance_min[1])
+                allow_snap_x = tolerance_min[0] <= coord_mod[0] <= tolerance_max[0]
+                allow_snap_y = tolerance_min[1] <= coord_mod[1] <= tolerance_max[1]
+
+                # If neither x or y can be snapped, return
+                if not allow_snap_x and not allow_snap_y:
+                    return
+
+                coord_frac = [start_offset[0] / grid.tile_selection[2],
+                              start_offset[1] / grid.tile_selection[3]]
+                if coord_mod[0] > (grid.tile_selection[2] / 2.0):
+                    coord_frac[0] = ceil(coord_frac[0])
+                else:
+                    coord_frac[0] = floor(coord_frac[0])
+
+                if coord_mod[1] > (grid.tile_selection[3] / 2.0):
+                    coord_frac[1] = ceil(coord_frac[1])
+                else:
+                    coord_frac[1] = floor(coord_frac[1])
+                grid_coord = (self.start_coord[0] + (coord_frac[0] * grid.tile_selection[2]),
+                              self.start_coord[1] + (coord_frac[1] * grid.tile_selection[3]))
 
         # Get the area to build
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
@@ -98,6 +121,11 @@ class ToolBuild:
         do_join = is_single_pixel
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
+        
+        # 1x1 tile selections cannot be auto joined
+        tile_area = grid.tile_selection[2] * grid.tile_selection[3]
+        if do_join and tile_area == 1:
+            do_join = False
 
         # Build mode with join multi
         if do_join:
