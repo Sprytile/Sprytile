@@ -1443,6 +1443,26 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.props_teardown")
 
 
+# class SprytileLayerPanel(bpy.types.Panel):
+#     bl_label = "Layers"
+#     bl_idname = "sprytile.panel_layers"
+#     bl_space_type = "VIEW_3D"
+#     bl_region_type = "TOOLS"
+#     bl_category = "Sprytile"
+#
+#     @classmethod
+#     def poll(cls, context):
+#         if context.object and context.object.type == 'MESH':
+#             return context.object.mode == 'EDIT'
+#
+#     def draw(self, context):
+#         if hasattr(context.scene, "sprytile_data") is False:
+#             return
+#         layout = self.layout
+#         box = layout.box()
+#         box.label("Layers")
+
+
 class SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
