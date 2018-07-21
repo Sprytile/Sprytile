@@ -15,6 +15,7 @@ from sprytile_tools.tool_paint import ToolPaint
 from sprytile_tools.tool_fill import ToolFill
 from sprytile_tools.tool_set_normal import ToolSetNormal
 import sprytile_uv
+from sprytile_uv import UvDataLayers
 import sprytile_utils
 
 
@@ -33,8 +34,6 @@ class DataObjectDict(dict):
             del self[name]
         else:
             raise AttributeError("No such attribute: " + name)
-
-
 
 
 class SprytileModalTool(bpy.types.Operator):
@@ -105,8 +104,8 @@ class SprytileModalTool(bpy.types.Operator):
         return self.get_face_tiledata(self.bmesh.faces[face_index])
 
     def get_face_tiledata(self, face):
-        grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
-        tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
+        grid_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_INDEX)
+        tile_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_TILE_ID)
         if grid_id_layer is None or tile_id_layer is None:
             return None, None, None, None, None
 
@@ -114,21 +113,21 @@ class SprytileModalTool(bpy.types.Operator):
         tile_packed_id = face[tile_id_layer]
 
         width = 1
-        width_layer = self.bmesh.faces.layers.int.get('grid_sel_width')
+        width_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_WIDTH)
         if width_layer is not None:
             width = face[width_layer]
             if width is None:
                 width = 1
 
         height = 1
-        height_layer = self.bmesh.faces.layers.int.get('grid_sel_height')
+        height_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
         if height_layer is not None:
             height = face[height_layer]
             if height is None:
                 height = 1
 
         origin = -1
-        origin_layer = self.bmesh.faces.layers.int.get('grid_sel_origin')
+        origin_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
         if origin_layer is not None:
             origin = face[origin_layer]
             if origin is None:
@@ -318,10 +317,7 @@ class SprytileModalTool(bpy.types.Operator):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         if update_index:
             # Verify layers are created
-            layer_names = ['grid_index', 'grid_tile_id',
-                           'grid_sel_width', 'grid_sel_height',
-                           'paint_settings', 'grid_sel_origin']
-            for layer_name in layer_names:
+            for layer_name in UvDataLayers.LAYER_NAMES:
                 layer_data = self.bmesh.faces.layers.int.get(layer_name)
                 if layer_data is None:
                     print('Creating face layer:', layer_name)
