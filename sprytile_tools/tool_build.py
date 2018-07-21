@@ -40,6 +40,7 @@ class ToolBuild:
         elif self.left_down:
             self.left_down = False
             self.start_coord = None
+            # self.modal.virtual_cursor.clear()
             bpy.ops.ed.undo_push()
 
         if modal_evt.build_preview:
@@ -127,6 +128,9 @@ class ToolBuild:
         if do_join and tile_area == 1:
             do_join = False
 
+        # Store vertices of constructed faces for cursor flow
+        faces_verts = []
+
         # Build mode with join multi
         if do_join:
             origin_coord = ((grid_coord[0] + coord_min[0]),
@@ -140,11 +144,14 @@ class ToolBuild:
             tile_coord = (tile_origin[0] + grid.tile_selection[2],
                           tile_origin[1] + grid.tile_selection[3])
 
-            self.modal.construct_face(context, origin_coord, [size_x, size_y],
-                                      tile_coord, tile_origin,
-                                      grid_up, grid_right,
-                                      up_vector, right_vector, plane_normal,
-                                      shift_vec=shift_vec)
+            face_index = self.modal.construct_face(context, origin_coord, [size_x, size_y],
+                                                   tile_coord, tile_origin,
+                                                   grid_up, grid_right,
+                                                   up_vector, right_vector, plane_normal,
+                                                   shift_vec=shift_vec)
+            if face_index is not None:
+                face_verts = self.modal.face_to_world_verts(context, face_index)
+                faces_verts.extend(face_verts)
         # Build mode without auto join, try operation on each build coordinate
         else:
             virtual_cursor = scene.cursor_location + \
@@ -159,14 +166,40 @@ class ToolBuild:
                 grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
                 tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-                self.modal.construct_face(context, grid_pos, [1, 1],
-                                          tile_pos, tile_xy,
-                                          grid_up, grid_right,
-                                          up_vector, right_vector, plane_normal,
-                                          shift_vec=shift_vec)
+                face_index = self.modal.construct_face(context, grid_pos, [1, 1],
+                                                       tile_pos, tile_xy,
+                                                       grid_up, grid_right,
+                                                       up_vector, right_vector, plane_normal,
+                                                       shift_vec=shift_vec)
+                if face_index is not None:
+                    face_verts = self.modal.face_to_world_verts(context, face_index)
+                    faces_verts.extend(face_verts)
 
-            # if data.cursor_flow and face_index is not None and face_index > -1:
-            #     self.modal.flow_cursor(context, face_index, plane_pos)
+        if plane_pos is not None:
+            self.modal.add_virtual_cursor(plane_pos)
+
+        if data.cursor_flow and len(faces_verts) > 0:
+            # Find which vertex the cursor should flow to
+            new_cursor_pos = self.modal.flow_cursor_verts(context, faces_verts, plane_pos)
+            if new_cursor_pos is not None:
+                # Calculate the world position of old start_coord
+                old_start_pos = scene.cursor_location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
+                # find the offset of the old start position from the new cursor position
+                new_start_offset = old_start_pos - new_cursor_pos
+                # get how much the grid x/y vectors need to scale by to normalize
+                scale_right = 1.0 / grid_right.magnitude
+                scale_up = 1.0 / grid_up.magnitude
+                # scale the offset by grid x/y, so can use normalized dot product to
+                # find the grid coordinates the start position is from new cursor pos
+                new_start_coord = Vector((
+                    (new_start_offset * scale_right).dot(grid_right.normalized()),
+                    (new_start_offset * scale_up).dot(grid_up.normalized())
+                ))
+                # Record the new offset starting coord,
+                # for the nice painting snap
+                self.start_coord = new_start_coord
+
+                scene.cursor_location = new_cursor_pos
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object

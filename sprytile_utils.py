@@ -1492,9 +1492,9 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
-        # row = layout.row(align=False)
-        # row.label("", icon="CURSOR")
-        # row.prop(data, "cursor_flow", toggle=True)
+        row = layout.row(align=False)
+        row.label("", icon="CURSOR")
+        row.prop(data, "cursor_flow", toggle=True)
 
         # layout.prop(data, "snap_translate", toggle=True)
 

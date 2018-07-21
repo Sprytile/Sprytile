@@ -230,37 +230,42 @@ class SprytileModalTool(bpy.types.Operator):
         cursor_direction /= cursor_len
         return cursor_direction
 
-    def flow_cursor(self, context, face_index, virtual_cursor):
-        """Move the cursor along the given face, using virtual_cursor direction"""
+    def face_to_world_verts(self, context, face_index):
+        if face_index is None:
+            pass
         face = self.bmesh.faces[face_index]
         world_verts = []
         for idx, vert in enumerate(face.verts):
             vert_world_pos = context.object.matrix_world * vert.co
             world_verts.append(vert_world_pos)
+        return world_verts
+
+    def flow_cursor(self, context, face_index, virtual_cursor):
+        """Move the cursor along the given face, using virtual_cursor direction"""
+        world_verts = self.face_to_world_verts(context, face_index)
         self.flow_cursor_verts(context, world_verts, virtual_cursor)
 
     def flow_cursor_verts(self, context, verts, virtual_cursor):
+
         cursor_len = len(self.virtual_cursor)
         if cursor_len <= 1:
-            return
+            return None
         cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
-        max_dot = 1.0
-        closest_idx = -1
-        closest_pos = Vector((0.0, 0.0, 0.0))
+        max_dist = -1.0
+        closest_pos = None
 
         for idx, vert in enumerate(verts):
             vert_vector = vert - virtual_cursor
+            vert_dist = vert_vector.length
             vert_vector.normalize()
-            vert_dot = abs(1.0 - vert_vector.dot(cursor_direction))
-            if vert_dot < max_dot:
-                closest_idx = idx
+            vert_dot = vert_vector.dot(cursor_direction)
+            if vert_dot > 0.5 and vert_dist > max_dist:
                 closest_pos = vert
-        if closest_idx != -1:
-            context.scene.cursor_location = closest_pos
+                max_dist = vert_dist
 
-        pass
+        return closest_pos
 
     def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal):
         """
@@ -454,8 +459,8 @@ class SprytileModalTool(bpy.types.Operator):
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
 
-        if add_cursor and hit_loc is not None:
-            self.add_virtual_cursor(hit_loc)
+        # if add_cursor and hit_loc is not None:
+        #     self.add_virtual_cursor(hit_loc)
         return face_index
 
     def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
