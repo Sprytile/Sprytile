@@ -987,6 +987,9 @@ class SprytileModalTool(bpy.types.Operator):
 
         context.scene.sprytile_ui.is_dirty = True
         bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
+
+        # Turn on backface culling
+        context.space_data.show_backface_culling = True
         return {'RUNNING_MODAL'}
 
     def setup_rx_observer(self, observer):
