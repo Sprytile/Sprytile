@@ -229,6 +229,16 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default="MESH_DECAL"
     )
 
+    mesh_decal_offset = FloatProperty(
+        name="Decal Offset",
+        description="Distance to offset mesh decal, to prevent z-fighting",
+        default=0.002,
+        min=0.001,
+        max=0.2,
+        precision=4,
+        subtype='DISTANCE',
+    )
+
     world_pixels = IntProperty(
         name="World Pixel Density",
         description="How many pixels are displayed in one world unit",

@@ -13,10 +13,12 @@ class UvDataLayers:
     GRID_SEL_HEIGHT = "grid_sel_height"
     GRID_SEL_ORIGIN = "grid_sel_origin"
     PAINT_SETTINGS = "paint_settings"
+    WORK_LAYER = "work_layer"
 
     LAYER_NAMES = [GRID_INDEX, GRID_TILE_ID,
                    GRID_SEL_WIDTH, GRID_SEL_HEIGHT,
-                   GRID_SEL_ORIGIN, PAINT_SETTINGS]
+                   GRID_SEL_ORIGIN, PAINT_SETTINGS,
+                   WORK_LAYER]
 
 
 def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
@@ -329,6 +331,7 @@ def apply_uvs(context, face, uv_verts, target_grid,
     grid_sel_height = mesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
     grid_sel_origin = mesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
     paint_settings_id = mesh.faces.layers.int.get(UvDataLayers.PAINT_SETTINGS)
+    work_layer_id = mesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
 
     face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
@@ -348,6 +351,7 @@ def apply_uvs(context, face, uv_verts, target_grid,
     face[grid_sel_height] = sel_height
     face[grid_sel_origin] = origin_id
     face[paint_settings_id] = paint_settings
+    face[work_layer_id] = 0
 
     bmesh.update_edit_mesh(context.object.data)
     mesh.faces.index_update()

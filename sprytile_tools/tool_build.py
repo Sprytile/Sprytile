@@ -63,6 +63,7 @@ class ToolBuild:
 
         # Used to move raycast slightly along ray vector
         shift_vec = ray_vector.normalized() * 0.001
+        work_layer_mask = sprytile_utils.get_work_layer_data(data)
 
         # raycast grid to get the grid position under the mouse
         grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
@@ -148,7 +149,8 @@ class ToolBuild:
                                                    tile_coord, tile_origin,
                                                    grid_up, grid_right,
                                                    up_vector, right_vector, plane_normal,
-                                                   shift_vec=shift_vec)
+                                                   shift_vec=shift_vec,
+                                                   work_layer_mask=work_layer_mask)
             if face_index is not None:
                 face_verts = self.modal.face_to_world_verts(context, face_index)
                 faces_verts.extend(face_verts)
@@ -170,7 +172,8 @@ class ToolBuild:
                                                        tile_pos, tile_xy,
                                                        grid_up, grid_right,
                                                        up_vector, right_vector, plane_normal,
-                                                       shift_vec=shift_vec)
+                                                       shift_vec=shift_vec,
+                                                       work_layer_mask=work_layer_mask)
                 if face_index is not None:
                     face_verts = self.modal.face_to_world_verts(context, face_index)
                     faces_verts.extend(face_verts)

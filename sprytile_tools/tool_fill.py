@@ -5,6 +5,7 @@ from mathutils.geometry import intersect_line_plane
 
 import sprytile_utils
 import sprytile_uv
+from sprytile_uv import UvDataLayers
 
 class ToolFill:
     modal = None
@@ -91,7 +92,7 @@ class ToolFill:
                            int(hit_coord.y) - grid_min[1]]
 
         # For getting paint settings later
-        paint_setting_layer = self.modal.bmesh.faces.layers.int.get('paint_settings')
+        paint_setting_layer = self.modal.bmesh.faces.layers.int.get(UvDataLayers.PAINT_SETTINGS)
 
         # Pre calculate for auto merge
         shift_vec = plane_normal.normalized() * 0.01
