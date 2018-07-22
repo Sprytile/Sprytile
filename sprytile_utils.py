@@ -1522,6 +1522,10 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="CURSOR")
         row.prop(data, "cursor_flow", toggle=True)
 
+        row = layout.row(align=False)
+        row.label("", icon="MOD_UVPROJECT")
+        row.prop(data, "preserve_uvs", toggle=True)
+
         # layout.prop(data, "snap_translate", toggle=True)
 
         layout.prop(data, "world_pixels")

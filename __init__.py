@@ -85,6 +85,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=True
     )
 
+    preserve_uvs = BoolProperty(
+        name = "Preserve UVs",
+        description="Adjust UVs with vertex translation",
+        default=False
+    )
+
     paint_mode = EnumProperty(
         items=[
             ("PAINT", "Paint", "Advanced UV paint tools", 1),
