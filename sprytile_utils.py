@@ -1210,7 +1210,7 @@ class SprytileGridTranslate(bpy.types.Operator):
 
         return {'PASS_THROUGH'}
 
-    def get_ref_pos(self, context):
+    def get_ref_vert(self, context):
         if context.object.mode != 'EDIT':
             return None
         if self.bmesh is None:
@@ -1218,17 +1218,23 @@ class SprytileGridTranslate(bpy.types.Operator):
         if len(self.bmesh.select_history) <= 0:
             for vert in self.bmesh.verts:
                 if vert.select:
-                    return vert.co.copy()
+                    return vert
             return None
 
         target = self.bmesh.select_history[0]
         if isinstance(target, BMFace):
-            return target.verts[0].co.copy()
+            return target.verts[0]
         if isinstance(target, BMEdge):
-            return target.verts[0].co.copy()
+            return target.verts[0]
         if isinstance(target, BMVert):
-            return target.co.copy()
+            return target
         return None
+
+    def get_ref_pos(self, context):
+        vert = self.get_ref_vert()
+        if vert is None:
+            return None
+        return vert.co.copy()
 
     def execute(self, context):
         return self.invoke(context, None)
