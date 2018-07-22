@@ -1443,24 +1443,31 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.props_teardown")
 
 
-# class SprytileLayerPanel(bpy.types.Panel):
-#     bl_label = "Layers"
-#     bl_idname = "sprytile.panel_layers"
-#     bl_space_type = "VIEW_3D"
-#     bl_region_type = "TOOLS"
-#     bl_category = "Sprytile"
-#
-#     @classmethod
-#     def poll(cls, context):
-#         if context.object and context.object.type == 'MESH':
-#             return context.object.mode == 'EDIT'
-#
-#     def draw(self, context):
-#         if hasattr(context.scene, "sprytile_data") is False:
-#             return
-#         layout = self.layout
-#         box = layout.box()
-#         box.label("Layers")
+class SprytileLayerPanel(bpy.types.Panel):
+    bl_label = "Layers"
+    bl_idname = "sprytile.panel_layers"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Sprytile"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.object and context.object.type == 'MESH':
+            return context.object.mode == 'EDIT'
+
+    def draw(self, context):
+        if hasattr(context.scene, "sprytile_data") is False:
+            return
+        data = context.scene.sprytile_data
+        layout = self.layout
+        box = layout.box()
+        col = box.column_flow(align=True)
+        col.prop(data, "set_work_layer", index=1, text="Decal Layer", toggle=True, expand=True)
+        col.prop(data, "set_work_layer", index=0, text="Base Layer", toggle=True, expand=True)
+
+        layout.prop(data, "work_layer_mode")
+        # box.label("Layers")
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):

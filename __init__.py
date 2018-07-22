@@ -174,6 +174,61 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_dummy
     )
 
+    work_layer = EnumProperty(
+        items=[
+            ("BASE", "Base", "Base layer", 1),
+            ("DECAL_1", "Decal 1", "Decal layer 1", 2)
+        ],
+        name="Build Layer",
+        description="Layer for creating new faces",
+        default='BASE'
+    )
+
+    def set_layer(self, value):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        current_value = self.get_layer()
+        value = list(value)
+        for idx in range(len(value)):
+            if current_value[idx] and current_value[idx] & value[idx]:
+                value[idx] = False
+
+        for idx in range(len(value)):
+            if value[idx]:
+                self["work_layer"] = (idx + 1)
+                break
+
+    def get_layer(self):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        out_value = [False, False]
+        index_value_lookup = 1, 2
+        set_idx = index_value_lookup.index(self["work_layer"])
+        out_value[set_idx] = True
+        return out_value
+
+    set_work_layer = BoolVectorProperty(
+        name="Work Layer",
+        description="Layer for creating new faces",
+        size=2,
+        get=get_layer,
+        set=set_layer
+    )
+
+    work_layer_mode = EnumProperty(
+        items=[
+            ("MESH_DECAL", "Mesh Decal", "Create an overlay mesh. More compatible but less performant.", 1),
+            ("UV_DECAL", "UV Layer", "Use UV layers. More performant in engine but requires shader support.", 2)
+        ],
+        name="Mode",
+        description="Method used for layering",
+        default="MESH_DECAL"
+    )
+
     world_pixels = IntProperty(
         name="World Pixel Density",
         description="How many pixels are displayed in one world unit",
