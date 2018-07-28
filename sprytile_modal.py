@@ -389,9 +389,9 @@ class SprytileModalTool(bpy.types.Operator):
                        tile_xy, tile_origin,
                        grid_up, grid_right,
                        up_vector, right_vector, plane_normal,
-                       face_index=None, check_exists=True,
-                       shift_vec=None, work_layer_mask=0,
-                       threshold=None, add_cursor=True):
+                       require_base_layer=False,
+                       work_layer_mask=0,
+                       threshold=None):
         """
         Create a new face at grid_coord or remap the existing face
         :type work_layer_mask: bitmask integer
@@ -405,43 +405,46 @@ class SprytileModalTool(bpy.types.Operator):
         :param up_vector:
         :param right_vector:
         :param plane_normal:
-        :param face_index:
-        :param check_exists:
-        :param shift_vec:
+        :param require_base_layer:
         :param threshold:
-        :param add_cursor:
         :return:
         """
         scene = context.scene
         data = scene.sprytile_data
-        hit_loc = None
-        hit_normal = None
-        if check_exists:
+
+        # If require base layer, only run if there is a base mesh on coords
+        if require_base_layer:
             hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
                 context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal,
-                work_layer_mask=work_layer_mask
+                grid_up, grid_right, plane_normal
             )
+            # Didn't hit required base mesh, do nothing
+            if face_index is None:
+                return None
+
+        # Run a raycast on target work layer mask
+        hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+            context, grid_coord[0], grid_coord[1],
+            grid_up, grid_right, plane_normal,
+            work_layer_mask=work_layer_mask
+        )
+
+        # Calculate where the origin of the grid is
+        grid_origin = scene.cursor_location.copy()
+        # If in mesh decal, move origin by offset
+        if data.work_layer == 'DECAL_1':
+            grid_origin += plane_normal * data.mesh_decal_offset
 
         did_build = False
         # No face index, assume build face
         if face_index is None or face_index < 0:
-            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
-            if data.work_layer == 'DECAL_1':
-                face_position += plane_normal * data.mesh_decal_offset
+            face_position = grid_origin + grid_coord[0] * grid_right + grid_coord[1] * grid_up
 
             face_verts = self.get_build_vertices(face_position,
                                                  grid_right * grid_size[0], grid_up * grid_size[1],
                                                  up_vector, right_vector)
             face_index = self.create_face(context, face_verts)
             did_build = True
-        # Face index was given and check exists flag is off, check for actual face
-        elif check_exists is False:
-            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal,
-                work_layer_mask=work_layer_mask
-            )
 
         if face_index is None or face_index < 0:
             return None
@@ -450,7 +453,7 @@ class SprytileModalTool(bpy.types.Operator):
         if did_build is False:
             check_dot = abs(plane_normal.dot(hit_normal))
             check_dot -= 1
-            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+            check_coplanar = distance_point_to_plane(hit_loc, grid_origin, plane_normal)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
@@ -475,8 +478,6 @@ class SprytileModalTool(bpy.types.Operator):
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
 
-        # if add_cursor and hit_loc is not None:
-        #     self.add_virtual_cursor(hit_loc)
         return face_index
 
     def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
