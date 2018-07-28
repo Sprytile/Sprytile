@@ -553,7 +553,7 @@ class SprytileGui(bpy.types.Operator):
         if display_grid[0] == 1 or display_grid[1] == 1:
             return
 
-        force_draw = sprytile_data.paint_mode == 'FILL'
+        force_draw = sprytile_data.paint_mode == 'FILL' or sprytile_data.lock_normal
         # Decide if should draw, only draw if middle mouse?
         if force_draw is False:
             if sprytile_data.axis_plane_display == 'OFF':
