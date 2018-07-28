@@ -157,7 +157,9 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        work_layer_mask = sprytile_utils.get_work_layer_data(context.scene.sprytile_data)
+        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin,
+                                                                     ray_vector, work_layer_mask=work_layer_mask)
         if location is None:
             return
 
