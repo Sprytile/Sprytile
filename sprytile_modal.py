@@ -154,7 +154,7 @@ class SprytileModalTool(bpy.types.Operator):
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
-            return
+            return None
 
         # get the context arguments
         region = context.region
@@ -169,27 +169,28 @@ class SprytileModalTool(bpy.types.Operator):
         location, normal, face_index, distance = self.raycast_object(context.object, ray_origin,
                                                                      ray_vector, work_layer_mask=work_layer_mask)
         if location is None:
-            return
+            return None
 
         face = self.bmesh.faces[face_index]
 
         grid_id, tile_packed_id, width, height, origin_id = self.get_face_tiledata(face)
         if None in {grid_id, tile_packed_id}:
-            return
+            return None
 
         tilegrid = sprytile_utils.get_grid(context, grid_id)
         if tilegrid is None:
-            return
+            return None
 
         texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
         if texture is None:
-            return
+            return None
 
         paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
         if paint_setting_layer is not None:
             paint_setting = face[paint_setting_layer]
             sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
 
+        # Extract the tile orientation/selection data packed in paint settings
         row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
         tile_y = math.floor(tile_packed_id / row_size)
         tile_x = tile_packed_id % row_size
@@ -214,6 +215,7 @@ class SprytileModalTool(bpy.types.Operator):
         tilegrid.tile_selection[3] = height
 
         bpy.ops.sprytile.build_grid_list()
+        return face_index
 
     def add_virtual_cursor(self, cursor_pos):
         cursor_len = len(self.virtual_cursor)
