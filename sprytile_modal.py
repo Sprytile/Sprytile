@@ -733,6 +733,24 @@ class SprytileModalTool(bpy.types.Operator):
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
+            check_modifier = False
+            addon_prefs = context.user_preferences.addons[__package__].preferences
+            if addon_prefs.tile_picker_key == 'Alt':
+                check_modifier = event.alt
+            if addon_prefs.tile_picker_key == 'Ctrl':
+                check_modifier = event.ctrl
+            if addon_prefs.tile_picker_key == 'Shift':
+                check_modifier = event.shift
+            # If find face tile button pressed, set work plane normal too
+            if check_modifier:
+                sprytile_data = context.scene.sprytile_data
+                target_normal = context.object.matrix_world.to_quaternion() * normal
+                face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
+                if face_up_vector is not None:
+                    sprytile_data.paint_normal_vector = target_normal
+                    sprytile_data.paint_up_vector = face_up_vector
+                    sprytile_data.lock_normal = True
+
     def modal(self, context, event):
         do_exit = False
         sprytile_data = context.scene.sprytile_data
