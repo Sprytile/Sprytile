@@ -482,12 +482,21 @@ class SprytileModalTool(bpy.types.Operator):
 
     def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
         face.select = True
+        work_layer_id = self.bmesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
+        work_layer_value = face[work_layer_id]
+        for check_face in self.bmesh.faces:
+            check_face.select = check_face[work_layer_id] == work_layer_value
 
-        bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+        bpy.ops.mesh.remove_doubles(use_unselected=False)
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
             el.ensure_lookup_table()
+
+        self.bmesh.select_flush_mode()
+
+        for iter_face in self.bmesh.faces:
+            iter_face.select = False
 
         # Modified the mesh, refresh and raycast to find the new face index
         self.update_bmesh_tree(context)
