@@ -1492,10 +1492,10 @@ class SprytileLayerPanel(bpy.types.Panel):
         col = box.column_flow(align=True)
         col.prop(data, "set_work_layer", index=1, text="Decal Layer", toggle=True, expand=True)
         col.prop(data, "set_work_layer", index=0, text="Base Layer", toggle=True, expand=True)
+        layout.prop(data, "mesh_decal_offset")
 
-        layout.prop(data, "work_layer_mode")
-        if data.work_layer_mode == 'MESH_DECAL':
-            layout.prop(data, "mesh_decal_offset")
+        # layout.prop(data, "work_layer_mode")
+        # if data.work_layer_mode == 'MESH_DECAL':
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
