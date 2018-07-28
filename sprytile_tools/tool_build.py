@@ -61,10 +61,6 @@ class ToolBuild:
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
 
-        # Used to move raycast slightly along ray vector
-        shift_vec = ray_vector.normalized() * 0.001
-        work_layer_mask = sprytile_utils.get_work_layer_data(data)
-
         # raycast grid to get the grid position under the mouse
         grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
             scene, context,
@@ -131,6 +127,10 @@ class ToolBuild:
 
         # Store vertices of constructed faces for cursor flow
         faces_verts = []
+        require_base_layer = data.work_layer != 'BASE'
+
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(data)
 
         # Build mode with join multi
         if do_join:
@@ -149,7 +149,7 @@ class ToolBuild:
                                                    tile_coord, tile_origin,
                                                    grid_up, grid_right,
                                                    up_vector, right_vector, plane_normal,
-                                                   shift_vec=shift_vec,
+                                                   require_base_layer=require_base_layer,
                                                    work_layer_mask=work_layer_mask)
             if face_index is not None:
                 face_verts = self.modal.face_to_world_verts(context, face_index)
@@ -172,7 +172,7 @@ class ToolBuild:
                                                        tile_pos, tile_xy,
                                                        grid_up, grid_right,
                                                        up_vector, right_vector, plane_normal,
-                                                       shift_vec=shift_vec,
+                                                       require_base_layer=require_base_layer,
                                                        work_layer_mask=work_layer_mask)
                 if face_index is not None:
                     face_verts = self.modal.face_to_world_verts(context, face_index)
@@ -185,6 +185,9 @@ class ToolBuild:
             # Find which vertex the cursor should flow to
             new_cursor_pos = self.modal.flow_cursor_verts(context, faces_verts, plane_pos)
             if new_cursor_pos is not None:
+                # Not base layer, move position back by offset
+                if data.work_layer != 'BASE':
+                    new_cursor_pos -= plane_normal * data.mesh_decal_offset
                 # Calculate the world position of old start_coord
                 old_start_pos = scene.cursor_location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
                 # find the offset of the old start position from the new cursor position

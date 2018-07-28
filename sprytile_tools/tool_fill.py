@@ -116,6 +116,10 @@ class ToolFill:
                     face = self.modal.faces[face_index]
                     paint_setting_cache[idx] = face[paint_setting_layer]
 
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(sprytile_data)
+        require_base_layer = sprytile_data.work_layer != 'BASE'
+
         origin_xy = (grid.tile_selection[0], grid.tile_selection[1])
         data = scene.sprytile_data
         # Loop through list of coords to be filled
@@ -137,8 +141,9 @@ class ToolFill:
                                       sub_xy, origin_xy,
                                       grid_up, grid_right,
                                       up_vector, right_vector,
-                                      plane_normal, face_index,
-                                      shift_vec=shift_vec, threshold=threshold, add_cursor=False)
+                                      plane_normal,
+                                      require_base_layer=require_base_layer,
+                                      work_layer_mask=work_layer_mask)
 
     def build_fill_map(self, context, grid_up, grid_right,
                        plane_normal, plane_size, grid_min, grid_max,
