@@ -61,17 +61,14 @@ class SprytileModalTool(bpy.types.Operator):
     modal_values = []
 
     @staticmethod
-    def find_view_axis(context):
+    def calculate_view_axis(context):
         if context.area.type != 'VIEW_3D':
-            return
-        scene = context.scene
-        if scene.sprytile_data.lock_normal is True:
-            return
+            return None, None
 
         region = context.region
         rv3d = context.region_data
         if rv3d is None:
-            return
+            return None, None
 
         # Get the view ray from center of screen
         coord = Vector((int(region.width / 2), int(region.height / 2)))
@@ -86,6 +83,17 @@ class SprytileModalTool(bpy.types.Operator):
 
         # calculated vectors are not perpendicular, don't set data
         if plane_normal.dot(up_vector) != 0.0:
+            return None, None
+
+        return plane_normal, up_vector
+
+    @staticmethod
+    def find_view_axis(context):
+        scene = context.scene
+        if scene.sprytile_data.lock_normal is True:
+            return
+        plane_normal, up_vector = SprytileModalTool.calculate_view_axis(context)
+        if plane_normal is None:
             return
 
         scene.sprytile_data.paint_normal_vector = plane_normal
