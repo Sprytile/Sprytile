@@ -291,15 +291,30 @@ class SprytileModalTool(bpy.types.Operator):
         :return:
         """
         obj = context.object
-        ray_origin = Vector(context.scene.cursor_location)
+
+        # Calculate where the origin of the grid is
+        grid_origin = context.scene.cursor_location.copy()
+        ray_offset = 0.01
+        pass_dist = 0.001
+
+        # If in mesh decal, move origin by offset
+        sprytile_data = context.scene.sprytile_data
+        if sprytile_data.work_layer == 'DECAL_1':
+            grid_origin += normal * sprytile_data.mesh_decal_offset
+            ray_offset = sprytile_data.mesh_decal_offset
+            pass_dist = sprytile_data.mesh_decal_offset / 2
+
+        ray_origin = Vector(grid_origin)
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
-        ray_origin += normal * 0.01
+        ray_origin += normal * ray_offset
         ray_direction = -normal
 
-        return self.raycast_object(obj, ray_origin, ray_direction, 0.02, work_layer_mask=work_layer_mask)
+        return self.raycast_object(obj, ray_origin, ray_direction, ray_dist=ray_offset*2,
+                                   work_layer_mask=work_layer_mask, pass_dist=pass_dist)
 
-    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000000.0, world_normal=False, work_layer_mask=0):
+    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000.0,
+                       world_normal=False, work_layer_mask=0, pass_dist=0.001):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
@@ -329,7 +344,7 @@ class SprytileModalTool(bpy.types.Operator):
             do_pass_through = True
 
         if do_pass_through:
-            shift_vec = ray_direction.normalized() * 0.001
+            shift_vec = ray_direction.normalized() * pass_dist
             return self.raycast_object(obj, location + shift_vec, ray_direction)
 
         # Translate location back to world space
@@ -424,22 +439,23 @@ class SprytileModalTool(bpy.types.Operator):
         scene = context.scene
         data = scene.sprytile_data
 
-        # If require base layer, only run if there is a base mesh on coords
-        if require_base_layer:
-            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal
-            )
-            # Didn't hit required base mesh, do nothing
-            if face_index is None:
-                return None
-
         # Run a raycast on target work layer mask
         hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
             context, grid_coord[0], grid_coord[1],
             grid_up, grid_right, plane_normal,
             work_layer_mask=work_layer_mask
         )
+
+        # Didn't hit target layer, and require base layer
+        if face_index is None and require_base_layer:
+            # Check if there is a base layer underneath
+            base_hit_loc, base_hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
+                    context, grid_coord[0], grid_coord[1],
+                    grid_up, grid_right, plane_normal
+                )
+            # Didn't hit required base layer, do nothing
+            if base_face_index is None:
+                return None
 
         # Calculate where the origin of the grid is
         grid_origin = scene.cursor_location.copy()

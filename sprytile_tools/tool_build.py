@@ -181,7 +181,7 @@ class ToolBuild:
         if plane_pos is not None:
             self.modal.add_virtual_cursor(plane_pos)
 
-        if data.cursor_flow and len(faces_verts) > 0:
+        if data.cursor_flow and data.work_layer == "BASE" and len(faces_verts) > 0:
             # Find which vertex the cursor should flow to
             new_cursor_pos = self.modal.flow_cursor_verts(context, faces_verts, plane_pos)
             if new_cursor_pos is not None:
