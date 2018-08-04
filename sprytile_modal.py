@@ -292,26 +292,17 @@ class SprytileModalTool(bpy.types.Operator):
         """
         obj = context.object
 
-        # Calculate where the origin of the grid is
-        grid_origin = context.scene.cursor_location.copy()
-        ray_offset = 0.01
-        pass_dist = 0.001
-
-        # If in mesh decal, move origin by offset
-        sprytile_data = context.scene.sprytile_data
-        if sprytile_data.work_layer == 'DECAL_1':
-            grid_origin += normal * sprytile_data.mesh_decal_offset
-            ray_offset = sprytile_data.mesh_decal_offset
-            pass_dist = sprytile_data.mesh_decal_offset / 2
-
-        ray_origin = Vector(grid_origin)
+        ray_origin = Vector(context.scene.cursor_location.copy())
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
+
+        ray_offset = 0.01
         ray_origin += normal * ray_offset
+
         ray_direction = -normal
 
         return self.raycast_object(obj, ray_origin, ray_direction, ray_dist=ray_offset*2,
-                                   work_layer_mask=work_layer_mask, pass_dist=pass_dist)
+                                   work_layer_mask=work_layer_mask)
 
     def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000.0,
                        world_normal=False, work_layer_mask=0, pass_dist=0.001):
