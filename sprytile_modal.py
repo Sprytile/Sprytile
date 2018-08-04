@@ -711,8 +711,20 @@ class SprytileModalTool(bpy.types.Operator):
             scene.cursor_location = grid_position
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
+            # Get if user is holding down tile picker modifier
+            check_modifier = False
+            addon_prefs = context.user_preferences.addons[__package__].preferences
+            if addon_prefs.tile_picker_key == 'Alt':
+                check_modifier = event.alt
+            if addon_prefs.tile_picker_key == 'Ctrl':
+                check_modifier = event.ctrl
+            if addon_prefs.tile_picker_key == 'Shift':
+                check_modifier = event.shift
+
             location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
             if location is None:
+                if check_modifier:
+                    scene.sprytile_data.lock_normal = False
                 return
             # Location in world space, convert to object space
             matrix = context.object.matrix_world.copy()
@@ -740,17 +752,11 @@ class SprytileModalTool(bpy.types.Operator):
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
 
-            check_modifier = False
-            addon_prefs = context.user_preferences.addons[__package__].preferences
-            if addon_prefs.tile_picker_key == 'Alt':
-                check_modifier = event.alt
-            if addon_prefs.tile_picker_key == 'Ctrl':
-                check_modifier = event.ctrl
-            if addon_prefs.tile_picker_key == 'Shift':
-                check_modifier = event.shift
+
             # If find face tile button pressed, set work plane normal too
             if check_modifier:
                 sprytile_data = context.scene.sprytile_data
+                # Check if mouse is hitting object
                 target_normal = context.object.matrix_world.to_quaternion() * normal
                 face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
                 if face_up_vector is not None:
