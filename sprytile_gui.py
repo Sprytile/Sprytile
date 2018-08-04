@@ -570,10 +570,11 @@ class SprytileGui(bpy.types.Operator):
         paint_up_vector = paint_up_vector * pixel_unit * display_grid[1]
         paint_right_vector = paint_right_vector * pixel_unit * display_grid[0]
 
-        grid_min, grid_max = sprytile_utils.get_workplane_area(
-                                        sprytile_data.axis_plane_size[0],
-                                        sprytile_data.axis_plane_size[1]
-                                    )
+        plane_size = sprytile_data.axis_plane_size
+        if sprytile_data.paint_mode == "FILL":
+            plane_size = sprytile_data.fill_plane_size
+
+        grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
 
         def draw_world_line(world_start, world_end):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
@@ -591,11 +592,11 @@ class SprytileGui(bpy.types.Operator):
 
         for x in range(grid_min[0] + 1, grid_max[0]):
             draw_start = cursor_loc + (paint_right_vector * x) + (paint_up_vector * grid_min[1])
-            draw_end = draw_start + paint_up_vector * sprytile_data.axis_plane_size[1]
+            draw_end = draw_start + paint_up_vector * plane_size[1]
             draw_world_line(draw_start, draw_end)
         for y in range(grid_min[1] + 1, grid_max[1]):
             draw_start = cursor_loc + (paint_right_vector * grid_min[0]) + (paint_up_vector * y)
-            draw_end = draw_start + paint_right_vector * sprytile_data.axis_plane_size[0]
+            draw_end = draw_start + paint_right_vector * plane_size[0]
             draw_world_line(draw_start, draw_end)
 
         x_offset_min = paint_right_vector * grid_min[0]

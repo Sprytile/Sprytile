@@ -68,7 +68,7 @@ class ToolFill:
         )
 
         # Check hit_coord is inside the work plane grid
-        plane_size = sprytile_data.axis_plane_size
+        plane_size = sprytile_data.fill_plane_size
 
         grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
 
@@ -93,10 +93,6 @@ class ToolFill:
 
         # For getting paint settings later
         paint_setting_layer = self.modal.bmesh.faces.layers.int.get(UvDataLayers.PAINT_SETTINGS)
-
-        # Pre calculate for auto merge
-        shift_vec = plane_normal.normalized() * 0.01
-        threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
 
         # Get vectors again, to apply tile rotations in UV stage
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
@@ -124,7 +120,6 @@ class ToolFill:
         data = scene.sprytile_data
         # Loop through list of coords to be filled
         for idx, cell_coord in enumerate(fill_coords):
-            face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
             # Fetch the paint settings from cache
             if paint_setting_cache is not None:
                 paint_setting = paint_setting_cache[idx]

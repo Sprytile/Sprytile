@@ -517,6 +517,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         subtype='COLOR'
     )
 
+    fill_plane_size = IntVectorProperty(
+        name="Fill Plane Size",
+        description="Size of the Fill Plane",
+        size=2,
+        default=(10, 10),
+        min=1,
+        soft_min=1
+    )
+
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = StringProperty(
