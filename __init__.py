@@ -821,7 +821,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             ("Shift", "Shift", "Press Shift to move tile selection", 3)
         ],
         name="Tile Selection Move Key",
-        description="Key moving the tile selection",
+        description="Key for moving the tile selection",
         default='Ctrl',
         set=set_sel_move,
         get=get_sel_move
@@ -863,19 +863,19 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
 
-        cache_picker = self.tile_picker_key
-        cache_sel_move = self.tile_sel_move_key
-
         layout.prop(self, "preview_transparency")
-        layout.prop(self, "tile_picker_key")
-        layout.prop(self, "tile_sel_move_key")
+
+        box = layout.box()
+        box.label("Keyboard Shortcuts")
+        box.prop(self, "tile_picker_key")
+        box.prop(self, "tile_sel_move_key")
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
         kmi_idx = km.keymap_items.find('sprytile.modal_tool')
         if kmi_idx >= 0:
-            layout.label(text="Tile Mode Shortcut")
-            col = layout.column()
+            box.label(text="Tile Mode Shortcut")
+            col = box.column()
 
             kmi = km.keymap_items[kmi_idx]
             km = km.active()
