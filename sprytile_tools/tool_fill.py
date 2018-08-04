@@ -5,6 +5,7 @@ from mathutils.geometry import intersect_line_plane
 
 import sprytile_utils
 import sprytile_uv
+from sprytile_uv import UvDataLayers
 
 class ToolFill:
     modal = None
@@ -67,7 +68,7 @@ class ToolFill:
         )
 
         # Check hit_coord is inside the work plane grid
-        plane_size = sprytile_data.axis_plane_size
+        plane_size = sprytile_data.fill_plane_size
 
         grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
 
@@ -91,11 +92,7 @@ class ToolFill:
                            int(hit_coord.y) - grid_min[1]]
 
         # For getting paint settings later
-        paint_setting_layer = self.modal.bmesh.faces.layers.int.get('paint_settings')
-
-        # Pre calculate for auto merge
-        shift_vec = plane_normal.normalized() * 0.01
-        threshold = (1 / context.scene.sprytile_data.world_pixels) * 2
+        paint_setting_layer = self.modal.bmesh.faces.layers.int.get(UvDataLayers.PAINT_SETTINGS)
 
         # Get vectors again, to apply tile rotations in UV stage
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
@@ -115,11 +112,14 @@ class ToolFill:
                     face = self.modal.faces[face_index]
                     paint_setting_cache[idx] = face[paint_setting_layer]
 
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(sprytile_data)
+        require_base_layer = sprytile_data.work_layer != 'BASE'
+
         origin_xy = (grid.tile_selection[0], grid.tile_selection[1])
         data = scene.sprytile_data
         # Loop through list of coords to be filled
         for idx, cell_coord in enumerate(fill_coords):
-            face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
             # Fetch the paint settings from cache
             if paint_setting_cache is not None:
                 paint_setting = paint_setting_cache[idx]
@@ -136,8 +136,9 @@ class ToolFill:
                                       sub_xy, origin_xy,
                                       grid_up, grid_right,
                                       up_vector, right_vector,
-                                      plane_normal, face_index,
-                                      shift_vec=shift_vec, threshold=threshold, add_cursor=False)
+                                      plane_normal,
+                                      require_base_layer=require_base_layer,
+                                      work_layer_mask=work_layer_mask)
 
     def build_fill_map(self, context, grid_up, grid_right,
                        plane_normal, plane_size, grid_min, grid_max,

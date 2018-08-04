@@ -174,6 +174,71 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_dummy
     )
 
+    work_layer = EnumProperty(
+        items=[
+            ("BASE", "Base", "Base layer", 1),
+            ("DECAL_1", "Decal 1", "Decal layer 1", 2)
+        ],
+        name="Build Layer",
+        description="Layer for creating new faces",
+        default='BASE'
+    )
+
+    def set_layer(self, value):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        current_value = self.get_layer()
+        value = list(value)
+        for idx in range(len(value)):
+            if current_value[idx] and current_value[idx] & value[idx]:
+                value[idx] = False
+
+        for idx in range(len(value)):
+            if value[idx]:
+                self["work_layer"] = (idx + 1)
+                break
+
+    def get_layer(self):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        out_value = [False, False]
+        index_value_lookup = 1, 2
+        set_idx = index_value_lookup.index(self["work_layer"])
+        out_value[set_idx] = True
+        return out_value
+
+    set_work_layer = BoolVectorProperty(
+        name="Work Layer",
+        description="Layer for creating new faces",
+        size=2,
+        get=get_layer,
+        set=set_layer
+    )
+
+    work_layer_mode = EnumProperty(
+        items=[
+            ("MESH_DECAL", "Mesh Decal", "Create an overlay mesh. More compatible but less performant.", 1),
+            ("UV_DECAL", "UV Layer", "Use UV layers. More performant in engine but requires shader support.", 2)
+        ],
+        name="Mode",
+        description="Method used for layering",
+        default="MESH_DECAL"
+    )
+
+    mesh_decal_offset = FloatProperty(
+        name="Decal Offset",
+        description="Distance to offset mesh decal, to prevent z-fighting",
+        default=0.002,
+        min=0.001,
+        max=0.2,
+        precision=4,
+        subtype='DISTANCE',
+    )
+
     world_pixels = IntProperty(
         name="World Pixel Density",
         description="How many pixels are displayed in one world unit",
@@ -450,6 +515,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         size=3,
         default=(0.7, 0.7, 0.7),
         subtype='COLOR'
+    )
+
+    fill_plane_size = IntVectorProperty(
+        name="Fill Plane Size",
+        description="Size of the Fill Plane",
+        size=2,
+        default=(10, 10),
+        min=1,
+        soft_min=1
     )
 
 
@@ -747,7 +821,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             ("Shift", "Shift", "Press Shift to move tile selection", 3)
         ],
         name="Tile Selection Move Key",
-        description="Key moving the tile selection",
+        description="Key for moving the tile selection",
         default='Ctrl',
         set=set_sel_move,
         get=get_sel_move
@@ -789,19 +863,19 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
 
-        cache_picker = self.tile_picker_key
-        cache_sel_move = self.tile_sel_move_key
-
         layout.prop(self, "preview_transparency")
-        layout.prop(self, "tile_picker_key")
-        layout.prop(self, "tile_sel_move_key")
+
+        box = layout.box()
+        box.label("Keyboard Shortcuts")
+        box.prop(self, "tile_picker_key")
+        box.prop(self, "tile_sel_move_key")
 
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
         kmi_idx = km.keymap_items.find('sprytile.modal_tool')
         if kmi_idx >= 0:
-            layout.label(text="Tile Mode Shortcut")
-            col = layout.column()
+            box.label(text="Tile Mode Shortcut")
+            col = box.column()
 
             kmi = km.keymap_items[kmi_idx]
             km = km.active()

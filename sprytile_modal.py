@@ -15,6 +15,7 @@ from sprytile_tools.tool_paint import ToolPaint
 from sprytile_tools.tool_fill import ToolFill
 from sprytile_tools.tool_set_normal import ToolSetNormal
 import sprytile_uv
+from sprytile_uv import UvDataLayers
 import sprytile_utils
 
 
@@ -33,8 +34,6 @@ class DataObjectDict(dict):
             del self[name]
         else:
             raise AttributeError("No such attribute: " + name)
-
-
 
 
 class SprytileModalTool(bpy.types.Operator):
@@ -62,17 +61,14 @@ class SprytileModalTool(bpy.types.Operator):
     modal_values = []
 
     @staticmethod
-    def find_view_axis(context):
+    def calculate_view_axis(context):
         if context.area.type != 'VIEW_3D':
-            return
-        scene = context.scene
-        if scene.sprytile_data.lock_normal is True:
-            return
+            return None, None
 
         region = context.region
         rv3d = context.region_data
         if rv3d is None:
-            return
+            return None, None
 
         # Get the view ray from center of screen
         coord = Vector((int(region.width / 2), int(region.height / 2)))
@@ -87,6 +83,17 @@ class SprytileModalTool(bpy.types.Operator):
 
         # calculated vectors are not perpendicular, don't set data
         if plane_normal.dot(up_vector) != 0.0:
+            return None, None
+
+        return plane_normal, up_vector
+
+    @staticmethod
+    def find_view_axis(context):
+        scene = context.scene
+        if scene.sprytile_data.lock_normal is True:
+            return
+        plane_normal, up_vector = SprytileModalTool.calculate_view_axis(context)
+        if plane_normal is None:
             return
 
         scene.sprytile_data.paint_normal_vector = plane_normal
@@ -105,8 +112,8 @@ class SprytileModalTool(bpy.types.Operator):
         return self.get_face_tiledata(self.bmesh.faces[face_index])
 
     def get_face_tiledata(self, face):
-        grid_id_layer = self.bmesh.faces.layers.int.get('grid_index')
-        tile_id_layer = self.bmesh.faces.layers.int.get('grid_tile_id')
+        grid_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_INDEX)
+        tile_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_TILE_ID)
         if grid_id_layer is None or tile_id_layer is None:
             return None, None, None, None, None
 
@@ -114,21 +121,21 @@ class SprytileModalTool(bpy.types.Operator):
         tile_packed_id = face[tile_id_layer]
 
         width = 1
-        width_layer = self.bmesh.faces.layers.int.get('grid_sel_width')
+        width_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_WIDTH)
         if width_layer is not None:
             width = face[width_layer]
             if width is None:
                 width = 1
 
         height = 1
-        height_layer = self.bmesh.faces.layers.int.get('grid_sel_height')
+        height_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
         if height_layer is not None:
             height = face[height_layer]
             if height is None:
                 height = 1
 
         origin = -1
-        origin_layer = self.bmesh.faces.layers.int.get('grid_sel_origin')
+        origin_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
         if origin_layer is not None:
             origin = face[origin_layer]
             if origin is None:
@@ -147,7 +154,7 @@ class SprytileModalTool(bpy.types.Operator):
 
     def find_face_tile(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
-            return
+            return None
 
         # get the context arguments
         region = context.region
@@ -158,29 +165,32 @@ class SprytileModalTool(bpy.types.Operator):
         ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
+        work_layer_mask = sprytile_utils.get_work_layer_data(context.scene.sprytile_data)
+        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin,
+                                                                     ray_vector, work_layer_mask=work_layer_mask)
         if location is None:
-            return
+            return None
 
         face = self.bmesh.faces[face_index]
 
         grid_id, tile_packed_id, width, height, origin_id = self.get_face_tiledata(face)
         if None in {grid_id, tile_packed_id}:
-            return
+            return None
 
         tilegrid = sprytile_utils.get_grid(context, grid_id)
         if tilegrid is None:
-            return
+            return None
 
         texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
         if texture is None:
-            return
+            return None
 
         paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
         if paint_setting_layer is not None:
             paint_setting = face[paint_setting_layer]
             sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
 
+        # Extract the tile orientation/selection data packed in paint settings
         row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
         tile_y = math.floor(tile_packed_id / row_size)
         tile_x = tile_packed_id % row_size
@@ -205,6 +215,7 @@ class SprytileModalTool(bpy.types.Operator):
         tilegrid.tile_selection[3] = height
 
         bpy.ops.sprytile.build_grid_list()
+        return face_index
 
     def add_virtual_cursor(self, cursor_pos):
         cursor_len = len(self.virtual_cursor)
@@ -230,39 +241,44 @@ class SprytileModalTool(bpy.types.Operator):
         cursor_direction /= cursor_len
         return cursor_direction
 
-    def flow_cursor(self, context, face_index, virtual_cursor):
-        """Move the cursor along the given face, using virtual_cursor direction"""
+    def face_to_world_verts(self, context, face_index):
+        if face_index is None:
+            pass
         face = self.bmesh.faces[face_index]
         world_verts = []
         for idx, vert in enumerate(face.verts):
             vert_world_pos = context.object.matrix_world * vert.co
             world_verts.append(vert_world_pos)
+        return world_verts
+
+    def flow_cursor(self, context, face_index, virtual_cursor):
+        """Move the cursor along the given face, using virtual_cursor direction"""
+        world_verts = self.face_to_world_verts(context, face_index)
         self.flow_cursor_verts(context, world_verts, virtual_cursor)
 
     def flow_cursor_verts(self, context, verts, virtual_cursor):
+
         cursor_len = len(self.virtual_cursor)
         if cursor_len <= 1:
-            return
+            return None
         cursor_direction = self.get_virtual_cursor_vector()
         cursor_direction.normalize()
 
-        max_dot = 1.0
-        closest_idx = -1
-        closest_pos = Vector((0.0, 0.0, 0.0))
+        max_dist = -1.0
+        closest_pos = None
 
         for idx, vert in enumerate(verts):
             vert_vector = vert - virtual_cursor
+            vert_dist = vert_vector.length
             vert_vector.normalize()
-            vert_dot = abs(1.0 - vert_vector.dot(cursor_direction))
-            if vert_dot < max_dot:
-                closest_idx = idx
+            vert_dot = vert_vector.dot(cursor_direction)
+            if vert_dot > 0.5 and vert_dist > max_dist:
                 closest_pos = vert
-        if closest_idx != -1:
-            context.scene.cursor_location = closest_pos
+                max_dist = vert_dist
 
-        pass
+        return closest_pos
 
-    def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal):
+    def raycast_grid_coord(self, context, x, y, up_vector, right_vector, normal, work_layer_mask=0):
         """
         Raycast agains the object using grid coordinates around the cursor
         :param context:
@@ -271,18 +287,25 @@ class SprytileModalTool(bpy.types.Operator):
         :param up_vector:
         :param right_vector:
         :param normal:
+        :param work_layer_mask:
         :return:
         """
         obj = context.object
-        ray_origin = Vector(context.scene.cursor_location)
+
+        ray_origin = Vector(context.scene.cursor_location.copy())
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
-        ray_origin += normal * 0.01
+
+        ray_offset = 0.01
+        ray_origin += normal * ray_offset
+
         ray_direction = -normal
 
-        return self.raycast_object(obj, ray_origin, ray_direction, 0.02)
+        return self.raycast_object(obj, ray_origin, ray_direction, ray_dist=ray_offset*2,
+                                   work_layer_mask=work_layer_mask)
 
-    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000000, world_normal=False):
+    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000.0,
+                       world_normal=False, work_layer_mask=0, pass_dist=0.001):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
@@ -295,13 +318,25 @@ class SprytileModalTool(bpy.types.Operator):
             return None, None, None, None
 
         face = self.bmesh.faces[face_index]
-        shift_vec = ray_direction.normalized() * 0.001
-        # Shoot through backface
+
+        work_layer_id = self.bmesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
+        work_layer_value = face[work_layer_id]
+
+        # Pass through faces under certain conditions
+        do_pass_through = False
+        # Layer mask not matching
+        if work_layer_value != work_layer_mask:
+            do_pass_through = True
+        # Hit face is backface
         if face.normal.dot(ray_direction) > 0:
-            return self.raycast_object(obj, location + shift_vec, ray_direction)
-        # Shoot through hidden face
+            do_pass_through = True
+        # Hit face is hidden
         if face.hide:
-            return self.raycast_object(obj, location + shift_vec, ray_direction)
+            do_pass_through = True
+
+        if do_pass_through:
+            shift_vec = ray_direction.normalized() * pass_dist
+            return self.raycast_object(obj, location + shift_vec, ray_direction, work_layer_mask=work_layer_mask)
 
         # Translate location back to world space
         location = matrix * location
@@ -313,10 +348,7 @@ class SprytileModalTool(bpy.types.Operator):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         if update_index:
             # Verify layers are created
-            layer_names = ['grid_index', 'grid_tile_id',
-                           'grid_sel_width', 'grid_sel_height',
-                           'paint_settings', 'grid_sel_origin']
-            for layer_name in layer_names:
+            for layer_name in UvDataLayers.LAYER_NAMES:
                 layer_data = self.bmesh.faces.layers.int.get(layer_name)
                 if layer_data is None:
                     print('Creating face layer:', layer_name)
@@ -375,10 +407,12 @@ class SprytileModalTool(bpy.types.Operator):
                        tile_xy, tile_origin,
                        grid_up, grid_right,
                        up_vector, right_vector, plane_normal,
-                       face_index=None, check_exists=True,
-                       shift_vec=None, threshold=None, add_cursor=True):
+                       require_base_layer=False,
+                       work_layer_mask=0,
+                       threshold=None):
         """
         Create a new face at grid_coord or remap the existing face
+        :type work_layer_mask: bitmask integer
         :param context:
         :param grid_coord: Grid coordinate to create at
         :param grid_size: Tile unit size of face
@@ -389,38 +423,47 @@ class SprytileModalTool(bpy.types.Operator):
         :param up_vector:
         :param right_vector:
         :param plane_normal:
-        :param face_index:
-        :param check_exists:
-        :param shift_vec:
+        :param require_base_layer:
         :param threshold:
-        :param add_cursor:
         :return:
         """
         scene = context.scene
         data = scene.sprytile_data
-        hit_loc = None
-        hit_normal = None
-        if check_exists:
-            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal
-            )
+
+        # Run a raycast on target work layer mask
+        hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
+            context, grid_coord[0], grid_coord[1],
+            grid_up, grid_right, plane_normal,
+            work_layer_mask=work_layer_mask
+        )
+
+        # Didn't hit target layer, and require base layer
+        if face_index is None and require_base_layer:
+            # Check if there is a base layer underneath
+            base_hit_loc, base_hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
+                    context, grid_coord[0], grid_coord[1],
+                    grid_up, grid_right, plane_normal
+                )
+            # Didn't hit required base layer, do nothing
+            if base_face_index is None:
+                return None
+
+        # Calculate where the origin of the grid is
+        grid_origin = scene.cursor_location.copy()
+        # If in mesh decal, move origin by offset
+        if data.work_layer == 'DECAL_1':
+            grid_origin += plane_normal * data.mesh_decal_offset
 
         did_build = False
         # No face index, assume build face
         if face_index is None or face_index < 0:
-            face_position = scene.cursor_location + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+            face_position = grid_origin + grid_coord[0] * grid_right + grid_coord[1] * grid_up
+
             face_verts = self.get_build_vertices(face_position,
                                                  grid_right * grid_size[0], grid_up * grid_size[1],
                                                  up_vector, right_vector)
             face_index = self.create_face(context, face_verts)
             did_build = True
-        # Face index was given and check exists flag is off, check for actual face
-        elif check_exists is False:
-            hit_loc, hit_normal, face_index, hit_dist = self.raycast_grid_coord(
-                context, grid_coord[0], grid_coord[1],
-                grid_up, grid_right, plane_normal
-            )
 
         if face_index is None or face_index < 0:
             return None
@@ -429,7 +472,7 @@ class SprytileModalTool(bpy.types.Operator):
         if did_build is False:
             check_dot = abs(plane_normal.dot(hit_normal))
             check_dot -= 1
-            check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+            check_coplanar = distance_point_to_plane(hit_loc, grid_origin, plane_normal)
 
             check_coplanar = abs(check_coplanar) < 0.05
             check_dot = abs(check_dot) < 0.05
@@ -454,18 +497,25 @@ class SprytileModalTool(bpy.types.Operator):
         # Auto merge refreshes the mesh automatically
         self.refresh_mesh = not data.auto_merge
 
-        if add_cursor and hit_loc is not None:
-            self.add_virtual_cursor(hit_loc)
         return face_index
 
     def merge_doubles(self, context, face, ray_origin, ray_direction, threshold):
         face.select = True
+        work_layer_id = self.bmesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
+        work_layer_value = face[work_layer_id]
+        for check_face in self.bmesh.faces:
+            check_face.select = check_face[work_layer_id] == work_layer_value
 
-        bpy.ops.mesh.remove_doubles(threshold=threshold, use_unselected=True)
+        bpy.ops.mesh.remove_doubles(use_unselected=False)
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
             el.ensure_lookup_table()
+
+        self.bmesh.select_flush_mode()
+
+        for iter_face in self.bmesh.faces:
+            iter_face.select = False
 
         # Modified the mesh, refresh and raycast to find the new face index
         self.update_bmesh_tree(context)
@@ -507,11 +557,12 @@ class SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index):
+    def get_face_up_vector(self, context, face_index, sensitivity=0.1):
         """
         Find the edge of the given face that most closely matches view up vector
         :param context:
         :param face_index:
+        :param sensitivity:
         :return:
         """
         # Get the view up vector. The default scene view camera is pointed
@@ -577,11 +628,11 @@ class SprytileModalTool(bpy.types.Operator):
             edge_up_dot = 1 - abs(edge_vec.dot(view_up_vector))
             edge_right_dot = 1 - abs(edge_vec.dot(view_right_vector))
             # print(idx, edge_vec, "up dot", edge_up_dot, "right dot", edge_right_dot)
-            if edge_up_dot < 0.1 and edge_up_dot < closest_up_dot:
+            if edge_up_dot < sensitivity and edge_up_dot < closest_up_dot:
                 closest_up_dot = edge_up_dot
                 closest_up = edge_vec
                 # print("Setting", idx, "as closest up")
-            if edge_right_dot < 0.1 and edge_right_dot < closest_right_dot:
+            if edge_right_dot < sensitivity and edge_right_dot < closest_right_dot:
                 closest_right_dot = edge_right_dot
                 closest_right = edge_vec
                 # print("Setting", idx, "as closest right")
@@ -660,8 +711,20 @@ class SprytileModalTool(bpy.types.Operator):
             scene.cursor_location = grid_position
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
+            # Get if user is holding down tile picker modifier
+            check_modifier = False
+            addon_prefs = context.user_preferences.addons[__package__].preferences
+            if addon_prefs.tile_picker_key == 'Alt':
+                check_modifier = event.alt
+            if addon_prefs.tile_picker_key == 'Ctrl':
+                check_modifier = event.ctrl
+            if addon_prefs.tile_picker_key == 'Shift':
+                check_modifier = event.shift
+
             location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
             if location is None:
+                if check_modifier:
+                    scene.sprytile_data.lock_normal = False
                 return
             # Location in world space, convert to object space
             matrix = context.object.matrix_world.copy()
@@ -688,6 +751,18 @@ class SprytileModalTool(bpy.types.Operator):
             # convert back to world space
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
+
+
+            # If find face tile button pressed, set work plane normal too
+            if check_modifier:
+                sprytile_data = context.scene.sprytile_data
+                # Check if mouse is hitting object
+                target_normal = context.object.matrix_world.to_quaternion() * normal
+                face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
+                if face_up_vector is not None:
+                    sprytile_data.paint_normal_vector = target_normal
+                    sprytile_data.paint_up_vector = face_up_vector
+                    sprytile_data.lock_normal = True
 
     def modal(self, context, event):
         do_exit = False

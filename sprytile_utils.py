@@ -385,6 +385,33 @@ def from_paint_settings(sprytile_data, paint_settings):
     sprytile_data.paint_stretch_y = (paint_settings & 1 << 4) > 0
 
 
+def get_work_layer_data(sprytile_data):
+    """
+    Returns the work layer bitmask from the given sprytile data
+    """
+    # Bits 0-4 are reserved for storing layer numbers
+    # Bit 5 = Face is using decal mode
+    # Bit 6 = Face is using UV mode
+
+    # When face is using UV mode, there may be multiple
+    # UV layers, to find which layers it is using,
+    # Mask against bits 0-4
+
+    # This is only for 1 layer decals, figure out multi layer later
+    out_data = 0
+    if sprytile_data.work_layer != 'BASE':
+        out_data += (1 << 0)
+        if sprytile_data.work_layer_mode == 'MESH_DECAL':
+            out_data += (1 << 5)
+        else:
+            out_data += (1 << 6)
+    return out_data
+
+
+def from_work_layer_data(sprytile_data, layer_data):
+    pass
+
+
 def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="    ", scale_y=0.55):
     a_id = -1
     r_id = -1
@@ -1443,6 +1470,34 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.props_teardown")
 
 
+class SprytileLayerPanel(bpy.types.Panel):
+    bl_label = "Layers"
+    bl_idname = "sprytile.panel_layers"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Sprytile"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.object and context.object.type == 'MESH':
+            return context.object.mode == 'EDIT'
+
+    def draw(self, context):
+        if hasattr(context.scene, "sprytile_data") is False:
+            return
+        data = context.scene.sprytile_data
+        layout = self.layout
+        box = layout.box()
+        col = box.column_flow(align=True)
+        col.prop(data, "set_work_layer", index=1, text="Decal Layer", toggle=True, expand=True)
+        col.prop(data, "set_work_layer", index=0, text="Base Layer", toggle=True, expand=True)
+        layout.prop(data, "mesh_decal_offset")
+
+        # layout.prop(data, "work_layer_mode")
+        # if data.work_layer_mode == 'MESH_DECAL':
+
+
 class SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
@@ -1492,9 +1547,9 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
-        # row = layout.row(align=False)
-        # row.label("", icon="CURSOR")
-        # row.prop(data, "cursor_flow", toggle=True)
+        row = layout.row(align=False)
+        row.label("", icon="CURSOR")
+        row.prop(data, "cursor_flow", toggle=True)
 
         # layout.prop(data, "snap_translate", toggle=True)
 

@@ -6,6 +6,21 @@ from mathutils import Vector, Matrix
 import sprytile_utils
 
 
+class UvDataLayers:
+    GRID_INDEX = "grid_index"
+    GRID_TILE_ID = "grid_tile_id"
+    GRID_SEL_WIDTH = "grid_sel_width"
+    GRID_SEL_HEIGHT = "grid_sel_height"
+    GRID_SEL_ORIGIN = "grid_sel_origin"
+    PAINT_SETTINGS = "paint_settings"
+    WORK_LAYER = "work_layer"
+
+    LAYER_NAMES = [GRID_INDEX, GRID_TILE_ID,
+                   GRID_SEL_WIDTH, GRID_SEL_HEIGHT,
+                   GRID_SEL_ORIGIN, PAINT_SETTINGS,
+                   WORK_LAYER]
+
+
 def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
                     up_vector, right_vector, verts, vtx_center):
     pixel_uv_x = 1.0 / image_size[0]
@@ -310,12 +325,13 @@ def apply_uvs(context, face, uv_verts, target_grid,
 
     # Save the grid and tile ID to the face
     # If adding more layers, make sure setup in sprytile_modal.update_bmesh_tree
-    grid_layer_id = mesh.faces.layers.int.get('grid_index')
-    grid_layer_tileid = mesh.faces.layers.int.get('grid_tile_id')
-    grid_sel_width = mesh.faces.layers.int.get('grid_sel_width')
-    grid_sel_height = mesh.faces.layers.int.get('grid_sel_height')
-    grid_sel_origin = mesh.faces.layers.int.get('grid_sel_origin')
-    paint_settings_id = mesh.faces.layers.int.get('paint_settings')
+    grid_layer_id = mesh.faces.layers.int.get(UvDataLayers.GRID_INDEX)
+    grid_layer_tileid = mesh.faces.layers.int.get(UvDataLayers.GRID_TILE_ID)
+    grid_sel_width = mesh.faces.layers.int.get(UvDataLayers.GRID_SEL_WIDTH)
+    grid_sel_height = mesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
+    grid_sel_origin = mesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
+    paint_settings_id = mesh.faces.layers.int.get(UvDataLayers.PAINT_SETTINGS)
+    work_layer_id = mesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
 
     face = mesh.faces[face.index]
     row_size = math.ceil(target_img.size[0] / target_grid.grid[0])
@@ -325,6 +341,7 @@ def apply_uvs(context, face, uv_verts, target_grid,
         origin_id = (origin_xy[1] * row_size) + origin_xy[0]
 
     paint_settings = sprytile_utils.get_paint_settings(data)
+    work_layer_data = sprytile_utils.get_work_layer_data(data)
 
     sel_width = target_grid.tile_selection[2]
     sel_height = target_grid.tile_selection[3]
@@ -335,6 +352,7 @@ def apply_uvs(context, face, uv_verts, target_grid,
     face[grid_sel_height] = sel_height
     face[grid_sel_origin] = origin_id
     face[paint_settings_id] = paint_settings
+    face[work_layer_id] = work_layer_data
 
     bmesh.update_edit_mesh(context.object.data)
     mesh.faces.index_update()
