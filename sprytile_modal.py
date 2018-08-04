@@ -345,7 +345,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         if do_pass_through:
             shift_vec = ray_direction.normalized() * pass_dist
-            return self.raycast_object(obj, location + shift_vec, ray_direction)
+            return self.raycast_object(obj, location + shift_vec, ray_direction, work_layer_mask=work_layer_mask)
 
         # Translate location back to world space
         location = matrix * location
