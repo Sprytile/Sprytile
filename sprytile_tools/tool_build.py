@@ -218,7 +218,19 @@ class ToolBuild:
         if target_img is None:
             return
 
+        # If building on base layer, get from current virtual grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
+        # Building on decal layer, get from face under mouse
+        if data.work_layer == 'DECAL_1':
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            if hit_normal is not None:
+                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4)
+                if face_up is not None and face_right is not None:
+                    plane_normal = hit_normal
+                    up_vector = face_up
+                    right_vector = face_right
 
         rotation = Quaternion(plane_normal, data.mesh_rotate)
 
