@@ -146,6 +146,14 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
+def get_grid_right_up(right_vector, up_vector, world_pixels, grid_x, grid_y):
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+    right_vector *= x_unit
+    up_vector *= y_unit
+    return right_vector, up_vector
+
+
 def get_workplane_area(width, height):
     offset_ids, offset_grid, coord_min, coord_max = get_grid_area(width, height)
     return [coord_min[0] - 1, coord_min[1] - 1], coord_max
