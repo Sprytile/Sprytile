@@ -1,11 +1,9 @@
 import bpy
 from math import floor, ceil
 from mathutils import Vector, Quaternion
-from mathutils.geometry import intersect_line_plane, distance_point_to_plane
 
 import sprytile_utils
 import sprytile_uv
-from sprytile_tools import tool_paint
 
 
 class ToolBuild:
