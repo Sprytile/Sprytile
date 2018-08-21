@@ -506,7 +506,10 @@ class SprytileModalTool(bpy.types.Operator):
         for check_face in self.bmesh.faces:
             check_face.select = check_face[work_layer_id] == work_layer_value
 
-        bpy.ops.mesh.remove_doubles(threshold=0.01, use_unselected=False)
+        merge_threshold = 0.00
+        if context.scene.sprytile_data.work_layer != 'BASE':
+            merge_threshold = 0.01
+        bpy.ops.mesh.remove_doubles(threshold=merge_threshold, use_unselected=False)
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
