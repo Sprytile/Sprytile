@@ -440,7 +440,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Didn't hit target layer, and require base layer
         if face_index is None and require_base_layer:
             # Check if there is a base layer underneath
-            base_hit_loc, base_hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
+            base_hit_loc, hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
                     context, grid_coord[0], grid_coord[1],
                     grid_up, grid_right, plane_normal
                 )
@@ -450,7 +450,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Calculate where the origin of the grid is
         grid_origin = scene.cursor_location.copy()
-        # If in mesh decal, move origin by offset
+        # If doing mesh decal, offset the grid origin
         if data.work_layer == 'DECAL_1':
             grid_origin += plane_normal * data.mesh_decal_offset
 
@@ -751,7 +751,6 @@ class SprytileModalTool(bpy.types.Operator):
             # convert back to world space
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
-
 
             # If find face tile button pressed, set work plane normal too
             if check_modifier:
