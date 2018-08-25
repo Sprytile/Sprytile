@@ -563,12 +563,13 @@ class SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index, sensitivity=0.1):
+    def get_face_up_vector(self, context, face_index, sensitivity=0.1, bias_right=False):
         """
         Find the edge of the given face that most closely matches view up vector
         :param context:
         :param face_index:
         :param sensitivity:
+        :param bias_right:
         :return:
         """
         # Get the view up vector. The default scene view camera is pointed
@@ -646,7 +647,7 @@ class SprytileModalTool(bpy.types.Operator):
         # print("Closest indices: up", closest_up, "right", closest_right)
         chosen_up = None
 
-        if closest_up is not None:
+        if closest_up is not None and not bias_right:
             if closest_up.dot(view_up_vector) < 0:
                 closest_up *= -1
             chosen_up = closest_up
