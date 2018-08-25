@@ -334,12 +334,15 @@ class SprytileModalTool(bpy.types.Operator):
         if face.hide:
             do_pass_through = True
 
-        if do_pass_through:
-            shift_vec = ray_direction.normalized() * pass_dist
-            return self.raycast_object(obj, location + shift_vec, ray_direction, work_layer_mask=work_layer_mask)
-
         # Translate location back to world space
         location = matrix * location
+
+        if do_pass_through:
+            # add shift offset if passing through
+            shift_vec = ray_direction.normalized() * pass_dist
+            new_ray_origin = location + shift_vec
+            return self.raycast_object(obj, new_ray_origin, ray_direction, work_layer_mask=work_layer_mask)
+
         if world_normal:
             normal = matrix * normal
         return location, normal, face_index, distance
