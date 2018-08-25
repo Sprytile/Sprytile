@@ -56,6 +56,19 @@ class ToolBuild:
             scene,
             with_rotation=False
         )
+        # If building on decal layer, modify plane normal to the one under mouse
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
+
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            if hit_normal is not None:
+                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+                if face_up is not None and face_right is not None:
+                    plane_normal = hit_normal
+                    up_vector = face_up
+                    right_vector = face_right
+
         # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
         up_vector = rotation * up_vector
@@ -131,23 +144,6 @@ class ToolBuild:
 
         # Get the work layer filter, based on layer settings
         work_layer_mask = sprytile_utils.get_work_layer_data(data)
-
-        # If building on decal layer, modify plane normal to the one under mouse
-        if data.work_layer == 'DECAL_1':
-
-            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
-                                                                                   ray_origin,
-                                                                                   ray_vector)
-            if hit_normal is not None:
-                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4)
-                if face_up is not None and face_right is not None:
-                    plane_normal = hit_normal
-                    up_vector = face_up
-                    right_vector = face_right
-
-                    grid_right, grid_up = sprytile_utils.get_grid_right_up(right_vector.copy(), up_vector.copy(),
-                                                                           scene.sprytile_data.world_pixels,
-                                                                           grid.grid[0], grid.grid[1])
 
         # Build mode with join multi
         if do_join:
@@ -242,7 +238,7 @@ class ToolBuild:
         # If building on base layer, get from current virtual grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
         # Building on decal layer, get from face under mouse
-        if data.work_layer == 'DECAL_1':
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
             location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
                                                                                    ray_origin,
                                                                                    ray_vector)
@@ -261,7 +257,7 @@ class ToolBuild:
                 self.modal.clear_preview_data()
                 return
 
-            face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4)
+            face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
             if face_up is not None and face_right is not None:
                 plane_normal = hit_normal
                 up_vector = face_up
