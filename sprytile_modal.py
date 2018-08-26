@@ -334,12 +334,15 @@ class SprytileModalTool(bpy.types.Operator):
         if face.hide:
             do_pass_through = True
 
-        if do_pass_through:
-            shift_vec = ray_direction.normalized() * pass_dist
-            return self.raycast_object(obj, location + shift_vec, ray_direction, work_layer_mask=work_layer_mask)
-
         # Translate location back to world space
         location = matrix * location
+
+        if do_pass_through:
+            # add shift offset if passing through
+            shift_vec = ray_direction.normalized() * pass_dist
+            new_ray_origin = location + shift_vec
+            return self.raycast_object(obj, new_ray_origin, ray_direction, work_layer_mask=work_layer_mask)
+
         if world_normal:
             normal = matrix * normal
         return location, normal, face_index, distance
@@ -440,7 +443,7 @@ class SprytileModalTool(bpy.types.Operator):
         # Didn't hit target layer, and require base layer
         if face_index is None and require_base_layer:
             # Check if there is a base layer underneath
-            base_hit_loc, base_hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
+            base_hit_loc, hit_normal, base_face_index, base_hit_dist = self.raycast_grid_coord(
                     context, grid_coord[0], grid_coord[1],
                     grid_up, grid_right, plane_normal
                 )
@@ -450,7 +453,7 @@ class SprytileModalTool(bpy.types.Operator):
 
         # Calculate where the origin of the grid is
         grid_origin = scene.cursor_location.copy()
-        # If in mesh decal, move origin by offset
+        # If doing mesh decal, offset the grid origin
         if data.work_layer == 'DECAL_1':
             grid_origin += plane_normal * data.mesh_decal_offset
 
@@ -506,7 +509,10 @@ class SprytileModalTool(bpy.types.Operator):
         for check_face in self.bmesh.faces:
             check_face.select = check_face[work_layer_id] == work_layer_value
 
-        bpy.ops.mesh.remove_doubles(use_unselected=False)
+        merge_threshold = 0.00
+        if context.scene.sprytile_data.work_layer != 'BASE':
+            merge_threshold = 0.01
+        bpy.ops.mesh.remove_doubles(threshold=merge_threshold, use_unselected=False)
 
         for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
             el.index_update()
@@ -557,12 +563,13 @@ class SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index, sensitivity=0.1):
+    def get_face_up_vector(self, context, face_index, sensitivity=0.1, bias_right=False):
         """
         Find the edge of the given face that most closely matches view up vector
         :param context:
         :param face_index:
         :param sensitivity:
+        :param bias_right:
         :return:
         """
         # Get the view up vector. The default scene view camera is pointed
@@ -640,7 +647,7 @@ class SprytileModalTool(bpy.types.Operator):
         # print("Closest indices: up", closest_up, "right", closest_right)
         chosen_up = None
 
-        if closest_up is not None:
+        if closest_up is not None and not bias_right:
             if closest_up.dot(view_up_vector) < 0:
                 closest_up *= -1
             chosen_up = closest_up
@@ -751,7 +758,6 @@ class SprytileModalTool(bpy.types.Operator):
             # convert back to world space
             if closest_vtx != -1:
                 scene.cursor_location = matrix * face.verts[closest_vtx].co
-
 
             # If find face tile button pressed, set work plane normal too
             if check_modifier:

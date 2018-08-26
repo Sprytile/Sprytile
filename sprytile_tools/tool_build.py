@@ -1,17 +1,17 @@
 import bpy
 from math import floor, ceil
 from mathutils import Vector, Quaternion
-from mathutils.geometry import intersect_line_plane, distance_point_to_plane
+from mathutils.geometry import distance_point_to_plane
 
 import sprytile_utils
 import sprytile_uv
-from sprytile_tools import tool_paint
 
 
 class ToolBuild:
     modal = None
     left_down = False
     start_coord = None
+    can_build = False
 
     def __init__(self, modal, rx_source):
         self.modal = modal
@@ -56,6 +56,19 @@ class ToolBuild:
             scene,
             with_rotation=False
         )
+        # If building on decal layer, modify plane normal to the one under mouse
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
+
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            if hit_normal is not None:
+                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+                if face_up is not None and face_right is not None:
+                    plane_normal = hit_normal
+                    up_vector = face_up
+                    right_vector = face_right
+
         # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
         up_vector = rotation * up_vector
@@ -214,11 +227,44 @@ class ToolBuild:
         grid_id = obj.sprytile_gridid
         target_grid = sprytile_utils.get_grid(context, grid_id)
 
+        # Reset can build flag
+        self.can_build = False
+
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
+            self.modal.clear_preview_data()
             return
 
+        # If building on base layer, get from current virtual grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
+        # Building on decal layer, get from face under mouse
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            # For decals, if not hitting the object don't draw preview
+            if hit_normal is None:
+                self.modal.clear_preview_data()
+                return
+
+            # Do a coplanar check between hit location and cursor
+            grid_origin = scene.cursor_location.copy()
+            grid_origin += hit_normal * data.mesh_decal_offset
+
+            check_coplanar = distance_point_to_plane(location, grid_origin, hit_normal)
+            check_coplanar = abs(check_coplanar) < 0.05
+            if check_coplanar is False:
+                self.modal.clear_preview_data()
+                return
+
+            face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+            if face_up is not None and face_right is not None:
+                plane_normal = hit_normal
+                up_vector = face_up
+                right_vector = face_right
+            else:
+                self.modal.clear_preview_data()
+                return
 
         rotation = Quaternion(plane_normal, data.mesh_rotate)
 
@@ -233,7 +279,11 @@ class ToolBuild:
         )
 
         if face_position is None:
+            self.modal.clear_preview_data()
             return
+
+        # Passed can build checks, set flag to true
+        self.can_build = True
 
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
                                                                     target_grid.tile_selection[2],
