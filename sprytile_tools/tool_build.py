@@ -1,17 +1,17 @@
 import bpy
-from math import floor
+from math import floor, ceil
 from mathutils import Vector, Quaternion
-from mathutils.geometry import intersect_line_plane, distance_point_to_plane
+from mathutils.geometry import distance_point_to_plane
 
 import sprytile_utils
 import sprytile_uv
-from sprytile_tools import tool_paint
 
 
 class ToolBuild:
     modal = None
     left_down = False
     start_coord = None
+    can_build = False
 
     def __init__(self, modal, rx_source):
         self.modal = modal
@@ -40,6 +40,7 @@ class ToolBuild:
         elif self.left_down:
             self.left_down = False
             self.start_coord = None
+            # self.modal.virtual_cursor.clear()
             bpy.ops.ed.undo_push()
 
         if modal_evt.build_preview:
@@ -55,13 +56,23 @@ class ToolBuild:
             scene,
             with_rotation=False
         )
+        # If building on decal layer, modify plane normal to the one under mouse
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
+
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            if hit_normal is not None:
+                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+                if face_up is not None and face_right is not None:
+                    plane_normal = hit_normal
+                    up_vector = face_up
+                    right_vector = face_right
+
         # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
         up_vector = rotation * up_vector
         right_vector = rotation * right_vector
-
-        # Used to move raycast slightly along ray vector
-        shift_vec = ray_vector.normalized() * 0.001
 
         # raycast grid to get the grid position under the mouse
         grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
@@ -71,19 +82,42 @@ class ToolBuild:
             as_coord=True
         )
 
-        # Record starting position of stroke
+        # Record starting grid position of stroke
         if is_start:
             self.start_coord = grid_coord
-        # Not starting, filter out when can build
+        # Not starting stroke, filter out when can build
         elif self.start_coord is not None:
-            tolerance_min = (floor(grid.tile_selection[2] * 0.25),
-                             floor(grid.tile_selection[3] * 0.25))
-            coord_offset = (
-                (grid_coord[0] - self.start_coord[0]) % grid.tile_selection[2],
-                (grid_coord[1] - self.start_coord[1]) % grid.tile_selection[3]
-            )
-            if coord_offset[0] > 0 or coord_offset[1] > 0:
-                return
+            start_offset = (grid_coord[0] - self.start_coord[0],
+                            grid_coord[1] - self.start_coord[1])
+            coord_mod = (start_offset[0] % grid.tile_selection[2],
+                         start_offset[1] % grid.tile_selection[3])
+            # Isn't at exact position for grid made by tile selection, with start_coord as origin
+            if coord_mod[0] > 0 or coord_mod[1] > 0:
+                # Try to snap grid_coord
+                tolerance_min = (floor(grid.tile_selection[2] * 0.25),
+                                 floor(grid.tile_selection[3] * 0.25))
+                tolerance_max = (grid.tile_selection[2] - tolerance_min[0],
+                                 grid.tile_selection[3] - tolerance_min[1])
+                allow_snap_x = tolerance_min[0] <= coord_mod[0] <= tolerance_max[0]
+                allow_snap_y = tolerance_min[1] <= coord_mod[1] <= tolerance_max[1]
+
+                # If neither x or y can be snapped, return
+                if not allow_snap_x and not allow_snap_y:
+                    return
+
+                coord_frac = [start_offset[0] / grid.tile_selection[2],
+                              start_offset[1] / grid.tile_selection[3]]
+                if coord_mod[0] > (grid.tile_selection[2] / 2.0):
+                    coord_frac[0] = ceil(coord_frac[0])
+                else:
+                    coord_frac[0] = floor(coord_frac[0])
+
+                if coord_mod[1] > (grid.tile_selection[3] / 2.0):
+                    coord_frac[1] = ceil(coord_frac[1])
+                else:
+                    coord_frac[1] = floor(coord_frac[1])
+                grid_coord = (self.start_coord[0] + (coord_frac[0] * grid.tile_selection[2]),
+                              self.start_coord[1] + (coord_frac[1] * grid.tile_selection[3]))
 
         # Get the area to build
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
@@ -98,84 +132,42 @@ class ToolBuild:
         do_join = is_single_pixel
         if do_join is False:
             do_join = grid_no_spacing and data.auto_join
+        
+        # 1x1 tile selections cannot be auto joined
+        tile_area = grid.tile_selection[2] * grid.tile_selection[3]
+        if do_join and tile_area == 1:
+            do_join = False
 
-        # Raycast under mouse
-        hit_loc, hit_normal, hit_face_idx, hit_dist = self.modal.raycast_object(
-            context.object, ray_origin, ray_vector)
+        # Store vertices of constructed faces for cursor flow
+        faces_verts = []
+        require_base_layer = data.work_layer != 'BASE'
 
-        # Hit a face
-        if hit_face_idx is not None:
-            # Determine if face can be painted
-            plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector,
-                                             scene.cursor_location, plane_normal)
-            plane_dist = (plane_hit - ray_origin).magnitude
-            difference = abs(hit_dist - plane_dist)
-            # If valid for painting instead of creating…
-            if difference < 0.01 or hit_dist < plane_dist:
-                if do_join is False:
-                    return
-                check_dot = abs(plane_normal.dot(hit_normal))
-                check_dot -= 1
-                check_coplanar = distance_point_to_plane(hit_loc, scene.cursor_location, plane_normal)
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(data)
 
-                check_coplanar = abs(check_coplanar) < 0.05
-                check_dot = abs(check_dot) < 0.05
-                # Paint if coplanar and dot angle checks out
-                if check_coplanar and check_dot:
-                    face, verts, uvs, target_grid, data, target_img, tile_xy = tool_paint.ToolPaint.process_preview(
-                                                    self.modal, context,
-                                                    scene, hit_face_idx)
-                    sprytile_uv.apply_uvs(context, face, uvs, target_grid,
-                                          self.modal.bmesh, data, target_img,
-                                          tile_xy, origin_xy=tile_xy)
-                # Hit a face, that could have been painted, don't do anything else
-                return
-
-        # Build mode with auto join
+        # Build mode with join multi
         if do_join:
-            origin_coord = scene.cursor_location + \
-                           (grid_coord[0] + coord_min[0]) * grid_right + \
-                           (grid_coord[1] + coord_min[1]) * grid_up
-            self.modal.add_virtual_cursor(origin_coord)
+            origin_coord = ((grid_coord[0] + coord_min[0]),
+                            (grid_coord[1] + coord_min[1]))
 
             size_x = (coord_max[0] - coord_min[0]) + 1
             size_y = (coord_max[1] - coord_min[1]) + 1
 
-            size_x *= grid.grid[0]
-            size_y *= grid.grid[1]
+            tile_origin = (grid.tile_selection[0],
+                           grid.tile_selection[1])
+            tile_coord = (tile_origin[0] + grid.tile_selection[2],
+                          tile_origin[1] + grid.tile_selection[3])
 
-            grid_right *= size_x / grid.grid[0]
-            grid_up *= size_y / grid.grid[1]
-
-            verts = self.modal.get_build_vertices(origin_coord,
-                                                  grid_right, grid_up,
-                                                  up_vector, right_vector)
-            face_index = self.modal.create_face(context, verts)
-            if face_index is None:
-                return
-            vtx_center = Vector((0, 0, 0))
-            for vtx in verts:
-                vtx_center += vtx
-            vtx_center /= len(verts)
-
-            origin_xy = (grid.tile_selection[0],
-                         grid.tile_selection[1])
-
-            target_img = sprytile_utils.get_grid_texture(context.object, grid)
-
-            uvs = sprytile_uv.get_uv_pos_size(data, target_img.size, grid,
-                                              origin_xy, size_x, size_y,
-                                              up_vector, right_vector,
-                                              verts, vtx_center)
-            sprytile_uv.apply_uvs(context, self.modal.bmesh.faces[face_index],
-                                  uvs, grid, self.modal.bmesh,
-                                  data, target_img, origin_xy)
-
-            if data.auto_merge:
-                threshold = (1 / data.world_pixels) * min(2, grid.grid[0], grid.grid[1])
-                face = self.modal.bmesh.faces[face_index]
-                self.modal.merge_doubles(context, face, vtx_center, -plane_normal, threshold)
-        # Build mode without auto join
+            face_index = self.modal.construct_face(context, origin_coord, [size_x, size_y],
+                                                   tile_coord, tile_origin,
+                                                   grid_up, grid_right,
+                                                   up_vector, right_vector, plane_normal,
+                                                   require_base_layer=require_base_layer,
+                                                   work_layer_mask=work_layer_mask)
+            if face_index is not None:
+                face_verts = self.modal.face_to_world_verts(context, face_index)
+                faces_verts.extend(face_verts)
+        # Build mode without auto join, try operation on each build coordinate
         else:
             virtual_cursor = scene.cursor_location + \
                              (grid_coord[0] * grid_right) + \
@@ -189,14 +181,44 @@ class ToolBuild:
                 grid_pos = [grid_coord[0] + grid_offset[0], grid_coord[1] + grid_offset[1]]
                 tile_pos = [tile_xy[0] + tile_offset[0], tile_xy[1] + tile_offset[1]]
 
-                self.modal.construct_face(context, grid_pos,
-                                          tile_pos, tile_xy,
-                                          grid_up, grid_right,
-                                          up_vector, right_vector, plane_normal,
-                                          shift_vec=shift_vec)
+                face_index = self.modal.construct_face(context, grid_pos, [1, 1],
+                                                       tile_pos, tile_xy,
+                                                       grid_up, grid_right,
+                                                       up_vector, right_vector, plane_normal,
+                                                       require_base_layer=require_base_layer,
+                                                       work_layer_mask=work_layer_mask)
+                if face_index is not None:
+                    face_verts = self.modal.face_to_world_verts(context, face_index)
+                    faces_verts.extend(face_verts)
 
-            # if data.cursor_flow and face_index is not None and face_index > -1:
-            #     self.modal.flow_cursor(context, face_index, plane_pos)
+        if plane_pos is not None:
+            self.modal.add_virtual_cursor(plane_pos)
+
+        if data.cursor_flow and data.work_layer == "BASE" and len(faces_verts) > 0:
+            # Find which vertex the cursor should flow to
+            new_cursor_pos = self.modal.flow_cursor_verts(context, faces_verts, plane_pos)
+            if new_cursor_pos is not None:
+                # Not base layer, move position back by offset
+                if data.work_layer != 'BASE':
+                    new_cursor_pos -= plane_normal * data.mesh_decal_offset
+                # Calculate the world position of old start_coord
+                old_start_pos = scene.cursor_location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
+                # find the offset of the old start position from the new cursor position
+                new_start_offset = old_start_pos - new_cursor_pos
+                # get how much the grid x/y vectors need to scale by to normalize
+                scale_right = 1.0 / grid_right.magnitude
+                scale_up = 1.0 / grid_up.magnitude
+                # scale the offset by grid x/y, so can use normalized dot product to
+                # find the grid coordinates the start position is from new cursor pos
+                new_start_coord = Vector((
+                    (new_start_offset * scale_right).dot(grid_right.normalized()),
+                    (new_start_offset * scale_up).dot(grid_up.normalized())
+                ))
+                # Record the new offset starting coord,
+                # for the nice painting snap
+                self.start_coord = new_start_coord
+
+                scene.cursor_location = new_cursor_pos
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
@@ -205,11 +227,44 @@ class ToolBuild:
         grid_id = obj.sprytile_gridid
         target_grid = sprytile_utils.get_grid(context, grid_id)
 
+        # Reset can build flag
+        self.can_build = False
+
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
+            self.modal.clear_preview_data()
             return
 
+        # If building on base layer, get from current virtual grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
+        # Building on decal layer, get from face under mouse
+        if data.work_layer == 'DECAL_1' and data.lock_normal is False:
+            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+                                                                                   ray_origin,
+                                                                                   ray_vector)
+            # For decals, if not hitting the object don't draw preview
+            if hit_normal is None:
+                self.modal.clear_preview_data()
+                return
+
+            # Do a coplanar check between hit location and cursor
+            grid_origin = scene.cursor_location.copy()
+            grid_origin += hit_normal * data.mesh_decal_offset
+
+            check_coplanar = distance_point_to_plane(location, grid_origin, hit_normal)
+            check_coplanar = abs(check_coplanar) < 0.05
+            if check_coplanar is False:
+                self.modal.clear_preview_data()
+                return
+
+            face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+            if face_up is not None and face_right is not None:
+                plane_normal = hit_normal
+                up_vector = face_up
+                right_vector = face_right
+            else:
+                self.modal.clear_preview_data()
+                return
 
         rotation = Quaternion(plane_normal, data.mesh_rotate)
 
@@ -224,7 +279,11 @@ class ToolBuild:
         )
 
         if face_position is None:
+            self.modal.clear_preview_data()
             return
+
+        # Passed can build checks, set flag to true
+        self.can_build = True
 
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
                                                                     target_grid.tile_selection[2],

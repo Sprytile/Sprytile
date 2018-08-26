@@ -207,7 +207,13 @@ class SprytileGui(bpy.types.Operator):
                     cursor_data = 'CROSSHAIR'
                 elif paint_mode == 'FILL':
                     cursor_data = 'SCROLL_XY'
-                if event.alt:
+
+                addon_prefs = context.user_preferences.addons[__package__].preferences
+                if addon_prefs.tile_picker_key == 'Alt' and event.alt:
+                    cursor_data = 'EYEDROPPER'
+                if addon_prefs.tile_picker_key == 'Ctrl' and event.ctrl:
+                    cursor_data = 'EYEDROPPER'
+                if addon_prefs.tile_picker_key == 'Shift' and event.shift:
                     cursor_data = 'EYEDROPPER'
                 context.window.cursor_modal_set(cursor_data)
 
@@ -247,14 +253,38 @@ class SprytileGui(bpy.types.Operator):
             SprytileGui.cursor_grid_pos = grid_pos
 
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and SprytileGui.is_selecting is False:
-                SprytileGui.is_selecting = event.ctrl is False
-                SprytileGui.is_moving = event.ctrl is True
+                addon_prefs = context.user_preferences.addons[__package__].preferences
+                move_mod_pressed = False
+                if addon_prefs.tile_sel_move_key == 'Alt':
+                    move_mod_pressed = event.alt
+                if addon_prefs.tile_sel_move_key == 'Ctrl':
+                    move_mod_pressed = event.ctrl
+                if addon_prefs.tile_sel_move_key == 'Shift':
+                    move_mod_pressed = event.shift
+
+                SprytileGui.is_selecting = move_mod_pressed is False
+                SprytileGui.is_moving = move_mod_pressed is True
                 if SprytileGui.is_selecting or SprytileGui.is_moving:
                     SprytileGui.sel_start = grid_pos
                     SprytileGui.sel_origin = (tilegrid.tile_selection[0], tilegrid.tile_selection[1])
 
             if SprytileGui.is_moving:
                 move_delta = Vector((grid_pos.x - SprytileGui.sel_start.x, grid_pos.y - SprytileGui.sel_start.y))
+                # Restrict movement inside tile grid
+                move_min = (SprytileGui.sel_origin[0] + move_delta.x,
+                            SprytileGui.sel_origin[1] + move_delta.y)
+                if move_min[0] < 0:
+                    move_delta.x -= move_min[0]
+                if move_min[1] < 0:
+                    move_delta.y -= move_min[1]
+
+                move_max = (move_min[0] + tilegrid.tile_selection[2] - 1,
+                            move_min[1] + tilegrid.tile_selection[3] - 1)
+                if move_max[0] > grid_max.x:
+                    move_delta.x -= (move_max[0] - grid_max.x)
+                if move_max[1] > grid_max.y:
+                    move_delta.y -= (move_max[1] - grid_max.y)
+
                 tilegrid.tile_selection[0] = SprytileGui.sel_origin[0] + move_delta.x
                 tilegrid.tile_selection[1] = SprytileGui.sel_origin[1] + move_delta.y
 
@@ -448,9 +478,13 @@ class SprytileGui(bpy.types.Operator):
 
         # Draw box for currently selected tile(s)
         # Pixel grid selection is drawn in draw_tile_select_ui
-        draw_outline = context.scene.sprytile_data.outline_preview
-        if draw_outline and (is_selecting is False and not (is_pixel_grid and curr_sel[2] == 1 or curr_sel[3] == 1)):
-            if SprytileGui.is_moving:
+        sprytile_data = context.scene.sprytile_data
+        is_not_base_layer = sprytile_data.work_layer != "BASE"
+        draw_outline = sprytile_data.outline_preview or is_not_base_layer
+        if draw_outline and is_selecting is False and not is_pixel_grid:
+            if is_not_base_layer:
+                glColor4f(0.98, 0.94, 0.12, 1.0)
+            elif SprytileGui.is_moving:
                 glColor4f(1.0, 0.0, 0.0, 1.0)
             else:
                 glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -523,7 +557,7 @@ class SprytileGui(bpy.types.Operator):
         if display_grid[0] == 1 or display_grid[1] == 1:
             return
 
-        force_draw = sprytile_data.paint_mode == 'FILL'
+        force_draw = sprytile_data.paint_mode == 'FILL' or sprytile_data.lock_normal
         # Decide if should draw, only draw if middle mouse?
         if force_draw is False:
             if sprytile_data.axis_plane_display == 'OFF':
@@ -540,10 +574,11 @@ class SprytileGui(bpy.types.Operator):
         paint_up_vector = paint_up_vector * pixel_unit * display_grid[1]
         paint_right_vector = paint_right_vector * pixel_unit * display_grid[0]
 
-        grid_min, grid_max = sprytile_utils.get_workplane_area(
-                                        sprytile_data.axis_plane_size[0],
-                                        sprytile_data.axis_plane_size[1]
-                                    )
+        plane_size = sprytile_data.axis_plane_size
+        if sprytile_data.paint_mode == "FILL":
+            plane_size = sprytile_data.fill_plane_size
+
+        grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
 
         def draw_world_line(world_start, world_end):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
@@ -561,11 +596,11 @@ class SprytileGui(bpy.types.Operator):
 
         for x in range(grid_min[0] + 1, grid_max[0]):
             draw_start = cursor_loc + (paint_right_vector * x) + (paint_up_vector * grid_min[1])
-            draw_end = draw_start + paint_up_vector * sprytile_data.axis_plane_size[1]
+            draw_end = draw_start + paint_up_vector * plane_size[1]
             draw_world_line(draw_start, draw_end)
         for y in range(grid_min[1] + 1, grid_max[1]):
             draw_start = cursor_loc + (paint_right_vector * grid_min[0]) + (paint_up_vector * y)
-            draw_end = draw_start + paint_right_vector * sprytile_data.axis_plane_size[0]
+            draw_end = draw_start + paint_right_vector * plane_size[0]
             draw_world_line(draw_start, draw_end)
 
         x_offset_min = paint_right_vector * grid_min[0]

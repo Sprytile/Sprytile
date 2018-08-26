@@ -174,6 +174,71 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         get=get_dummy
     )
 
+    work_layer = EnumProperty(
+        items=[
+            ("BASE", "Base", "Base layer", 1),
+            ("DECAL_1", "Decal 1", "Decal layer 1", 2)
+        ],
+        name="Build Layer",
+        description="Layer for creating new faces",
+        default='BASE'
+    )
+
+    def set_layer(self, value):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        current_value = self.get_layer()
+        value = list(value)
+        for idx in range(len(value)):
+            if current_value[idx] and current_value[idx] & value[idx]:
+                value[idx] = False
+
+        for idx in range(len(value)):
+            if value[idx]:
+                self["work_layer"] = (idx + 1)
+                break
+
+    def get_layer(self):
+        keys = self.keys()
+        if "work_layer" not in keys:
+            self["work_layer"] = 1
+
+        out_value = [False, False]
+        index_value_lookup = 1, 2
+        set_idx = index_value_lookup.index(self["work_layer"])
+        out_value[set_idx] = True
+        return out_value
+
+    set_work_layer = BoolVectorProperty(
+        name="Work Layer",
+        description="Layer for creating new faces",
+        size=2,
+        get=get_layer,
+        set=set_layer
+    )
+
+    work_layer_mode = EnumProperty(
+        items=[
+            ("MESH_DECAL", "Mesh Decal", "Create an overlay mesh. More compatible but less performant.", 1),
+            ("UV_DECAL", "UV Layer", "Use UV layers. More performant in engine but requires shader support.", 2)
+        ],
+        name="Mode",
+        description="Method used for layering",
+        default="MESH_DECAL"
+    )
+
+    mesh_decal_offset = FloatProperty(
+        name="Decal Offset",
+        description="Distance to offset mesh decal, to prevent z-fighting",
+        default=0.002,
+        min=0.001,
+        max=0.2,
+        precision=4,
+        subtype='DISTANCE',
+    )
+
     world_pixels = IntProperty(
         name="World Pixel Density",
         description="How many pixels are displayed in one world unit",
@@ -452,6 +517,15 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         subtype='COLOR'
     )
 
+    fill_plane_size = IntVectorProperty(
+        name="Fill Plane Size",
+        description="Size of the Fill Plane",
+        size=2,
+        default=(10, 10),
+        min=1,
+        soft_min=1
+    )
+
 
 class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     mat_id = StringProperty(
@@ -701,6 +775,58 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         max=1
     )
 
+    def set_picker(self, value):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 2
+        if value != self["tile_sel_move_key"]:
+            self["tile_picker_key"] = value
+
+    def get_picker(self):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        return self["tile_picker_key"]
+
+    tile_picker_key = EnumProperty(
+        items=[
+            ("Alt", "Alt", "Press Alt to pick tiles", 1),
+            ("Ctrl", "Ctrl", "Press Ctrl to pick tiles", 2),
+            ("Shift", "Shift", "Press Shift to pick tiles", 3)
+        ],
+        name="Tile Picker Key",
+        description="Key for using the tile picker eyedropper",
+        default='Alt',
+        set=set_picker,
+        get=get_picker
+    )
+
+    def set_sel_move(self, value):
+        if "tile_picker_key" not in self.keys():
+            self["tile_picker_key"] = 1
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 2
+        if value != self["tile_picker_key"]:
+            self["tile_sel_move_key"] = value
+
+    def get_sel_move(self):
+        if "tile_sel_move_key" not in self.keys():
+            self["tile_sel_move_key"] = 1
+        return self["tile_sel_move_key"]
+
+    tile_sel_move_key = EnumProperty(
+        items=[
+            ("Alt", "Alt", "Press Alt to move tile selection", 1),
+            ("Ctrl", "Ctrl", "Press Ctrl to move tile selection", 2),
+            ("Shift", "Shift", "Press Shift to move tile selection", 3)
+        ],
+        name="Tile Selection Move Key",
+        description="Key for moving the tile selection",
+        default='Ctrl',
+        set=set_sel_move,
+        get=get_sel_move
+    )
+
     # addon updater preferences
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
@@ -739,12 +865,17 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
 
         layout.prop(self, "preview_transparency")
 
+        box = layout.box()
+        box.label("Keyboard Shortcuts")
+        box.prop(self, "tile_picker_key")
+        box.prop(self, "tile_sel_move_key")
+
         kc = bpy.context.window_manager.keyconfigs.user
         km = kc.keymaps['Mesh']
         kmi_idx = km.keymap_items.find('sprytile.modal_tool')
         if kmi_idx >= 0:
-            layout.label(text="Tile Mode Shortcut")
-            col = layout.column()
+            box.label(text="Tile Mode Shortcut")
+            col = box.column()
 
             kmi = km.keymap_items[kmi_idx]
             km = km.active()

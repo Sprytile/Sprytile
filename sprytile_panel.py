@@ -148,7 +148,7 @@ class SprytilePanel(bpy.types.Panel):
             layout.prop(sprytile_data, "auto_merge", toggle=True)
             box = layout.box()
             box.prop(sprytile_data, "fill_lock_transform", toggle=True)
-            box.row().prop(sprytile_data, "axis_plane_size")
+            box.row().prop(sprytile_data, "fill_plane_size", text="Fill Plane")
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "lock_normal", toggle=True)

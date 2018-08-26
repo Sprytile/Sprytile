@@ -114,7 +114,10 @@ class ToolPaint:
     def execute(self, context, scene, ray_origin, ray_vector):
         # Raycast the object
         obj = context.object
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(scene.sprytile_data)
+        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector,
+                                                                              work_layer_mask=work_layer_mask)
         if hit_loc is None:
             return
 
@@ -134,8 +137,12 @@ class ToolPaint:
     def build_preview(self, context, scene, ray_origin, ray_vector):
         # Raycast the object
         obj = context.object
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector)
+        # Get the work layer filter, based on layer settings
+        work_layer_mask = sprytile_utils.get_work_layer_data(scene.sprytile_data)
+        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector,
+                                                                              work_layer_mask=work_layer_mask)
         if hit_loc is None:
+            self.modal.clear_preview_data()
             return
 
         face, verts, uvs, target_grid, data, target_img, tile_xy = ToolPaint.process_preview(
@@ -144,7 +151,7 @@ class ToolPaint:
                                                                         scene,
                                                                         face_index)
         if face is None:
-            self.modal.clear_preview(data)
+            self.modal.clear_preview_data()
             return
 
         self.modal.set_preview_data(verts, uvs, is_quads=False)

@@ -146,6 +146,14 @@ def get_grid_pos(position, grid_center, right_vector, up_vector, world_pixels, g
     return grid_pos, right_vector, up_vector
 
 
+def get_grid_right_up(right_vector, up_vector, world_pixels, grid_x, grid_y):
+    x_unit = grid_x / world_pixels
+    y_unit = grid_y / world_pixels
+    right_vector *= x_unit
+    up_vector *= y_unit
+    return right_vector, up_vector
+
+
 def get_workplane_area(width, height):
     offset_ids, offset_grid, coord_min, coord_max = get_grid_area(width, height)
     return [coord_min[0] - 1, coord_min[1] - 1], coord_max
@@ -383,6 +391,33 @@ def from_paint_settings(sprytile_data, paint_settings):
     sprytile_data.paint_edge_snap = (paint_settings & 1 << 6) > 0
     sprytile_data.paint_stretch_x = (paint_settings & 1 << 5) > 0
     sprytile_data.paint_stretch_y = (paint_settings & 1 << 4) > 0
+
+
+def get_work_layer_data(sprytile_data):
+    """
+    Returns the work layer bitmask from the given sprytile data
+    """
+    # Bits 0-4 are reserved for storing layer numbers
+    # Bit 5 = Face is using decal mode
+    # Bit 6 = Face is using UV mode
+
+    # When face is using UV mode, there may be multiple
+    # UV layers, to find which layers it is using,
+    # Mask against bits 0-4
+
+    # This is only for 1 layer decals, figure out multi layer later
+    out_data = 0
+    if sprytile_data.work_layer != 'BASE':
+        out_data += (1 << 0)
+        if sprytile_data.work_layer_mode == 'MESH_DECAL':
+            out_data += (1 << 5)
+        else:
+            out_data += (1 << 6)
+    return out_data
+
+
+def from_work_layer_data(sprytile_data, layer_data):
+    pass
 
 
 def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="    ", scale_y=0.55):
@@ -688,6 +723,8 @@ class SprytileNewMaterial(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = context.object
+        if obj.type != 'MESH':
+            return {'FINISHED'}
 
         mat = bpy.data.materials.new(name="Material")
 
@@ -717,6 +754,8 @@ class SprytileSetupMaterial(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = context.object
+        if obj.type != 'MESH':
+            return {'FINISHED'}
 
         mat = obj.material_slots[obj.active_material_index].material
         mat.use_shadeless = True
@@ -742,6 +781,11 @@ class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
+        if context.object.type != 'MESH':
+            return {'FINISHED'}
+        # Check object material count, if 0 create a new material before loading
+        if len(context.object.material_slots.items()) < 1:
+            bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
         SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
 
@@ -788,6 +832,8 @@ class SprytileNewTileset(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
+        if context.object.type != 'MESH':
+            return {'FINISHED'}
         bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
         SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
@@ -809,6 +855,8 @@ class SprytileSetupTexture(bpy.types.Operator):
     def setup_tex(context):
         """"""
         obj = context.object
+        if obj.type != 'MESH':
+            return
         material = obj.material_slots[obj.active_material_index].material
         target_texture = None
         target_img = None
@@ -1378,17 +1426,22 @@ class SprytileObjectPanel(bpy.types.Panel):
 
         layout.menu("SPRYTILE_object_drop")
 
+        selection_enabled = True
+        if context.object is None:
+            selection_enabled = False
+        elif context.object.type != 'MESH':
+            selection_enabled = False
+
         box = layout.box()
         box.label("Material Setup")
-        box.operator("sprytile.tileset_load")
-        box.operator("sprytile.tileset_new")
+        if selection_enabled:
+            box.operator("sprytile.tileset_load")
+            box.operator("sprytile.tileset_new")
+        else:
+            box.label("Select a mesh object to use Sprytile")
 
         layout.separator()
-        help_text = "Enter edit mode to use Sprytile Paint Tools"
-        if context.object is None:
-            help_text = "Select a mesh object to use Sprytile"
-        elif context.object.type != 'MESH':
-            help_text = "Select a mesh object to use Sprytile"
+        help_text = "Enter edit mode to use Paint Tools"
         label_wrap(layout.column(), help_text)
 
         # layout.separator()
@@ -1423,6 +1476,34 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.make_double_sided")
         layout.separator()
         layout.operator("sprytile.props_teardown")
+
+
+class SprytileLayerPanel(bpy.types.Panel):
+    bl_label = "Layers"
+    bl_idname = "sprytile.panel_layers"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Sprytile"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.object and context.object.type == 'MESH':
+            return context.object.mode == 'EDIT'
+
+    def draw(self, context):
+        if hasattr(context.scene, "sprytile_data") is False:
+            return
+        data = context.scene.sprytile_data
+        layout = self.layout
+        box = layout.box()
+        col = box.column_flow(align=True)
+        col.prop(data, "set_work_layer", index=1, text="Decal Layer", toggle=True, expand=True)
+        col.prop(data, "set_work_layer", index=0, text="Base Layer", toggle=True, expand=True)
+        layout.prop(data, "mesh_decal_offset")
+
+        # layout.prop(data, "work_layer_mode")
+        # if data.work_layer_mode == 'MESH_DECAL':
 
 
 class SprytileWorkflowPanel(bpy.types.Panel):
@@ -1474,9 +1555,9 @@ class SprytileWorkflowPanel(bpy.types.Panel):
         row.label("", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
-        # row = layout.row(align=False)
-        # row.label("", icon="CURSOR")
-        # row.prop(data, "cursor_flow", toggle=True)
+        row = layout.row(align=False)
+        row.label("", icon="CURSOR")
+        row.prop(data, "cursor_flow", toggle=True)
 
         # layout.prop(data, "snap_translate", toggle=True)
 
