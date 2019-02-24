@@ -3,7 +3,7 @@ bl_info = {
     "author": "Jeiel Aranal",
     # Final version number must be two numerals to support x.x.00
     "version": (0, 4, 50),
-    "blender": (2, 7, 7),
+    "blender": (2, 80, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
     "wiki_url": "http://itch.sprytile.xyz",
