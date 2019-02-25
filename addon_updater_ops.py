@@ -55,7 +55,7 @@ updater.addon = "sprytile"
 
 
 # simple popup for prompting checking for update & allow to install if available
-class addon_updater_install_popup(bpy.types.Operator):
+class ADDON_OP_addon_updater_install_popup(bpy.types.Operator):
     """Check and install update if available"""
     bl_label = "Update {x} addon".format(x=updater.addon)
     bl_idname = updater.addon + ".updater_install_popup"
@@ -135,7 +135,7 @@ class addon_updater_install_popup(bpy.types.Operator):
 
 
 # User preference check-now operator
-class addon_updater_check_now(bpy.types.Operator):
+class ADDON_OP_addon_updater_check_now(bpy.types.Operator):
     bl_label = "Check now for " + updater.addon + " update"
     bl_idname = updater.addon + ".updater_check_now"
     bl_description = "Check now for an update to the {x} addon".format(
@@ -170,7 +170,7 @@ class addon_updater_check_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_update_now(bpy.types.Operator):
+class ADDON_OP_addon_updater_update_now(bpy.types.Operator):
     bl_label = "Update " + updater.addon + " addon now"
     bl_idname = updater.addon + ".updater_update_now"
     bl_description = "Update to the latest version of the {x} addon".format(
@@ -225,7 +225,7 @@ class addon_updater_update_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_update_target(bpy.types.Operator):
+class ADDON_OP_addon_updater_update_target(bpy.types.Operator):
     bl_label = updater.addon + " addon version target"
     bl_idname = updater.addon + ".updater_update_target"
     bl_description = "Install a targeted version of the {x} addon".format(
@@ -301,7 +301,7 @@ class addon_updater_update_target(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_install_manually(bpy.types.Operator):
+class ADDON_OP_addon_updater_install_manually(bpy.types.Operator):
     """As a fallback, direct the user to download the addon manually"""
     bl_label = "Install update manually"
     bl_idname = updater.addon + ".updater_install_manually"
@@ -362,7 +362,7 @@ class addon_updater_install_manually(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_updated_successful(bpy.types.Operator):
+class ADDON_OP_addon_updater_updated_successful(bpy.types.Operator):
     """Addon in place, popup telling user it completed or what went wrong"""
     bl_label = "Installation Report"
     bl_idname = updater.addon + ".updater_update_successful"
@@ -430,7 +430,7 @@ class addon_updater_updated_successful(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_restore_backup(bpy.types.Operator):
+class ADDON_OP_addon_updater_restore_backup(bpy.types.Operator):
     """Restore addon from backup"""
     bl_label = "Restore backup"
     bl_idname = updater.addon + ".updater_restore_backup"
@@ -451,7 +451,7 @@ class addon_updater_restore_backup(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_ignore(bpy.types.Operator):
+class ADDON_OP_addon_updater_ignore(bpy.types.Operator):
     """Prevent future update notice popups"""
     bl_label = "Ignore update"
     bl_idname = updater.addon + ".updater_ignore"
@@ -475,7 +475,7 @@ class addon_updater_ignore(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_end_background(bpy.types.Operator):
+class ADDON_OP_addon_updater_end_background(bpy.types.Operator):
     """Stop checking for update in the background"""
     bl_label = "End background check"
     bl_idname = updater.addon + ".end_background_check"

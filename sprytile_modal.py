@@ -36,7 +36,7 @@ class DataObjectDict(dict):
             raise AttributeError("No such attribute: " + name)
 
 
-class SprytileModalTool(bpy.types.Operator):
+class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     """Tile based mesh creation/UV layout tool"""
     bl_idname = "sprytile.modal_tool"
     bl_label = "Sprytile Paint"

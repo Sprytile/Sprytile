@@ -19,7 +19,7 @@ class SprytileGuiData(bpy.types.PropertyGroup):
     is_dirty = BoolProperty(name="Srpytile GUI redraw flag")
 
 
-class SprytileGui(bpy.types.Operator):
+class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     bl_idname = "sprytile.gui_win"
     bl_label = "Sprytile GUI"
 

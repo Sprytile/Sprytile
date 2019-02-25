@@ -706,7 +706,7 @@ class SprytileGridList(bpy.types.PropertyGroup):
     )
 
 
-class SprytilePropsSetup(bpy.types.Operator):
+class PROP_OP_SprytilePropsSetup(bpy.types.Operator):
     bl_idname = "sprytile.props_setup"
     bl_label = "Setup Sprytile data"
 
@@ -733,7 +733,7 @@ class SprytilePropsSetup(bpy.types.Operator):
         )
 
 
-class SprytilePropsTeardown(bpy.types.Operator):
+class PROP_OP_SprytilePropsTeardown(bpy.types.Operator):
     bl_idname = "sprytile.props_teardown"
     bl_label = "Remove Sprytile data"
     bl_description = "WARNING: This will clear all Sprytile data, tile grids will be lost. Continue?"
