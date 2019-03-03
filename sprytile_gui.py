@@ -10,13 +10,13 @@ from . import sprytile_utils, sprytile_modal
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
-    zoom = FloatProperty(
+    zoom : FloatProperty(
         name="Sprytile UI zoom",
         default=1.0
     )
-    use_mouse = BoolProperty(name="GUI use mouse")
-    middle_btn = BoolProperty(name="GUI middle mouse")
-    is_dirty = BoolProperty(name="Srpytile GUI redraw flag")
+    use_mouse : BoolProperty(name="GUI use mouse")
+    middle_btn : BoolProperty(name="GUI middle mouse")
+    is_dirty : BoolProperty(name="Srpytile GUI redraw flag")
 
 
 class VIEW3D_OP_SprytileGui(bpy.types.Operator):
@@ -849,13 +849,19 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glDisable(bgl.GL_TEXTURE_2D)
         bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
+# module classes
+classes = (
+    SprytileGuiData,
+)
 
 def register():
-    bpy.utils.register_module(__name__)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 
 if __name__ == '__main__':

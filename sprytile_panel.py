@@ -52,7 +52,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
     bl_label = "Sprytile Painter"
     bl_idname = "sprytile.panel"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
 
     # Only show panel when selected object is a mesh and in edit mode

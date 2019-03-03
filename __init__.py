@@ -22,23 +22,24 @@ if cmd_subfolder not in sys.path:
 locals_list = locals()
 if "bpy" in locals_list:
     from importlib import reload
-    reload(addon_updater_ops)
+    #reload(addon_updater_ops)
     reload(sprytile_gui)
-    reload(sprytile_modal)
+    #reload(sprytile_modal)
     reload(sprytile_panel)
-    reload(sprytile_utils)
-    reload(sprytile_uv)
-    reload(tool_build)
-    reload(tool_paint)
-    reload(tool_fill)
-    reload(tool_set_normal)
+    #reload(sprytile_utils)
+    #reload(sprytile_uv)
+    #reload(tool_build)
+    #reload(tool_paint)
+    #reload(tool_fill)
+    #reload(tool_set_normal)
 else:
-    from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
-    from sprytile_tools import *
+    from . import sprytile_panel, sprytile_gui
+    #from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
+    #from sprytile_tools import *
 
 import bpy
 import bpy.utils.previews
-from . import addon_updater_ops
+#from . import addon_updater_ops
 from bpy.props import *
 import rna_keymap_ui
 
@@ -924,9 +925,24 @@ def teardown_keymap():
             keymap.keymap_items.remove(keymap_item)
     sprytile_modal.SprytileModalTool.keymaps.clear()
 
+# module classes
+classes = (
+        sprytile_panel.VIEW3D_PT_SprytilePanel,
+        SprytileSceneSettings,
+        SprytileMaterialGridSettings,
+        SprytileMaterialData,
+        SprytileGridList,
+        PROP_OP_SprytilePropsSetup,
+        PROP_OP_SprytilePropsTeardown
+        )
+    
+# submodule
+submodules = (
+    sprytile_gui,
+)
 
 def register():
-    addon_updater_ops.register(bl_info)
+    #addon_updater_ops.register(bl_info)
 
     sprytile_panel.icons = bpy.utils.previews.new()
     dirname = os.path.dirname(__file__)
@@ -944,17 +960,25 @@ def register():
         icon_path = os.path.join(icon_path, icon_paths[i])
         sprytile_panel.icons.load(icon_names[i], icon_path, 'IMAGE')
 
-    bpy.utils.register_class(sprytile_panel.SprytilePanel)
-    bpy.utils.register_module(__name__)
-    SprytilePropsSetup.props_setup()
-    setup_keymap()
+    for cl in classes:
+        bpy.utils.register_class(cl)
+
+    for submod in submodules:
+        submod.register()
+
+    PROP_OP_SprytilePropsSetup.props_setup()
+    #setup_keymap()
 
 
 def unregister():
     teardown_keymap()
     SprytilePropsTeardown.props_teardown()
-    bpy.utils.unregister_class(sprytile_panel.SprytilePanel)
-    bpy.utils.unregister_module(__name__)
+
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
+
+    for submod in submodules:
+        submod.unregister()
 
     bpy.utils.previews.remove(sprytile_panel.icons)
 
