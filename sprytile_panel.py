@@ -39,18 +39,21 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
         else:
             layout.label(text="Invalid Data")
 
+
 class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
-    bl_idname = "SPRYTILE_grid_drop"
+    bl_idname = 'sprytile.grid_drop_down'
     bl_label = "Grid drop down"
+
     def draw(self, context):
         layout = self.layout
         layout.operator("sprytile.tileset_new", icon="PRESET_NEW")
         layout.separator()
         layout.operator("sprytile.validate_grids", icon="GRID")
 
+
 class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
-    bl_label = "Sprytile Painter"
     bl_idname = "sprytile.panel"
+    bl_label = "Sprytile Painter"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Sprytile"
@@ -163,15 +166,12 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
 
         col = row.column(align=True)
         # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.operator
-        col.operator("sprytile.grid_add", icon='ZOOM_IN', text="")
-        col.operator("sprytile.grid_remove", icon='ZOOM_OUT', text="")
-        col.menu("SPRYTILE_grid_drop", icon='DOWNARROW_HLT', text="")
+        col.operator('sprytile.grid_add', icon='ADD', text='')
+        col.operator('sprytile.grid_remove', icon='REMOVE', text='')
+        col.menu('sprytile.grid_drop_down', icon='DOWNARROW_HLT', text='')
         col.separator()
-        # col.operator("sprytile.grid_move", icon='TRIA_UP', text="").direction = -1
-        # col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="").direction = 1
-        # TODO: how do we set "direction" ???
-        col.operator("sprytile.grid_move", icon='TRIA_UP', text="")
-        col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="")
+        col.operator('sprytile.grid_move_up', icon='TRIA_UP', text='')
+        col.operator('sprytile.grid_move_down', icon='TRIA_DOWN', text='')
 
         if len(scene.sprytile_mats) == 0:
             return
@@ -205,7 +205,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         row.label(text="Margins")
 
         col = row.column(align=True)
-        
+
         row_margins = col.row(align=True)
         row_margins.prop(selected_grid, "margin", text="Left", index=3)
         row_margins.prop(selected_grid, "margin", text="Right", index=1)
@@ -224,6 +224,7 @@ classes = (
     VIEW3D_UL_SprytileMaterialGridList,
     VIEW3D_MT_SprytileGridDropDown,
 )
+
 
 def register():
     for cl in classes:

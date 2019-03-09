@@ -682,7 +682,7 @@ class UTIL_OP_SprytileGridMove(bpy.types.Operator):
     bl_label = "Move Grid"
     bl_description = "Move selected tile grid up or down"
 
-    direction = bpy.props.IntProperty(default=1)
+    # direction = bpy.props.IntProperty(default=1)
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -717,6 +717,20 @@ class UTIL_OP_SprytileGridMove(bpy.types.Operator):
         curr_mat.grids.move(old_idx, idx)
         obj.sprytile_gridid = curr_mat.grids[idx].id
         bpy.ops.sprytile.build_grid_list()
+
+
+class UTIL_OP_SprytileGridMoveUp(UTIL_OP_SprytileGridMove):
+    bl_idname = 'sprytile.grid_move_up'
+    bl_label = 'Move Grid Up'
+    bl_description = 'Move selected tile grid up'
+    direction = -1
+
+
+class UTIL_OP_SprytileGridMoveDown(UTIL_OP_SprytileGridMove):
+    bl_idname = 'sprytile.grid_move_down'
+    bl_label = 'Move Grid Down'
+    bl_description = 'Move selected tile grid down'
+    direction = 1
 
 
 class UTIL_OP_SprytileNewMaterial(bpy.types.Operator):
@@ -1402,7 +1416,7 @@ class UTIL_OP_SprytileResetData(bpy.types.Operator):
 
 
 class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
-    bl_idname = "SPRYTILE_object_drop"
+    bl_idname = 'sprytile.object_drop'
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
 
@@ -1444,7 +1458,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
             box.operator("sprytile.props_setup")
             return
 
-        layout.menu("SPRYTILE_object_drop")
+        layout.menu('sprytile.object_drop')
 
         selection_enabled = True
         if context.object is None:
@@ -1480,7 +1494,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
 
 
 class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
-    bl_idname = "SPRYTILE_work_drop"
+    bl_idname = 'sprytile.work_drop'
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
 
@@ -1583,7 +1597,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         # layout.prop(data, "snap_translate", toggle=True)
 
         layout.prop(data, "world_pixels")
-        layout.menu("SPRYTILE_work_drop")
+        layout.menu("sprytile.work_drop")
 
         split = layout.split(factor=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
@@ -1597,7 +1611,8 @@ classes = (
     UTIL_OP_SprytileGridRemove,
     UTIL_OP_SprytileGridCycle,
     UTIL_OP_SprytileStartTool,
-    UTIL_OP_SprytileGridMove,
+    UTIL_OP_SprytileGridMoveUp,
+    UTIL_OP_SprytileGridMoveDown,
     UTIL_OP_SprytileNewMaterial,
     UTIL_OP_SprytileSetupMaterial,
     UTIL_OP_SprytileLoadTileset,
