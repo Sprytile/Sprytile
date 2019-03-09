@@ -92,7 +92,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         scene = context.scene
         if scene.sprytile_data.lock_normal is True:
             return
-        plane_normal, up_vector = SprytileModalTool.calculate_view_axis(context)
+        plane_normal, up_vector = VIEW3D_OP_SprytileModalTool.calculate_view_axis(context)
         if plane_normal is None:
             return
 
@@ -374,14 +374,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         :param is_quads:
         :return:
         """
-        SprytileModalTool.preview_verts = verts
-        SprytileModalTool.preview_uvs = uvs
-        SprytileModalTool.preview_is_quads = is_quads
+        VIEW3D_OP_SprytileModalTool.preview_verts = verts
+        VIEW3D_OP_SprytileModalTool.preview_uvs = uvs
+        VIEW3D_OP_SprytileModalTool.preview_is_quads = is_quads
 
     def clear_preview_data(self):
-        SprytileModalTool.preview_verts = None
-        SprytileModalTool.preview_uvs = None
-        SprytileModalTool.preview_is_quads = True
+        VIEW3D_OP_SprytileModalTool.preview_verts = None
+        VIEW3D_OP_SprytileModalTool.preview_uvs = None
+        VIEW3D_OP_SprytileModalTool.preview_is_quads = True
 
 
     @staticmethod
@@ -791,8 +791,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             self.exit_modal(context)
             return {'CANCELLED'}
 
-        if SprytileModalTool.no_undo and sprytile_data.is_grid_translate is False:
-            SprytileModalTool.no_undo = False
+        if VIEW3D_OP_SprytileModalTool.no_undo and sprytile_data.is_grid_translate is False:
+            VIEW3D_OP_SprytileModalTool.no_undo = False
 
         if event.type == 'TIMER':
             view_axis = self.find_view_axis(context)
@@ -833,7 +833,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # If outside the region, pass through
         if out_of_region:
             # If preview data exists, clear it
-            if SprytileModalTool.preview_verts is not None:
+            if VIEW3D_OP_SprytileModalTool.preview_verts is not None:
                 self.clear_preview_data()
             return {'PASS_THROUGH'}
 
@@ -854,8 +854,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.draw_preview = draw_preview and self.refresh_mesh is False
         # Clear preview data if not drawing preview
         if not self.draw_preview:
-            SprytileModalTool.preview_verts = None
-            SprytileModalTool.preview_uvs = None
+            VIEW3D_OP_SprytileModalTool.preview_verts = None
+            VIEW3D_OP_SprytileModalTool.preview_uvs = None
 
         # Build the data that will be used by tool observers
         region = context.region
@@ -899,14 +899,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 self.cursor_move_layer(context, direction)
                 return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
-        if SprytileModalTool.no_undo:
+        if VIEW3D_OP_SprytileModalTool.no_undo:
             # print("No undo flag is on", event.type, event.value)
             clear_types = {'LEFTMOUSE', 'RIGHTMOUSE'}
             if event.type in clear_types and event.value == 'RELEASE':
                 print("Clearing no undo")
                 self.refresh_mesh = True
-                SprytileModalTool.no_undo = False
-            return {'PASS_THROUGH'} if SprytileModalTool.no_undo else {'RUNNING_MODAL'}
+                VIEW3D_OP_SprytileModalTool.no_undo = False
+            return {'PASS_THROUGH'} if VIEW3D_OP_SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             check_modifier = False
             addon_prefs = context.user_preferences.addons[__package__].preferences
@@ -922,7 +922,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 self.find_face_tile(context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
-            if draw_preview and not SprytileModalTool.no_undo and event.type not in self.is_keyboard_list:
+            if draw_preview and not VIEW3D_OP_SprytileModalTool.no_undo and event.type not in self.is_keyboard_list:
                 self.draw_preview = True
             if context.scene.sprytile_data.is_snapping:
                 self.cursor_snap(context, event)
@@ -950,9 +950,9 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 continue
             # print("Special key is", arg)
             if arg == 'move_sel':
-                SprytileModalTool.preview_uvs = None
-                SprytileModalTool.preview_verts = None
-                SprytileModalTool.no_undo = True
+                VIEW3D_OP_SprytileModalTool.preview_uvs = None
+                VIEW3D_OP_SprytileModalTool.preview_verts = None
+                VIEW3D_OP_SprytileModalTool.no_undo = True
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 return {'RUNNING_MODAL'}
             if arg == 'sel_mesh':
@@ -1035,7 +1035,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             context.space_data.viewport_shade = 'MATERIAL'
 
         self.virtual_cursor = deque([], 3)
-        SprytileModalTool.no_undo = False
+        VIEW3D_OP_SprytileModalTool.no_undo = False
         self.left_down = False
         self.update_bmesh_tree(context)
         self.refresh_mesh = False

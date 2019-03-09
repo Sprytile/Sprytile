@@ -887,7 +887,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         addon_updater_ops.update_settings_ui(self, context)
 
 def setup_keymap():
-    km_array = sprytile_modal.SprytileModalTool.keymaps
+    km_array = sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
 
@@ -907,7 +907,7 @@ def setup_keymap():
         km_items.new_modal('FLIP_X', 'THREE', 'PRESS'),
         km_items.new_modal('FLIP_Y', 'FOUR', 'PRESS')
     ]
-    sprytile_modal.SprytileModalTool.modal_values = [
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.modal_values = [
         'Cancel',
         'Cursor Snap',
         'Cursor Focus',
@@ -919,11 +919,11 @@ def setup_keymap():
 
 
 def teardown_keymap():
-    for keymap in sprytile_modal.SprytileModalTool.keymaps:
+    for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps:
         kmi_list = keymap.keymap_items
         for keymap_item in kmi_list:
             keymap.keymap_items.remove(keymap_item)
-    sprytile_modal.SprytileModalTool.keymaps.clear()
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps.clear()
 
 # module classes
 classes = (
@@ -981,7 +981,7 @@ def register():
 
 def unregister():
     teardown_keymap()
-    SprytilePropsTeardown.props_teardown()
+    PROP_OP_SprytilePropsTeardown.props_teardown()
 
     for cl in classes:
         bpy.utils.unregister_class(cl)
@@ -993,7 +993,8 @@ def unregister():
 
     # Unregister self from sys.path as well
     cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
-    sys.path.remove(cmd_subfolder)
+    if cmd_subfolder in sys.path:
+        sys.path.remove(cmd_subfolder)
 
 
 if __name__ == "__main__":

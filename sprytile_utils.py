@@ -1320,7 +1320,7 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         self.exec_counter = 5
 
         if context.object.mode == 'OBJECT':
-            view_axis = sprytile_modal.SprytileModalTool.find_view_axis(context)
+            view_axis = sprytile_modal.VIEW3D_OP_SprytileModalTool.find_view_axis(context)
             if view_axis is not None:
                 context.scene.sprytile_data.normal_mode = view_axis
 

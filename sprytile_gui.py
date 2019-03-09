@@ -692,16 +692,16 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_preview_tile(context, region, rv3d):
-        if sprytile_modal.SprytileModalTool.no_undo is True:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.no_undo is True:
             return
-        if sprytile_modal.SprytileModalTool.preview_verts is None:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts is None:
             return
-        if sprytile_modal.SprytileModalTool.preview_uvs is None:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs is None:
             return
 
-        uv = sprytile_modal.SprytileModalTool.preview_uvs
-        world_verts = sprytile_modal.SprytileModalTool.preview_verts
-        is_quads = sprytile_modal.SprytileModalTool.preview_is_quads
+        uv = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs
+        world_verts = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts
+        is_quads = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_is_quads
 
         # Turn the world vert positions into screen positions
         screen_verts = []
