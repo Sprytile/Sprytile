@@ -218,12 +218,21 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         layout.prop(selected_grid, "offset")
 
 
+# module classes
+classes = (
+    VIEW3D_PT_SprytilePanel,
+    VIEW3D_UL_SprytileMaterialGridList,
+    VIEW3D_MT_SprytileGridDropDown,
+)
+
 def register():
-    bpy.utils.register_module(__name__)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 if __name__ == '__main__':
     register()

@@ -24,18 +24,18 @@ if "bpy" in locals_list:
     from importlib import reload
     #reload(addon_updater_ops)
     reload(sprytile_gui)
-    #reload(sprytile_modal)
+    reload(sprytile_modal)
     reload(sprytile_panel)
     reload(sprytile_utils)
-    #reload(sprytile_uv)
-    #reload(tool_build)
-    #reload(tool_paint)
-    #reload(tool_fill)
-    #reload(tool_set_normal)
+    reload(sprytile_uv)
+    reload(tool_build)
+    reload(tool_paint)
+    reload(tool_fill)
+    reload(tool_set_normal)
 else:
-    from . import sprytile_panel, sprytile_gui, sprytile_utils
-    #from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
-    #from sprytile_tools import *
+    from . import sprytile_panel, sprytile_gui
+    from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
+    from sprytile_tools import *
 
 import bpy
 import bpy.utils.previews
@@ -927,7 +927,6 @@ def teardown_keymap():
 
 # module classes
 classes = (
-        sprytile_panel.VIEW3D_PT_SprytilePanel,
         SprytileSceneSettings,
         SprytileMaterialGridSettings,
         SprytileMaterialData,
@@ -939,8 +938,15 @@ classes = (
 
 # submodule
 submodules = (
+    sprytile_panel,
     sprytile_gui,
+    sprytile_modal,
     sprytile_utils,
+    sprytile_uv,
+    tool_build,
+    tool_paint,
+    tool_fill,
+    tool_set_normal,
 )
 
 
@@ -970,7 +976,7 @@ def register():
         submod.register()
 
     PROP_OP_SprytilePropsSetup.props_setup()
-    #setup_keymap()
+    setup_keymap()
 
 
 def unregister():

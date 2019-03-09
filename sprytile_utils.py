@@ -1617,18 +1617,17 @@ classes = (
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,
     VIEW3D_PT_SprytileLayerPanel,
-    VIEW3D_PT_SprytileWorkflowPanel,
+    VIEW3D_PT_SprytileWorkflowPanel
 )
 
-
 def register():
-    for c in classes:
-        bpy.utils.register_class(c)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    for c in classes:
-        bpy.utils.unregister_class(c)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 
 if __name__ == '__main__':
