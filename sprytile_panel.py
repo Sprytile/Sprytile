@@ -17,21 +17,23 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
                 layout.label(text="Invalid Data")
                 return
 
-            display_icon = layout.icon(material)
-            texture = sprytile_utils.get_grid_texture(context.object, mat_data.grids[0])
-            if texture is not None:
-                display_icon = layout.icon(texture)
+            # TODO: how do we get icon in Blender 2.80 ???
+            # display_icon = layout.icon(material)
+            # texture = sprytile_utils.get_grid_texture(context.object, mat_data.grids[0])
+            # if texture is not None:
+            #     display_icon = layout.icon(texture)
 
             row = layout.row(align=True)
             if mat_data is not None:
                 show_icon = "TRIA_DOWN" if mat_data.is_expanded else "TRIA_RIGHT"
                 row.prop(mat_data, "is_expanded", text="", icon=show_icon, emboss=False)
-            row.prop(item, "mat_name", text="", emboss=False, icon_value=display_icon)
+            # row.prop(item, "mat_name", text="", emboss=False, icon_value=display_icon)
+            row.prop(item, "mat_name", text="", emboss=False)
 
         elif item.grid_id != "":
             grid = sprytile_utils.get_grid(context, item.grid_id)
             if grid is not None:
-                split = layout.split(0.65, align=True)
+                split = layout.split(factor=0.65, align=True)
                 split.prop(grid, "name", text="")
                 split.label(text="%dx%d" % (grid.grid[0], grid.grid[1]))
             else:
@@ -160,7 +162,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         layout.separator()
 
         row = layout.row()
-        row.template_list("SprytileMaterialGridList", "",
+        row.template_list("VIEW3D_UL_SprytileMaterialGridList", "",
                           scene.sprytile_list, "display",
                           scene.sprytile_list, "idx", rows=4)
 
