@@ -820,6 +820,7 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
             target_mat.node_tree.nodes.new('ShaderNodeTexImage'))
 
         target_texture.image = loaded_img
+        target_texture.location = 300, 0
 
         # target_slot.texture = target_texture
 

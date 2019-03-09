@@ -184,7 +184,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
 
         row = layout.row()
         row.prop(sprytile_data, "show_overlay", text="", icon='GRID')
-        row.prop(sprytile_data, "outline_preview", text="", icon="BORDER_RECT")
+        row.prop(sprytile_data, "outline_preview", text="", icon="BORDERMOVE")
 
         show_icon = "TRIA_DOWN" if sprytile_data.show_extra else "TRIA_RIGHT"
         row.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)

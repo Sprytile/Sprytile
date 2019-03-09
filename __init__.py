@@ -651,8 +651,8 @@ class SprytileMaterialData(bpy.types.PropertyGroup):
 
 
 class SprytileGridDisplay(bpy.types.PropertyGroup):
-    mat_id : StringProperty(default="")
-    grid_id : IntProperty(default=-1)
+    mat_id: bpy.props.StringProperty(default="")
+    grid_id: bpy.props.IntProperty(default=-1)
 
     def get_mat_name(self):
         if self.mat_id == "":
@@ -671,14 +671,13 @@ class SprytileGridDisplay(bpy.types.PropertyGroup):
         bpy.data.materials[self.mat_id].name = value
         bpy.ops.sprytile.validate_grids()
 
-    mat_name : StringProperty(
+    mat_name: bpy.props.StringProperty(
         get=get_mat_name,
         set=set_mat_name
     )
 
 
 class SprytileGridList(bpy.types.PropertyGroup):
-
     def get_idx(self):
         if "idx" not in self.keys():
             self["idx"] = 0
@@ -699,8 +698,8 @@ class SprytileGridList(bpy.types.PropertyGroup):
         if target_entry.grid_id != -1:
             bpy.context.object.sprytile_gridid = target_entry.grid_id
 
-    display : bpy.props.CollectionProperty(type=SprytileGridDisplay)
-    idx : IntProperty(
+    display: bpy.props.CollectionProperty(type=SprytileGridDisplay)
+    idx: bpy.props.IntProperty(
         default=0,
         get=get_idx,
         set=set_idx
@@ -925,15 +924,18 @@ def teardown_keymap():
             keymap.keymap_items.remove(keymap_item)
     sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps.clear()
 
+
 # module classes
 classes = (
         SprytileSceneSettings,
         SprytileMaterialGridSettings,
         SprytileMaterialData,
+        SprytileGridDisplay,
         SprytileGridList,
         PROP_OP_SprytilePropsSetup,
-        PROP_OP_SprytilePropsTeardown
-        )
+        PROP_OP_SprytilePropsTeardown,
+        SprytileAddonPreferences,
+)
 
 
 # submodule
