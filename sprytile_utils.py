@@ -279,7 +279,8 @@ def get_grid_texture(obj, sprytile_grid):
     if not texture:
         return
 
-    target_img = texture.image.name
+    # target_img = texture.image.name
+    target_img = bpy.data.images.get(texture.image.name)
 
     return target_img
 
@@ -622,7 +623,7 @@ class UTIL_OP_SprytileGridCycle(bpy.types.Operator):
     bl_idname = "sprytile.grid_cycle"
     bl_label = "Cycle grid settings"
 
-    direction = bpy.props.IntProperty(default=1)
+    direction: bpy.props.IntProperty(default=1)
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -661,7 +662,7 @@ class UTIL_OP_SprytileStartTool(bpy.types.Operator):
     bl_idname = "sprytile.start_tool"
     bl_label = "Start Sprytile Paint"
 
-    mode = bpy.props.IntProperty(default=3)
+    mode: bpy.props.IntProperty(default=3)
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -797,7 +798,7 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
     # reordered the list to prioritize common file types
     # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
 
-    filter_glob = StringProperty(
+    filter_glob: bpy.props.StringProperty(
         default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
         options={'HIDDEN'},
     )
@@ -860,7 +861,7 @@ class UTIL_OP_SprytileNewTileset(bpy.types.Operator, ImportHelper):
     # reordered the list to prioritize common file types
     # filter_ext = "*" + ";*".join(bpy.path.extensions_image.sort())
 
-    filter_glob = StringProperty(
+    filter_glob: bpy.props.StringProperty(
         default="*.bmp;*.psd;*.hdr;*.rgba;*.jpg;*.png;*.tiff;*.tga;*.jpeg;*.jp2;*.rgb;*.dds;*.exr;*.psb;*.j2c;*.dpx;*.tif;*.tx;*.cin;*.pdd;*.sgi",
         options={'HIDDEN'},
     )
@@ -925,7 +926,7 @@ class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
         # target_texture.use_mipmap = False
         # target_texture.filter_type = 'BOX'
         # target_texture.filter_size = 0.10
-        # target_img.use_alpha = True
+        target_img.use_alpha = True
 
         # TODO: Blender 2.80 options ???
         # target_slot.use_map_color_diffuse = True

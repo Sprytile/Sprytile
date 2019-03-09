@@ -33,7 +33,6 @@ if "bpy" in locals_list:
     reload(tool_fill)
     reload(tool_set_normal)
 else:
-    from . import sprytile_panel, sprytile_gui
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
     from sprytile_tools import *
 
@@ -471,7 +470,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             self["auto_reload"] = False
         return self["auto_reload"]
 
-    auto_reload = BoolProperty(
+    auto_reload: bpy.props.BoolProperty(
         name="Auto",
         description="Automatically reload images every few seconds",
         default=False,
@@ -768,7 +767,7 @@ class PROP_OP_SprytilePropsTeardown(bpy.types.Operator):
 class SprytileAddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
-    preview_transparency = bpy.props.FloatProperty(
+    preview_transparency: bpy.props.FloatProperty(
         name="Preview Alpha",
         description="Transparency level of build preview cursor",
         default=0.8,
@@ -789,7 +788,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             self["tile_picker_key"] = 1
         return self["tile_picker_key"]
 
-    tile_picker_key = EnumProperty(
+    tile_picker_key: bpy.props.EnumProperty(
         items=[
             ("Alt", "Alt", "Press Alt to pick tiles", 1),
             ("Ctrl", "Ctrl", "Press Ctrl to pick tiles", 2),
@@ -815,7 +814,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             self["tile_sel_move_key"] = 1
         return self["tile_sel_move_key"]
 
-    tile_sel_move_key = EnumProperty(
+    tile_sel_move_key: bpy.props.EnumProperty(
         items=[
             ("Alt", "Alt", "Press Alt to move tile selection", 1),
             ("Ctrl", "Ctrl", "Press Ctrl to move tile selection", 2),
@@ -829,31 +828,31 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     )
 
     # addon updater preferences
-    auto_check_update = bpy.props.BoolProperty(
+    auto_check_update: bpy.props.BoolProperty(
         name="Auto-check for Update",
         description="If enabled, auto-check for updates using an interval",
         default=False,
     )
-    updater_intrval_months = bpy.props.IntProperty(
+    updater_intrval_months: bpy.props.IntProperty(
         name='Months',
         description="Number of months between checking for updates",
         default=0,
         min=0
     )
-    updater_intrval_days = bpy.props.IntProperty(
+    updater_intrval_days: bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
         default=7,
         min=0,
     )
-    updater_intrval_hours = bpy.props.IntProperty(
+    updater_intrval_hours: bpy.props.IntProperty(
         name='Hours',
         description="Number of hours between checking for updates",
         default=0,
         min=0,
         max=23
     )
-    updater_intrval_minutes = bpy.props.IntProperty(
+    updater_intrval_minutes: bpy.props.IntProperty(
         name='Minutes',
         description="Number of minutes between checking for updates",
         default=0,

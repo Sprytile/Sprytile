@@ -86,6 +86,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
             row.alignment = 'CENTER'
             row.scale_y = 1.3
             row.scale_x = 10
+
             row.prop(sprytile_data, "set_paint_mode", index=2, text="",
                      toggle=True, icon_value=icon_normal, expand=True, icon_only=True)
             row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill",
@@ -94,6 +95,9 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
                      toggle=True, icon_value=icon_paint, expand=True, icon_only=True)
             row.prop(sprytile_data, "set_paint_mode", index=1, text="Build",
                      toggle=True, icon_value=icon_build, expand=True, icon_only=True)
+
+            # row.prop(sprytile_data, 'paint_mode', expand=True)
+
         else:
             row = layout.row(align=True)
 
@@ -110,6 +114,9 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
                 row = col.row(align=True)
                 row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
                 row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
+
+            # row.prop(sprytile_data, 'paint_mode', expand=True)
+
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "uv_flip_x", toggle=True)
