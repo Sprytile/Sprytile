@@ -849,19 +849,21 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glDisable(bgl.GL_TEXTURE_2D)
         bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
+
 # module classes
 classes = (
     SprytileGuiData,
 )
 
+
 def register():
-    for cl in classes:
-        bpy.utils.register_class(cl)
+    for c in classes:
+        bpy.utils.register_class(c)
 
 
 def unregister():
-    for cl in classes:
-        bpy.utils.unregister_class(cl)
+    for c in classes:
+        bpy.utils.unregister_class(c)
 
 
 if __name__ == '__main__':

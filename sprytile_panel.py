@@ -122,7 +122,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
 
         if sprytile_data.paint_mode == 'PAINT':
             row = layout.row(align=False)
-            split = row.split(percentage=0.65)
+            split = row.split(factor=0.65)
 
             left_col = split.column(align=True)
             left_col.prop(sprytile_data, "paint_uv_snap", text="Pixel Snap")
@@ -162,12 +162,16 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
                           scene.sprytile_list, "idx", rows=4)
 
         col = row.column(align=True)
-        col.operator("sprytile.grid_add", icon='ZOOMIN', text="")
-        col.operator("sprytile.grid_remove", icon='ZOOMOUT', text="")
+        # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.operator
+        col.operator("sprytile.grid_add", icon='ZOOM_IN', text="")
+        col.operator("sprytile.grid_remove", icon='ZOOM_OUT', text="")
         col.menu("SPRYTILE_grid_drop", icon='DOWNARROW_HLT', text="")
         col.separator()
-        col.operator("sprytile.grid_move", icon='TRIA_UP', text="").direction = -1
-        col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="").direction = 1
+        # col.operator("sprytile.grid_move", icon='TRIA_UP', text="").direction = -1
+        # col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="").direction = 1
+        # TODO: how do we set "direction" ???
+        col.operator("sprytile.grid_move", icon='TRIA_UP', text="")
+        col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="")
 
         if len(scene.sprytile_mats) == 0:
             return
@@ -188,7 +192,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         if not sprytile_data.show_extra:
             return
 
-        split = layout.split(percentage=0.3, align=True)
+        split = layout.split(factor=0.3, align=True)
         split.prop(selected_grid, "auto_pad", toggle=True)
 
         pad_row = split.row(align=True)

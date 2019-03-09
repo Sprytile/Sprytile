@@ -26,14 +26,14 @@ if "bpy" in locals_list:
     reload(sprytile_gui)
     #reload(sprytile_modal)
     reload(sprytile_panel)
-    #reload(sprytile_utils)
+    reload(sprytile_utils)
     #reload(sprytile_uv)
     #reload(tool_build)
     #reload(tool_paint)
     #reload(tool_fill)
     #reload(tool_set_normal)
 else:
-    from . import sprytile_panel, sprytile_gui
+    from . import sprytile_panel, sprytile_gui, sprytile_utils
     #from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
     #from sprytile_tools import *
 
@@ -935,11 +935,14 @@ classes = (
         PROP_OP_SprytilePropsSetup,
         PROP_OP_SprytilePropsTeardown
         )
-    
+
+
 # submodule
 submodules = (
     sprytile_gui,
+    sprytile_utils,
 )
+
 
 def register():
     #addon_updater_ops.register(bl_info)

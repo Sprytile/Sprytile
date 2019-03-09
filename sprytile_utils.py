@@ -466,7 +466,7 @@ def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="   
         line = text[0:last_space]
         if tabbing:
             line = tab_str + line
-        col.label(line)
+        col.label(text=line)
         if n_line:
             tabbing = False
         text = text[last_space + 1:len(text)]
@@ -786,7 +786,7 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
         # Check object material count, if 0 create a new material before loading
         if len(context.object.material_slots.items()) < 1:
             bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
-        SprytileLoadTileset.load_tileset_file(context, self.filepath)
+        UTIL_OP_SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
 
     @staticmethod
@@ -835,7 +835,7 @@ class UTIL_OP_SprytileNewTileset(bpy.types.Operator, ImportHelper):
         if context.object.type != 'MESH':
             return {'FINISHED'}
         bpy.ops.sprytile.add_new_material('INVOKE_DEFAULT')
-        SprytileLoadTileset.load_tileset_file(context, self.filepath)
+        UTIL_OP_SprytileLoadTileset.load_tileset_file(context, self.filepath)
         return {'FINISHED'}
 
 
@@ -1401,7 +1401,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
     bl_label = "Sprytile Tools"
     bl_idname = "sprytile.panel_object"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
 
     @classmethod
@@ -1420,7 +1420,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
 
         if hasattr(context.scene, "sprytile_data") is False:
             box = layout.box()
-            box.label("Sprytile Data Empty")
+            box.label(text="Sprytile Data Empty")
             box.operator("sprytile.props_setup")
             return
 
@@ -1433,12 +1433,12 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
             selection_enabled = False
 
         box = layout.box()
-        box.label("Material Setup")
+        box.label(text="Material Setup")
         if selection_enabled:
             box.operator("sprytile.tileset_load")
             box.operator("sprytile.tileset_new")
         else:
-            box.label("Select a mesh object to use Sprytile")
+            box.label(text="Select a mesh object to use Sprytile")
 
         layout.separator()
         help_text = "Enter edit mode to use Paint Tools"
@@ -1446,13 +1446,13 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
 
         # layout.separator()
         # box = layout.box()
-        # box.label("Pixel Translate Options")
+        # box.label(text="Pixel Translate Options")
         # box.prop(context.scene.sprytile_data, "snap_translate", toggle=True)
 
         layout.separator()
         box = layout.box()
-        box.label("Image Utilities")
-        split = box.split(percentage=0.3, align=True)
+        box.label(text="Image Utilities")
+        split = box.split(factor=0.3, align=True)
         split.prop(context.scene.sprytile_data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
 
@@ -1482,7 +1482,7 @@ class VIEW3D_PT_SprytileLayerPanel(bpy.types.Panel):
     bl_label = "Layers"
     bl_idname = "sprytile.panel_layers"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -1510,7 +1510,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
 
     @classmethod
@@ -1525,7 +1525,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
 
         if hasattr(context.scene, "sprytile_data") is False:
             box = layout.box()
-            box.label("Sprytile Data Empty")
+            box.label(text="Sprytile Data Empty")
             box.operator("sprytile.props_setup")
             return
 
@@ -1537,7 +1537,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
             icon_id = "GRID"
 
         row = layout.row(align=False)
-        row.label("", icon=icon_id)
+        row.label(text="", icon=icon_id)
 
         dropdown_icon = "TRIA_DOWN" if data.axis_plane_settings else "TRIA_RIGHT"
 
@@ -1552,11 +1552,12 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
             layout.prop(data, "axis_plane_size")
 
         row = layout.row(align=False)
-        row.label("", icon="SNAP_ON")
+        row.label(text="", icon="SNAP_ON")
         row.prop(data, "cursor_snap", expand=True)
 
         row = layout.row(align=False)
-        row.label("", icon="CURSOR")
+        # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.label
+        row.label(text="", icon="PIVOT_CURSOR")
         row.prop(data, "cursor_flow", toggle=True)
 
         # layout.prop(data, "snap_translate", toggle=True)
@@ -1564,18 +1565,51 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         layout.prop(data, "world_pixels")
         layout.menu("SPRYTILE_work_drop")
 
-        split = layout.split(percentage=0.3, align=True)
+        split = layout.split(factor=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
 
 
+# module classes
+classes = (
+    UTIL_OP_SprytileAxisUpdate,
+    UTIL_OP_SprytileGridAdd,
+    UTIL_OP_SprytileGridRemove,
+    UTIL_OP_SprytileGridCycle,
+    UTIL_OP_SprytileStartTool,
+    UTIL_OP_SprytileGridMove,
+    UTIL_OP_SprytileNewMaterial,
+    UTIL_OP_SprytileSetupMaterial,
+    UTIL_OP_SprytileLoadTileset,
+    UTIL_OP_SprytileNewTileset,
+    UTIL_OP_SprytileSetupTexture,
+    UTIL_OP_SprytileValidateGridList,
+    UTIL_OP_SprytileBuildGridList,
+    UTIL_OP_SprytileRotateLeft,
+    UTIL_OP_SprytileRotateRight,
+    UTIL_OP_SprytileReloadImages,
+    UTIL_OP_SprytileReloadImagesAuto,
+    UTIL_OP_SprytileUpdateCheck,
+    UTIL_OP_SprytileMakeDoubleSided,
+    UTIL_OP_SprytileSetupGrid,
+    UTIL_OP_SprytileGridTranslate,
+    UTIL_OP_SprytileResetData,
+    VIEW3D_MT_SprytileObjectDropDown,
+    VIEW3D_PT_SprytileObjectPanel,
+    VIEW3D_MT_SprytileWorkDropDown,
+    VIEW3D_PT_SprytileLayerPanel,
+    VIEW3D_PT_SprytileWorkflowPanel,
+)
+
 
 def register():
-    bpy.utils.register_module(__name__)
+    for c in classes:
+        bpy.utils.register_class(c)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for c in classes:
+        bpy.utils.unregister_class(c)
 
 
 if __name__ == '__main__':
