@@ -260,20 +260,27 @@ def get_grid_texture(obj, sprytile_grid):
     if material is None:
         return None
     target_img = None
-    for texture_slot in material.texture_slots:
-        if texture_slot is None:
-            continue
-        if texture_slot.texture is None:
-            continue
-        if texture_slot.texture.type == 'NONE':
-            continue
-        if texture_slot.texture.image is None:
-            continue
-        if texture_slot.texture.type == 'IMAGE':
-            # Cannot use the texture slot image reference directly
-            # Have to get it through bpy.data.images to be able to use with BGL
-            target_img = bpy.data.images.get(texture_slot.texture.image.name)
-            break
+    # for texture_slot in material.texture_slots:
+    #     if texture_slot is None:
+    #         continue
+    #     if texture_slot.texture is None:
+    #         continue
+    #     if texture_slot.texture.type == 'NONE':
+    #         continue
+    #     if texture_slot.texture.image is None:
+    #         continue
+    #     if texture_slot.texture.type == 'IMAGE':
+    #         # Cannot use the texture slot image reference directly
+    #         # Have to get it through bpy.data.images to be able to use with BGL
+    #         target_img = bpy.data.images.get(texture_slot.texture.image.name)
+    #         break
+
+    texture = material.node_tree.nodes.get('Image Texture')
+    if not texture:
+        return
+
+    target_img = texture.image.name
+
     return target_img
 
 
@@ -758,15 +765,16 @@ class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
             return {'FINISHED'}
 
         mat = obj.material_slots[obj.active_material_index].material
-        mat.use_shadeless = True
-        mat.use_transparency = True
-        mat.transparency_method = 'Z_TRANSPARENCY'
-        mat.alpha = 0.0
+        # TODO: we don't have them in Blender 2.80, but it's not a big deal
+        # mat.use_shadeless = True
+        # mat.use_transparency = True
+        # mat.transparency_method = 'Z_TRANSPARENCY'
+        # mat.alpha = 0.0
+        mat.use_nodes = True
         return {'FINISHED'}
 
 
 class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
-
     bl_idname = "sprytile.tileset_load"
     bl_label = "Load Tileset"
     bl_description = "Load a tileset into the current material"
@@ -801,15 +809,19 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
         target_mat = obj.material_slots[obj.active_material_index].material
         target_mat.name = material_name
 
-        target_mat.texture_slots.clear(0)
-        target_slot = target_mat.texture_slots.create(0)
+        # target_mat.texture_slots.clear(0)
+        # target_slot = target_mat.texture_slots.create(0)
 
         loaded_img = bpy.data.images.load(filepath)
 
-        target_texture = bpy.data.textures.new(texture_name, type='IMAGE')
+        # target_texture = bpy.data.textures.new(texture_name, type='IMAGE')
+        target_texture = (
+            target_mat.node_tree.nodes.get('Image Texture') or
+            target_mat.node_tree.nodes.new('ShaderNodeTexImage'))
+
         target_texture.image = loaded_img
 
-        target_slot.texture = target_texture
+        # target_slot.texture = target_texture
 
         bpy.ops.sprytile.texture_setup('INVOKE_DEFAULT')
         bpy.ops.sprytile.validate_grids('INVOKE_DEFAULT')
@@ -817,7 +829,6 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
 
 
 class UTIL_OP_SprytileNewTileset(bpy.types.Operator, ImportHelper):
-
     bl_idname = "sprytile.tileset_new"
     bl_label = "Add Tileset"
     bl_description = "Create a new material and load another tileset"
@@ -861,36 +872,44 @@ class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
         target_texture = None
         target_img = None
         target_slot = None
-        for texture_slot in material.texture_slots:
-            if texture_slot is None:
-                continue
-            if texture_slot.texture is None:
-                continue
-            if texture_slot.texture.type == 'NONE':
-                continue
-            if texture_slot.texture.type == 'IMAGE':
-                # Cannot use the texture slot image reference directly
-                # Have to get it through bpy.data.images to be able to use with BGL
-                target_texture = bpy.data.textures.get(texture_slot.texture.name)
-                target_img = bpy.data.images.get(texture_slot.texture.image.name)
-                target_slot = texture_slot
-                break
-        if target_texture is None or target_img is None:
+        # for texture_slot in material.texture_slots:
+        #     if texture_slot is None:
+        #         continue
+        #     if texture_slot.texture is None:
+        #         continue
+        #     if texture_slot.texture.type == 'NONE':
+        #         continue
+        #     if texture_slot.texture.type == 'IMAGE':
+        #         # Cannot use the texture slot image reference directly
+        #         # Have to get it through bpy.data.images to be able to use with BGL
+        #         target_texture = bpy.data.textures.get(texture_slot.texture.name)
+        #         target_img = bpy.data.images.get(texture_slot.texture.image.name)
+        #         target_slot = texture_slot
+        #         break
+        # if target_texture is None or target_img is None:
+        #     return
+
+        target_texture = material.node_tree.nodes.get('Image Texture')
+        if not target_texture:
             return
 
-        target_texture.use_preview_alpha = True
-        target_texture.use_alpha = True
-        target_texture.use_interpolation = False
-        target_texture.use_mipmap = False
-        target_texture.filter_type = 'BOX'
-        target_texture.filter_size = 0.10
-        target_img.use_alpha = True
+        target_img = bpy.data.images.get(target_texture.image.name)
 
-        target_slot.use_map_color_diffuse = True
-        target_slot.use_map_alpha = True
-        target_slot.alpha_factor = 1.0
-        target_slot.diffuse_color_factor = 1.0
-        target_slot.texture_coords = 'UV'
+        # TODO: Blender 2.80 options ???
+        # target_texture.use_preview_alpha = True
+        # target_texture.use_alpha = True
+        # target_texture.use_interpolation = False
+        # target_texture.use_mipmap = False
+        # target_texture.filter_type = 'BOX'
+        # target_texture.filter_size = 0.10
+        # target_img.use_alpha = True
+
+        # TODO: Blender 2.80 options ???
+        # target_slot.use_map_color_diffuse = True
+        # target_slot.use_map_alpha = True
+        # target_slot.alpha_factor = 1.0
+        # target_slot.diffuse_color_factor = 1.0
+        # target_slot.texture_coords = 'UV'
 
 
 class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
