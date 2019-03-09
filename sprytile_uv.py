@@ -361,11 +361,11 @@ def apply_uvs(context, face, uv_verts, target_grid,
 
 
 def register():
-    bpy.utils.register_module(__name__)
+    pass
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    pass
 
 
 if __name__ == '__main__':

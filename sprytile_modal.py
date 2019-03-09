@@ -1134,12 +1134,19 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             bmesh.update_edit_mesh(context.object.data, True, True)
 
 
+# module classes
+classes = (
+    VIEW3D_OP_SprytileModalTool,
+)
+
 def register():
-    bpy.utils.register_module(__name__)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 
 if __name__ == '__main__':

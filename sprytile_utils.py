@@ -1569,13 +1569,45 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         split.operator("sprytile.reload_imgs")
 
 
+# module classes
+classes = (
+    UTIL_OP_SprytileAxisUpdate,
+    UTIL_OP_SprytileGridAdd,
+    UTIL_OP_SprytileGridRemove,
+    UTIL_OP_SprytileGridCycle,
+    UTIL_OP_SprytileStartTool,
+    UTIL_OP_SprytileGridMove,
+    UTIL_OP_SprytileNewMaterial,
+    UTIL_OP_SprytileSetupMaterial,
+    UTIL_OP_SprytileLoadTileset,
+    UTIL_OP_SprytileNewTileset,
+    UTIL_OP_SprytileSetupTexture,
+    UTIL_OP_SprytileValidateGridList,
+    UTIL_OP_SprytileBuildGridList,
+    UTIL_OP_SprytileRotateLeft,
+    UTIL_OP_SprytileRotateRight,
+    UTIL_OP_SprytileReloadImages,
+    UTIL_OP_SprytileReloadImagesAuto,
+    UTIL_OP_SprytileUpdateCheck,
+    UTIL_OP_SprytileMakeDoubleSided,
+    UTIL_OP_SprytileSetupGrid,
+    UTIL_OP_SprytileGridTranslate,
+    UTIL_OP_SprytileResetData,
+    VIEW3D_MT_SprytileObjectDropDown,
+    VIEW3D_PT_SprytileObjectPanel,
+    VIEW3D_MT_SprytileWorkDropDown,
+    VIEW3D_PT_SprytileLayerPanel,
+    VIEW3D_PT_SprytileWorkflowPanel
+)
 
 def register():
-    bpy.utils.register_module(__name__)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 
 if __name__ == '__main__':
