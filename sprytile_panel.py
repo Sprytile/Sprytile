@@ -5,7 +5,7 @@ from bpy.types import Panel, UIList
 icons = None
 
 
-class SprytileMaterialGridList(bpy.types.UIList):
+class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
@@ -39,7 +39,7 @@ class SprytileMaterialGridList(bpy.types.UIList):
         else:
             layout.label("Invalid Data")
 
-class SprytileGridDropDown(bpy.types.Menu):
+class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_grid_drop"
     bl_label = "Grid drop down"
     def draw(self, context):
@@ -48,11 +48,11 @@ class SprytileGridDropDown(bpy.types.Menu):
         layout.separator()
         layout.operator("sprytile.validate_grids", icon="GRID")
 
-class SprytilePanel(bpy.types.Panel):
+class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
     bl_label = "Sprytile Painter"
     bl_idname = "sprytile.panel"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
 
     # Only show panel when selected object is a mesh and in edit mode

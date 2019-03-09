@@ -472,7 +472,7 @@ def label_wrap(col, text, area="VIEW_3D", region_type="TOOL_PROPS", tab_str="   
         text = text[last_space + 1:len(text)]
 
 
-class SprytileAxisUpdate(bpy.types.Operator):
+class UTIL_OP_SprytileAxisUpdate(bpy.types.Operator):
     bl_idname = "sprytile.axis_update"
     bl_label = "Update Sprytile Axis"
 
@@ -518,7 +518,7 @@ class SprytileAxisUpdate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileGridAdd(bpy.types.Operator):
+class UTIL_OP_SprytileGridAdd(bpy.types.Operator):
     bl_idname = "sprytile.grid_add"
     bl_label = "Add New Grid"
     bl_description = "Add new tile grid"
@@ -569,7 +569,7 @@ class SprytileGridAdd(bpy.types.Operator):
         bpy.ops.sprytile.build_grid_list()
 
 
-class SprytileGridRemove(bpy.types.Operator):
+class UTIL_OP_SprytileGridRemove(bpy.types.Operator):
     bl_idname = "sprytile.grid_remove"
     bl_label = "Remove Grid"
     bl_description = "Remove selected tile grid"
@@ -611,7 +611,7 @@ class SprytileGridRemove(bpy.types.Operator):
         bpy.ops.sprytile.build_grid_list()
 
 
-class SprytileGridCycle(bpy.types.Operator):
+class UTIL_OP_SprytileGridCycle(bpy.types.Operator):
     bl_idname = "sprytile.grid_cycle"
     bl_label = "Cycle grid settings"
 
@@ -650,7 +650,7 @@ class SprytileGridCycle(bpy.types.Operator):
         bpy.ops.sprytile.build_grid_list()
 
 
-class SprytileStartTool(bpy.types.Operator):
+class UTIL_OP_SprytileStartTool(bpy.types.Operator):
     bl_idname = "sprytile.start_tool"
     bl_label = "Start Sprytile Paint"
 
@@ -670,7 +670,7 @@ class SprytileStartTool(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileGridMove(bpy.types.Operator):
+class UTIL_OP_SprytileGridMove(bpy.types.Operator):
     bl_idname = "sprytile.grid_move"
     bl_label = "Move Grid"
     bl_description = "Move selected tile grid up or down"
@@ -712,7 +712,7 @@ class SprytileGridMove(bpy.types.Operator):
         bpy.ops.sprytile.build_grid_list()
 
 
-class SprytileNewMaterial(bpy.types.Operator):
+class UTIL_OP_SprytileNewMaterial(bpy.types.Operator):
     bl_idname = "sprytile.add_new_material"
     bl_label = "New Shadeless Material"
     bl_description = "Create a new shadeless material"
@@ -740,7 +740,7 @@ class SprytileNewMaterial(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileSetupMaterial(bpy.types.Operator):
+class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
     bl_idname = "sprytile.material_setup"
     bl_label = "Set Material to Shadeless"
     bl_description = "Make current selected material shadeless, for pixel art texture purposes"
@@ -765,7 +765,7 @@ class SprytileSetupMaterial(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
+class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
 
     bl_idname = "sprytile.tileset_load"
     bl_label = "Load Tileset"
@@ -816,7 +816,7 @@ class SprytileLoadTileset(bpy.types.Operator, ImportHelper):
         bpy.data.textures.update()
 
 
-class SprytileNewTileset(bpy.types.Operator, ImportHelper):
+class UTIL_OP_SprytileNewTileset(bpy.types.Operator, ImportHelper):
 
     bl_idname = "sprytile.tileset_new"
     bl_label = "Add Tileset"
@@ -839,7 +839,7 @@ class SprytileNewTileset(bpy.types.Operator, ImportHelper):
         return {'FINISHED'}
 
 
-class SprytileSetupTexture(bpy.types.Operator):
+class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
     bl_idname = "sprytile.texture_setup"
     bl_label = "Setup Pixel Texture"
     bl_description = "Change texture settings for crunchy pixelart style"
@@ -893,7 +893,7 @@ class SprytileSetupTexture(bpy.types.Operator):
         target_slot.texture_coords = 'UV'
 
 
-class SprytileValidateGridList(bpy.types.Operator):
+class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
     bl_idname = "sprytile.validate_grids"
     bl_label = "Validate Tile Grids"
     bl_description = "Press if tile grids are not displaying properly"
@@ -977,7 +977,7 @@ class SprytileValidateGridList(bpy.types.Operator):
         bpy.ops.sprytile.build_grid_list()
 
 
-class SprytileBuildGridList(bpy.types.Operator):
+class UTIL_OP_SprytileBuildGridList(bpy.types.Operator):
     bl_idname = "sprytile.build_grid_list"
     bl_label = "Sprytile Build Grid List"
 
@@ -1008,7 +1008,7 @@ class SprytileBuildGridList(bpy.types.Operator):
                     context.scene.sprytile_list.idx = idx
 
 
-class SprytileRotateLeft(bpy.types.Operator):
+class UTIL_OP_SprytileRotateLeft(bpy.types.Operator):
     bl_idname = "sprytile.rotate_left"
     bl_label = "Rotate Sprytile Left"
 
@@ -1024,7 +1024,7 @@ class SprytileRotateLeft(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileRotateRight(bpy.types.Operator):
+class UTIL_OP_SprytileRotateRight(bpy.types.Operator):
     bl_idname = "sprytile.rotate_right"
     bl_label = "Rotate Sprytile Right"
 
@@ -1040,7 +1040,7 @@ class SprytileRotateRight(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileReloadImages(bpy.types.Operator):
+class UTIL_OP_SprytileReloadImages(bpy.types.Operator):
     bl_idname = "sprytile.reload_imgs"
     bl_label = "Reload All Images"
     bl_description = "Automatically reload images referenced by the scene"
@@ -1057,7 +1057,7 @@ class SprytileReloadImages(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileReloadImagesAuto(bpy.types.Operator):
+class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):
     bl_idname = "sprytile.reload_auto"
     bl_label = "Reload All Images (Auto)"
 
@@ -1111,7 +1111,7 @@ class SprytileReloadImagesAuto(bpy.types.Operator):
         wm.event_timer_remove(self._timer)
 
 
-class SprytileUpdateCheck(bpy.types.Operator):
+class UTIL_OP_SprytileUpdateCheck(bpy.types.Operator):
     bl_idname = "sprytile.update_check"
     bl_label = "Check for Update"
 
@@ -1130,7 +1130,7 @@ class SprytileUpdateCheck(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileMakeDoubleSided(bpy.types.Operator):
+class UTIL_OP_SprytileMakeDoubleSided(bpy.types.Operator):
     bl_idname = "sprytile.make_double_sided"
     bl_label = "Make Double Sided (Sprytile)"
     bl_description = "Duplicate selected faces and flip normals"
@@ -1160,7 +1160,7 @@ class SprytileMakeDoubleSided(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileSetupGrid(bpy.types.Operator):
+class UTIL_OP_SprytileSetupGrid(bpy.types.Operator):
     bl_idname = "sprytile.setup_grid"
     bl_label = "Floor Grid To Pixels"
     bl_description = "Make floor grid display follow world pixel settings"
@@ -1178,7 +1178,7 @@ class SprytileSetupGrid(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileGridTranslate(bpy.types.Operator):
+class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
     bl_idname = "sprytile.translate_grid"
     bl_label = "Pixel Translate (Sprytile)"
 
@@ -1370,7 +1370,7 @@ class SprytileGridTranslate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileResetData(bpy.types.Operator):
+class UTIL_OP_SprytileResetData(bpy.types.Operator):
     bl_idname = "sprytile.reset_sprytile"
     bl_label = "Reset Sprytile"
     bl_description = "In case sprytile breaks…"
@@ -1381,7 +1381,7 @@ class SprytileResetData(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SprytileObjectDropDown(bpy.types.Menu):
+class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_object_drop"
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
@@ -1397,7 +1397,7 @@ class SprytileObjectDropDown(bpy.types.Menu):
         layout.operator("sprytile.props_teardown")
 
 
-class SprytileObjectPanel(bpy.types.Panel):
+class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
     bl_label = "Sprytile Tools"
     bl_idname = "sprytile.panel_object"
     bl_space_type = "VIEW_3D"
@@ -1459,7 +1459,7 @@ class SprytileObjectPanel(bpy.types.Panel):
         # addon_updater_ops.update_notice_box_ui(self, context)
 
 
-class SprytileWorkDropDown(bpy.types.Menu):
+class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_work_drop"
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
@@ -1478,7 +1478,7 @@ class SprytileWorkDropDown(bpy.types.Menu):
         layout.operator("sprytile.props_teardown")
 
 
-class SprytileLayerPanel(bpy.types.Panel):
+class VIEW3D_PT_SprytileLayerPanel(bpy.types.Panel):
     bl_label = "Layers"
     bl_idname = "sprytile.panel_layers"
     bl_space_type = "VIEW_3D"
@@ -1506,7 +1506,7 @@ class SprytileLayerPanel(bpy.types.Panel):
         # if data.work_layer_mode == 'MESH_DECAL':
 
 
-class SprytileWorkflowPanel(bpy.types.Panel):
+class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
     bl_idname = "sprytile.panel_workflow"
     bl_space_type = "VIEW_3D"
