@@ -47,7 +47,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     preview_is_quads = True
     no_undo = False
 
-    modal_map = bpy.props.EnumProperty(
+    modal_map: bpy.props.EnumProperty(
         items=[
             ("SNAP", "Snap Cursor", "", 1),
             ("FOCUS", "Focus on Cursor", "", 2),

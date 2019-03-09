@@ -833,8 +833,16 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
             target_mat.node_tree.nodes.get('Image Texture') or
             target_mat.node_tree.nodes.new('ShaderNodeTexImage'))
 
+        bsdf = (
+            target_mat.node_tree.nodes.get('Principled BSDF') or
+            target_mat.node_tree.nodes.new('ShaderNodeBsdfPrincipled'))
+
         target_texture.image = loaded_img
-        target_texture.location = 300, 0
+        target_texture.location = -400, 0
+
+        target_mat.node_tree.links.new(
+            target_texture.outputs['Color'],
+            bsdf.inputs['Base Color'])
 
         # target_slot.texture = target_texture
 

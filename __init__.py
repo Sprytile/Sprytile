@@ -940,9 +940,9 @@ classes = (
 
 # submodule
 submodules = (
-    sprytile_panel,
     sprytile_gui,
     sprytile_modal,
+    sprytile_panel,
     sprytile_utils,
     sprytile_uv,
     tool_build,
