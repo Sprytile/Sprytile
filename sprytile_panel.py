@@ -10,11 +10,11 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
             if mat_data is None or item.mat_id not in bpy.data.materials:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
                 return
             material = bpy.data.materials[item.mat_id]
             if material is None:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
                 return
 
             display_icon = layout.icon(material)
@@ -33,18 +33,18 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
             if grid is not None:
                 split = layout.split(0.65, align=True)
                 split.prop(grid, "name", text="")
-                split.label("%dx%d" % (grid.grid[0], grid.grid[1]))
+                split.label(text="%dx%d" % (grid.grid[0], grid.grid[1]))
             else:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
         else:
-            layout.label("Invalid Data")
+            layout.label(text="Invalid Data")
 
 class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
     bl_idname = "SPRYTILE_grid_drop"
     bl_label = "Grid drop down"
     def draw(self, context):
         layout = self.layout
-        layout.operator("sprytile.tileset_new", icon="NEW")
+        layout.operator("sprytile.tileset_new", icon="PRESET_NEW")
         layout.separator()
         layout.operator("sprytile.validate_grids", icon="GRID")
 
@@ -67,7 +67,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         obj = context.object
 
         if hasattr(context.scene, "sprytile_data") is False:
-            layout.label("No Sprytile Data")
+            layout.label(text="No Sprytile Data")
             return
 
         sprytile_data = context.scene.sprytile_data
@@ -202,7 +202,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         layout.prop(selected_grid, "padding")
 
         row = layout.row(align=True)
-        row.label("Margins")
+        row.label(text="Margins")
 
         col = row.column(align=True)
         

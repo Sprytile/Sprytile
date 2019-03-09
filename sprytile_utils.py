@@ -558,7 +558,7 @@ class UTIL_OP_SprytileGridAdd(bpy.types.Operator):
             return
 
         grid_idx = -1
-        for idx, grid in enumerate(mat.grids):
+        for idx, grid in enumerate(target_mat.grids):
             if grid.id == grid_id:
                 grid_idx = idx
                 break
