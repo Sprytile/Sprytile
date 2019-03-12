@@ -692,16 +692,16 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_preview_tile(context, region, rv3d):
-        if sprytile_modal.SprytileModalTool.no_undo is True:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.no_undo is True:
             return
-        if sprytile_modal.SprytileModalTool.preview_verts is None:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts is None:
             return
-        if sprytile_modal.SprytileModalTool.preview_uvs is None:
+        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs is None:
             return
 
-        uv = sprytile_modal.SprytileModalTool.preview_uvs
-        world_verts = sprytile_modal.SprytileModalTool.preview_verts
-        is_quads = sprytile_modal.SprytileModalTool.preview_is_quads
+        uv = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs
+        world_verts = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts
+        is_quads = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_is_quads
 
         # Turn the world vert positions into screen positions
         screen_verts = []
@@ -849,19 +849,21 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glDisable(bgl.GL_TEXTURE_2D)
         bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
+
 # module classes
 classes = (
     SprytileGuiData,
 )
 
+
 def register():
-    for cl in classes:
-        bpy.utils.register_class(cl)
+    for c in classes:
+        bpy.utils.register_class(c)
 
 
 def unregister():
-    for cl in classes:
-        bpy.utils.unregister_class(cl)
+    for c in classes:
+        bpy.utils.unregister_class(c)
 
 
 if __name__ == '__main__':

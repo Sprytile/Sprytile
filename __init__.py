@@ -33,7 +33,6 @@ if "bpy" in locals_list:
     reload(tool_fill)
     reload(tool_set_normal)
 else:
-    from . import sprytile_panel, sprytile_gui
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
     from sprytile_tools import *
 
@@ -471,7 +470,7 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             self["auto_reload"] = False
         return self["auto_reload"]
 
-    auto_reload = BoolProperty(
+    auto_reload: bpy.props.BoolProperty(
         name="Auto",
         description="Automatically reload images every few seconds",
         default=False,
@@ -651,8 +650,8 @@ class SprytileMaterialData(bpy.types.PropertyGroup):
 
 
 class SprytileGridDisplay(bpy.types.PropertyGroup):
-    mat_id : StringProperty(default="")
-    grid_id : IntProperty(default=-1)
+    mat_id: bpy.props.StringProperty(default="")
+    grid_id: bpy.props.IntProperty(default=-1)
 
     def get_mat_name(self):
         if self.mat_id == "":
@@ -671,14 +670,13 @@ class SprytileGridDisplay(bpy.types.PropertyGroup):
         bpy.data.materials[self.mat_id].name = value
         bpy.ops.sprytile.validate_grids()
 
-    mat_name : StringProperty(
+    mat_name: bpy.props.StringProperty(
         get=get_mat_name,
         set=set_mat_name
     )
 
 
 class SprytileGridList(bpy.types.PropertyGroup):
-
     def get_idx(self):
         if "idx" not in self.keys():
             self["idx"] = 0
@@ -699,8 +697,8 @@ class SprytileGridList(bpy.types.PropertyGroup):
         if target_entry.grid_id != -1:
             bpy.context.object.sprytile_gridid = target_entry.grid_id
 
-    display : bpy.props.CollectionProperty(type=SprytileGridDisplay)
-    idx : IntProperty(
+    display: bpy.props.CollectionProperty(type=SprytileGridDisplay)
+    idx: bpy.props.IntProperty(
         default=0,
         get=get_idx,
         set=set_idx
@@ -769,7 +767,7 @@ class PROP_OP_SprytilePropsTeardown(bpy.types.Operator):
 class SprytileAddonPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
-    preview_transparency = bpy.props.FloatProperty(
+    preview_transparency: bpy.props.FloatProperty(
         name="Preview Alpha",
         description="Transparency level of build preview cursor",
         default=0.8,
@@ -790,7 +788,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             self["tile_picker_key"] = 1
         return self["tile_picker_key"]
 
-    tile_picker_key = EnumProperty(
+    tile_picker_key: bpy.props.EnumProperty(
         items=[
             ("Alt", "Alt", "Press Alt to pick tiles", 1),
             ("Ctrl", "Ctrl", "Press Ctrl to pick tiles", 2),
@@ -816,7 +814,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             self["tile_sel_move_key"] = 1
         return self["tile_sel_move_key"]
 
-    tile_sel_move_key = EnumProperty(
+    tile_sel_move_key: bpy.props.EnumProperty(
         items=[
             ("Alt", "Alt", "Press Alt to move tile selection", 1),
             ("Ctrl", "Ctrl", "Press Ctrl to move tile selection", 2),
@@ -830,31 +828,31 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     )
 
     # addon updater preferences
-    auto_check_update = bpy.props.BoolProperty(
+    auto_check_update: bpy.props.BoolProperty(
         name="Auto-check for Update",
         description="If enabled, auto-check for updates using an interval",
         default=False,
     )
-    updater_intrval_months = bpy.props.IntProperty(
+    updater_intrval_months: bpy.props.IntProperty(
         name='Months',
         description="Number of months between checking for updates",
         default=0,
         min=0
     )
-    updater_intrval_days = bpy.props.IntProperty(
+    updater_intrval_days: bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
         default=7,
         min=0,
     )
-    updater_intrval_hours = bpy.props.IntProperty(
+    updater_intrval_hours: bpy.props.IntProperty(
         name='Hours',
         description="Number of hours between checking for updates",
         default=0,
         min=0,
         max=23
     )
-    updater_intrval_minutes = bpy.props.IntProperty(
+    updater_intrval_minutes: bpy.props.IntProperty(
         name='Minutes',
         description="Number of minutes between checking for updates",
         default=0,
@@ -887,7 +885,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         addon_updater_ops.update_settings_ui(self, context)
 
 def setup_keymap():
-    km_array = sprytile_modal.SprytileModalTool.keymaps
+    km_array = sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
 
@@ -907,7 +905,7 @@ def setup_keymap():
         km_items.new_modal('FLIP_X', 'THREE', 'PRESS'),
         km_items.new_modal('FLIP_Y', 'FOUR', 'PRESS')
     ]
-    sprytile_modal.SprytileModalTool.modal_values = [
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.modal_values = [
         'Cancel',
         'Cursor Snap',
         'Cursor Focus',
@@ -919,27 +917,31 @@ def setup_keymap():
 
 
 def teardown_keymap():
-    for keymap in sprytile_modal.SprytileModalTool.keymaps:
+    for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps:
         kmi_list = keymap.keymap_items
         for keymap_item in kmi_list:
             keymap.keymap_items.remove(keymap_item)
-    sprytile_modal.SprytileModalTool.keymaps.clear()
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps.clear()
+
 
 # module classes
 classes = (
         SprytileSceneSettings,
         SprytileMaterialGridSettings,
         SprytileMaterialData,
+        SprytileGridDisplay,
         SprytileGridList,
         PROP_OP_SprytilePropsSetup,
-        PROP_OP_SprytilePropsTeardown
-        )
-    
+        PROP_OP_SprytilePropsTeardown,
+        SprytileAddonPreferences,
+)
+
+
 # submodule
 submodules = (
-    sprytile_panel,
     sprytile_gui,
     sprytile_modal,
+    sprytile_panel,
     sprytile_utils,
     sprytile_uv,
     tool_build,
@@ -947,6 +949,7 @@ submodules = (
     tool_fill,
     tool_set_normal,
 )
+
 
 def register():
     #addon_updater_ops.register(bl_info)
@@ -979,7 +982,7 @@ def register():
 
 def unregister():
     teardown_keymap()
-    SprytilePropsTeardown.props_teardown()
+    PROP_OP_SprytilePropsTeardown.props_teardown()
 
     for cl in classes:
         bpy.utils.unregister_class(cl)
@@ -991,7 +994,8 @@ def unregister():
 
     # Unregister self from sys.path as well
     cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
-    sys.path.remove(cmd_subfolder)
+    if cmd_subfolder in sys.path:
+        sys.path.remove(cmd_subfolder)
 
 
 if __name__ == "__main__":
