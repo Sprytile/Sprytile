@@ -683,7 +683,7 @@ class UTIL_OP_SprytileGridMove(bpy.types.Operator):
     bl_label = "Move Grid"
     bl_description = "Move selected tile grid up or down"
 
-    # direction = bpy.props.IntProperty(default=1)
+    direction : bpy.props.IntProperty(default=1)
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -718,20 +718,6 @@ class UTIL_OP_SprytileGridMove(bpy.types.Operator):
         curr_mat.grids.move(old_idx, idx)
         obj.sprytile_gridid = curr_mat.grids[idx].id
         bpy.ops.sprytile.build_grid_list()
-
-
-class UTIL_OP_SprytileGridMoveUp(UTIL_OP_SprytileGridMove):
-    bl_idname = 'sprytile.grid_move_up'
-    bl_label = 'Move Grid Up'
-    bl_description = 'Move selected tile grid up'
-    direction = -1
-
-
-class UTIL_OP_SprytileGridMoveDown(UTIL_OP_SprytileGridMove):
-    bl_idname = 'sprytile.grid_move_down'
-    bl_label = 'Move Grid Down'
-    bl_description = 'Move selected tile grid down'
-    direction = 1
 
 
 class UTIL_OP_SprytileNewMaterial(bpy.types.Operator):
@@ -1620,8 +1606,7 @@ classes = (
     UTIL_OP_SprytileGridRemove,
     UTIL_OP_SprytileGridCycle,
     UTIL_OP_SprytileStartTool,
-    UTIL_OP_SprytileGridMoveUp,
-    UTIL_OP_SprytileGridMoveDown,
+    UTIL_OP_SprytileGridMove,
     UTIL_OP_SprytileNewMaterial,
     UTIL_OP_SprytileSetupMaterial,
     UTIL_OP_SprytileLoadTileset,

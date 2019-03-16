@@ -179,8 +179,8 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         col.operator('sprytile.grid_remove', icon='REMOVE', text='')
         col.menu('sprytile.grid_drop_down', icon='DOWNARROW_HLT', text='')
         col.separator()
-        col.operator('sprytile.grid_move_up', icon='TRIA_UP', text='')
-        col.operator('sprytile.grid_move_down', icon='TRIA_DOWN', text='')
+        col.operator('sprytile.grid_move', icon='TRIA_UP', text='').direction = -1
+        col.operator('sprytile.grid_move', icon='TRIA_DOWN', text='').direction = 1
 
         if len(scene.sprytile_mats) == 0:
             return
