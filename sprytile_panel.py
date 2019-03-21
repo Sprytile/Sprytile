@@ -17,18 +17,16 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
                 layout.label(text="Invalid Data")
                 return
 
-            # TODO: how do we get icon in Blender 2.80 ???
-            # display_icon = layout.icon(material)
-            # texture = sprytile_utils.get_grid_texture(context.object, mat_data.grids[0])
-            # if texture is not None:
-            #     display_icon = layout.icon(texture)
+            display_icon = layout.icon(material)
+            texture = sprytile_utils.get_grid_texture(context.object, mat_data.grids[0])
+            if texture is not None:
+                display_icon = layout.icon(texture)
 
             row = layout.row(align=True)
             if mat_data is not None:
                 show_icon = "TRIA_DOWN" if mat_data.is_expanded else "TRIA_RIGHT"
                 row.prop(mat_data, "is_expanded", text="", icon=show_icon, emboss=False)
-            # row.prop(item, "mat_name", text="", emboss=False, icon_value=display_icon)
-            row.prop(item, "mat_name", text="", emboss=False)
+            row.prop(item, "mat_name", text="", emboss=False, icon_value=display_icon)
 
         elif item.grid_id != "":
             grid = sprytile_utils.get_grid(context, item.grid_id)
