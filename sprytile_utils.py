@@ -246,6 +246,49 @@ def get_grid_matrix(sprytile_grid):
     return offset_mtx * rotate_mtx
 
 
+def get_material_texture_node(mat):
+    """
+    Returns the first image texture node applied to a material
+    :param mat: Material
+    :return: ShaderNodeImageTexImage or None
+    """
+    for node in mat.node_tree.nodes:
+        if node.bl_static_type == 'TEX_IMAGE':
+            return node
+
+    return None
+
+
+def get_material_texture(mat):
+    """
+    Returns the texture applied to a material
+    :param mat: Material
+    :return: Texture or None
+    """
+    texture_img = get_material_texture_node(mat)
+
+    if texture_img:
+        return texture_img.image
+    else:
+        return None
+
+
+def set_material_texture(mat, texture):
+    """
+    Apply texture (if possible) to a material
+    :param mat: Material
+    :param mat: Texture image to apply
+    :return: True if successful
+    """
+    texture_img = get_material_texture_node(mat)
+
+    if texture_img:
+        texture_img.image = texture
+        return True
+    else:
+        return False
+
+
 def get_grid_texture(obj, sprytile_grid):
     """
     Returns the texture applied to an object, given the sprytile_grid
@@ -259,15 +302,8 @@ def get_grid_texture(obj, sprytile_grid):
     material = obj.material_slots[mat_idx].material
     if material is None:
         return None
-    target_img = None
-
-    # Find image texture node and grab texture
-    for node in material.node_tree.nodes:
-        if node.bl_static_type == 'TEX_IMAGE' and node.image is not None:
-            target_img = node.image 
-            break
-
-    return target_img
+    
+    return get_material_texture(material) or None
 
 
 def get_selected_grid(context):
@@ -751,12 +787,48 @@ class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
             return {'FINISHED'}
 
         mat = obj.material_slots[obj.active_material_index].material
-        # TODO: we don't have them in Blender 2.80, but it's not a big deal
-        # mat.use_shadeless = True
-        # mat.use_transparency = True
-        # mat.transparency_method = 'Z_TRANSPARENCY'
-        # mat.alpha = 0.0
+
+        # Make material equivalent to a shadeless transparent one in Blender 2.7 
         mat.use_nodes = True
+        mat.blend_method = 'BLEND'
+
+        # Get the material texture (if any) so we can keep it
+        mat_texture = get_material_texture(mat)
+
+        # Setup nodes
+        nodes = mat.node_tree.nodes
+        nodes.clear()
+        output_n = nodes.new(type = 'ShaderNodeOutputMaterial')
+        light_path_n = nodes.new(type = 'ShaderNodeLightPath')
+        transparent_n = nodes.new(type = 'ShaderNodeBsdfTransparent')
+        emission_n = nodes.new(type = 'ShaderNodeEmission')
+        mix_cam_ray_n = nodes.new(type = 'ShaderNodeMixShader')
+        mix_alpha_n = nodes.new(type = 'ShaderNodeMixShader')
+        texture_n = nodes.new(type = 'ShaderNodeTexImage')
+
+        # link
+        links = mat.node_tree.links
+        links.new(texture_n.outputs['Color'], emission_n.inputs['Color'])
+        links.new(texture_n.outputs['Alpha'], mix_alpha_n.inputs['Fac'])
+        links.new(transparent_n.outputs['BSDF'], mix_alpha_n.inputs[1])
+        links.new(transparent_n.outputs['BSDF'], mix_cam_ray_n.inputs[1])
+        links.new(emission_n.outputs['Emission'], mix_alpha_n.inputs[2])
+        links.new(mix_alpha_n.outputs['Shader'], mix_cam_ray_n.inputs[2])
+        links.new(light_path_n.outputs['Is Camera Ray'], mix_cam_ray_n.inputs['Fac'])
+        links.new(mix_cam_ray_n.outputs['Shader'], output_n.inputs['Surface'])
+
+        # reorder
+        output_n.location = (400, 0)
+        mix_cam_ray_n.location = (200, 0)
+        light_path_n.location = (0, 250)
+        mix_alpha_n.location = (0, -100)
+        transparent_n.location = (-200, -100)
+        emission_n.location = (-200, -200)
+        texture_n.location = (-500, 100)
+
+        if mat_texture:
+            texture_n.image = mat_texture
+
         return {'FINISHED'}
 
 
@@ -795,28 +867,8 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
         target_mat = obj.material_slots[obj.active_material_index].material
         target_mat.name = material_name
 
-        # target_mat.texture_slots.clear(0)
-        # target_slot = target_mat.texture_slots.create(0)
-
         loaded_img = bpy.data.images.load(filepath)
-
-        # target_texture = bpy.data.textures.new(texture_name, type='IMAGE')
-        target_texture = (
-            target_mat.node_tree.nodes.get('Image Texture') or
-            target_mat.node_tree.nodes.new('ShaderNodeTexImage'))
-
-        bsdf = (
-            target_mat.node_tree.nodes.get('Principled BSDF') or
-            target_mat.node_tree.nodes.new('ShaderNodeBsdfPrincipled'))
-
-        target_texture.image = loaded_img
-        target_texture.location = -400, 0
-
-        target_mat.node_tree.links.new(
-            target_texture.outputs['Color'],
-            bsdf.inputs['Base Color'])
-
-        # target_slot.texture = target_texture
+        set_material_texture(target_mat, loaded_img)
 
         bpy.ops.sprytile.texture_setup('INVOKE_DEFAULT')
         bpy.ops.sprytile.validate_grids('INVOKE_DEFAULT')
@@ -864,9 +916,10 @@ class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
         if obj.type != 'MESH':
             return
         material = obj.material_slots[obj.active_material_index].material
-        target_texture = None
-        target_img = None
-        target_slot = None
+
+        #target_texture = None
+        #target_img = None
+        #target_slot = None
         # for texture_slot in material.texture_slots:
         #     if texture_slot is None:
         #         continue
@@ -884,22 +937,27 @@ class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
         # if target_texture is None or target_img is None:
         #     return
 
-        target_texture = material.node_tree.nodes.get('Image Texture')
-        if not target_texture:
+        target_node = get_material_texture_node(material)
+        if not target_node:
             return
 
-        target_img = bpy.data.images.get(target_texture.image.name)
+        target_node.interpolation = 'Closest'
+        target_img = target_node.image
 
-        # TODO: Blender 2.80 options ???
+        if not target_img:
+            return
+        
+        target_img.use_alpha = True
+
+        # We don't have these in 2.8, but the behaviour with nodes and Closest filtering is equivalent.
+        # However, 2.8 doesn't currently offer an option to disable mipmaps?
         # target_texture.use_preview_alpha = True
         # target_texture.use_alpha = True
         # target_texture.use_interpolation = False
         # target_texture.use_mipmap = False
         # target_texture.filter_type = 'BOX'
         # target_texture.filter_size = 0.10
-        target_img.use_alpha = True
-
-        # TODO: Blender 2.80 options ???
+        
         # target_slot.use_map_color_diffuse = True
         # target_slot.use_map_alpha = True
         # target_slot.alpha_factor = 1.0
