@@ -260,27 +260,12 @@ def get_grid_texture(obj, sprytile_grid):
     if material is None:
         return None
     target_img = None
-    # for texture_slot in material.texture_slots:
-    #     if texture_slot is None:
-    #         continue
-    #     if texture_slot.texture is None:
-    #         continue
-    #     if texture_slot.texture.type == 'NONE':
-    #         continue
-    #     if texture_slot.texture.image is None:
-    #         continue
-    #     if texture_slot.texture.type == 'IMAGE':
-    #         # Cannot use the texture slot image reference directly
-    #         # Have to get it through bpy.data.images to be able to use with BGL
-    #         target_img = bpy.data.images.get(texture_slot.texture.image.name)
-    #         break
 
-    texture = material.node_tree.nodes.get('Image Texture')
-    if not texture:
-        return
-
-    # target_img = texture.image.name
-    target_img = bpy.data.images.get(texture.image.name)
+    # Find image texture node and grab texture
+    for node in material.node_tree.nodes:
+        if node.bl_static_type == 'TEX_IMAGE' and node.image is not None:
+            target_img = node.image 
+            break
 
     return target_img
 
