@@ -520,7 +520,7 @@ class UTIL_OP_SprytileAxisUpdate(bpy.types.Operator):
 
         # Get the up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
-        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+        view_up_vector = rv3d.view_rotation @ Vector((0.0, 1.0, 0.0))
 
         view_vector = snap_vector_to_axis(view_vector, mirrored=True)
         view_up_vector = snap_vector_to_axis(view_up_vector)

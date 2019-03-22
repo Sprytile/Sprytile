@@ -71,8 +71,8 @@ class ToolBuild:
 
         # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
         # raycast grid to get the grid position under the mouse
         grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
@@ -268,8 +268,8 @@ class ToolBuild:
 
         rotation = Quaternion(plane_normal, data.mesh_rotate)
 
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(

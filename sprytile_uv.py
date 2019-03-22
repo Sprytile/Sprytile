@@ -48,17 +48,17 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
     origin_y = pixel_uv_y * origin_y
     origin_matrix = Matrix.Translation((origin_x, origin_y, 0))
 
-    uv_matrix = offset_matrix * rotate_matrix * origin_matrix
+    uv_matrix = offset_matrix @ rotate_matrix @ origin_matrix
 
     flip_x = -1 if data.uv_flip_x else 1
     flip_y = -1 if data.uv_flip_y else 1
-    flip_matrix = Matrix.Scale(flip_x, 4, right_vector) * Matrix.Scale(flip_y, 4, up_vector)
+    flip_matrix = Matrix.Scale(flip_x, 4, right_vector) @ Matrix.Scale(flip_y, 4, up_vector)
 
     pad_offset = target_grid.auto_pad_offset
     if target_grid.auto_pad is False:
         pad_offset = 0
     pad_scale = Vector(((size_x - pad_offset) / size_x, (size_y - pad_offset) / size_y))
-    pad_matrix = Matrix.Scale(pad_scale.x, 4, right_vector) * Matrix.Scale(pad_scale.y, 4, up_vector)
+    pad_matrix = Matrix.Scale(pad_scale.x, 4, right_vector) @ Matrix.Scale(pad_scale.y, 4, up_vector)
 
     uv_min = Vector((float('inf'), float('inf')))
     uv_max = Vector((float('-inf'), float('-inf')))
@@ -68,9 +68,9 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         # Around center
         vert_pos = vert - vtx_center
         # Apply flip scaling
-        vert_pos = flip_matrix * vert_pos
+        vert_pos = flip_matrix @ vert_pos
         # Apply padding
-        vert_pos = pad_matrix * vert_pos
+        vert_pos = pad_matrix @ vert_pos
         # Get x/y values by using the right/up vectors
         vert_xy = (right_vector.dot(vert_pos), up_vector.dot(vert_pos), 0)
         vert_xy = Vector(vert_xy)
@@ -83,7 +83,7 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         vert_xy.x *= uv_unit_x
         vert_xy.y *= uv_unit_y
         # Then offset the actual UV space by the translation matrix
-        vert_xy = uv_matrix * vert_xy
+        vert_xy = uv_matrix @ vert_xy
         # Record min/max for tile alignment step
         uv_min.x = min(uv_min.x, vert_xy.x)
         uv_min.y = min(uv_min.y, vert_xy.y)
@@ -259,7 +259,6 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index
     target_grid = sprytile_utils.get_grid(context, grid_id)
 
     uv_layer = mesh.loops.layers.uv.verify()
-    mesh.faces.layers.tex.verify()
 
     if face_index >= len(mesh.faces):
         return None, None
@@ -272,11 +271,11 @@ def uv_map_face(context, up_vector, right_vector, tile_xy, origin_xy, face_index
     if face.hide:
         return None, None
 
-    vert_origin = context.object.matrix_world * face.calc_center_bounds()
+    vert_origin = context.object.matrix_world @ face.calc_center_bounds()
     verts = []
     for loop in face.loops:
         vert = loop.vert
-        verts.append(context.object.matrix_world * vert.co)
+        verts.append(context.object.matrix_world @ vert.co)
 
     tile_start = [tile_xy[0], tile_xy[1]]
     if tile_size[0] > 1 or tile_size[1] > 1:
@@ -310,7 +309,6 @@ def apply_uvs(context, face, uv_verts, target_grid,
 
     if uv_layer is None:
         uv_layer = mesh.loops.layers.uv.verify()
-        mesh.faces.layers.tex.verify()
 
     # Apply the UV positions on the face verts
     idx = 0

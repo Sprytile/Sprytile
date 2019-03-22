@@ -76,7 +76,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Get the up vector. The default scene view camera is pointed
         # downward, with up on Y axis. Apply view rotation to get current up
-        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
+        view_up_vector = rv3d.view_rotation @ Vector((0.0, 1.0, 0.0))
 
         plane_normal = sprytile_utils.snap_vector_to_axis(view_vector, mirrored=True)
         up_vector = sprytile_utils.snap_vector_to_axis(view_up_vector)
@@ -247,7 +247,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         face = self.bmesh.faces[face_index]
         world_verts = []
         for idx, vert in enumerate(face.verts):
-            vert_world_pos = context.object.matrix_world * vert.co
+            vert_world_pos = context.object.matrix_world @ vert.co
             world_verts.append(vert_world_pos)
         return world_verts
 
@@ -309,8 +309,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
         matrix_inv = matrix.inverted()
-        ray_origin_obj = matrix_inv * ray_origin
-        ray_target_obj = matrix_inv * (ray_origin + ray_direction)
+        ray_origin_obj = matrix_inv @ ray_origin
+        ray_target_obj = matrix_inv @ (ray_origin + ray_direction)
         ray_direction_obj = ray_target_obj - ray_origin_obj
 
         location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj, ray_dist)
@@ -335,7 +335,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             do_pass_through = True
 
         # Translate location back to world space
-        location = matrix * location
+        location = matrix @ location
 
         if do_pass_through:
             # add shift offset if passing through
@@ -344,7 +344,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             return self.raycast_object(obj, new_ray_origin, ray_direction, work_layer_mask=work_layer_mask)
 
         if world_normal:
-            normal = matrix * normal
+            normal = matrix @ normal
         return location, normal, face_index, distance
 
     def update_bmesh_tree(self, context, update_index=False):
@@ -362,7 +362,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 el.ensure_lookup_table()
 
             self.bmesh.loops.layers.uv.verify()
-            self.bmesh.faces.layers.tex.verify()
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
@@ -547,7 +546,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         world_inv = context.object.matrix_world.copy().inverted()
         for face_vtx in world_vertices:
             vtx = self.bmesh.verts.new(face_vtx)
-            vtx.co = world_inv * vtx.co
+            vtx.co = world_inv @ vtx.co
             face_vertices.append(vtx)
 
         face = self.bmesh.faces.new(face_vertices)
@@ -909,13 +908,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'} if VIEW3D_OP_SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             check_modifier = False
-            addon_prefs = context.user_preferences.addons[__package__].preferences
-            if addon_prefs.tile_picker_key == 'Alt':
-                check_modifier = event.alt
-            if addon_prefs.tile_picker_key == 'Ctrl':
-                check_modifier = event.ctrl
-            if addon_prefs.tile_picker_key == 'Shift':
-                check_modifier = event.shift
+            #TODO: Support preferences
+            #addon_prefs = context.user_preferences.addons[__package__].preferences
+            #if addon_prefs.tile_picker_key == 'Alt':
+            #    check_modifier = event.alt
+            #if addon_prefs.tile_picker_key == 'Ctrl':
+            #    check_modifier = event.ctrl
+            #if addon_prefs.tile_picker_key == 'Shift':
+            #    check_modifier = event.shift
 
             self.left_down = event.value == 'PRESS' and check_modifier is False
             if event.value == 'PRESS' and check_modifier is True:
@@ -1015,7 +1015,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             return {'CANCELLED'}
 
         obj = context.object
-        if obj.hide or obj.type != 'MESH':
+        if not obj.visible_get() or obj.type != 'MESH':
             self.report({'WARNING'}, "Active object must be a visible mesh")
             return {'CANCELLED'}
         if len(context.scene.sprytile_mats) < 1:
@@ -1031,8 +1031,9 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         if use_default_grid_id:
             obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
 
-        if context.space_data.viewport_shade != 'MATERIAL':
-            context.space_data.viewport_shade = 'MATERIAL'
+        cur_space = context.area.spaces.active
+        if cur_space.shading.type != 'MATERIAL':
+            cur_space.shading.type = 'MATERIAL'
 
         self.virtual_cursor = deque([], 3)
         VIEW3D_OP_SprytileModalTool.no_undo = False
@@ -1056,7 +1057,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Set up timer callback
         win_mgr = context.window_manager
-        self.view_axis_timer = win_mgr.event_timer_add(0.1, context.window)
+        self.view_axis_timer = win_mgr.event_timer_add(0.1, window = context.window)
 
         self.setup_user_keys(context)
         win_mgr.modal_handler_add(self)
@@ -1066,7 +1067,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         sprytile_data.is_snapping = False
 
         context.scene.sprytile_ui.is_dirty = True
-        bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN')
+        #bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN') #TODO: Renable once ui works
         return {'RUNNING_MODAL'}
 
     def setup_rx_observer(self, observer):
