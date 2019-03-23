@@ -49,7 +49,7 @@ class ToolFill:
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, with_rotation=False)
 
         # Intersect on the virtual plane
-        plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+        plane_hit = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor.location, plane_normal)
         # Didn't hit the plane exit
         if plane_hit is None:
             return
@@ -62,7 +62,7 @@ class ToolFill:
 
         # Find the position of the plane hit, in terms of grid coordinates
         hit_coord, grid_right, grid_up = sprytile_utils.get_grid_pos(
-            plane_hit, scene.cursor_location,
+            plane_hit, scene.cursor.location,
             right_vector.copy(), up_vector.copy(),
             world_pixels, grid_x, grid_y, as_coord=True
         )

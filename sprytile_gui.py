@@ -397,7 +397,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         SprytileGui.draw_offscreen(context)
         SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
-                                     context.scene.cursor_location, region, rv3d,
+                                     context.scene.cursor.location, region, rv3d,
                                      middle_btn, context)
 
     @staticmethod

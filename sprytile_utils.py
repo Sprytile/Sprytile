@@ -215,7 +215,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     :return: grid_position, x_vector, y_vector, plane_pos
     """
 
-    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+    plane_pos = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor.location, plane_normal)
     # Didn't hit the plane exit
     if plane_pos is None:
         return None, None, None, None
@@ -226,7 +226,7 @@ def raycast_grid(scene, context, up_vector, right_vector, plane_normal, ray_orig
     grid_y = target_grid.grid[1]
 
     grid_position, x_vector, y_vector = get_grid_pos(
-                                            plane_pos, scene.cursor_location,
+                                            plane_pos, scene.cursor.location,
                                             right_vector.copy(), up_vector.copy(),
                                             world_pixels, grid_x, grid_y, as_coord
                                         )
@@ -1447,7 +1447,7 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         #                 vert_list.append(vert)
         #         if isinstance(sel, BMVert):
         #             vert_list.append(sel)
-        #         cursor_pos = context.scene.cursor_location
+        #         cursor_pos = context.scene.cursor.location
         #         for vert in vert_list:
         #             vert_offset = vert.co - cursor_pos
         #             vert_int = Vector((

@@ -292,7 +292,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         """
         obj = context.object
 
-        ray_origin = Vector(context.scene.cursor_location.copy())
+        ray_origin = Vector(context.scene.cursor.location.copy())
         ray_origin += (x + 0.5) * right_vector
         ray_origin += (y + 0.5) * up_vector
 
@@ -451,7 +451,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 return None
 
         # Calculate where the origin of the grid is
-        grid_origin = scene.cursor_location.copy()
+        grid_origin = scene.cursor.location.copy()
         # If doing mesh decal, offset the grid origin
         if data.work_layer == 'DECAL_1':
             grid_origin += plane_normal * data.mesh_decal_offset
@@ -674,8 +674,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         layer_move *= (1 / context.scene.sprytile_data.world_pixels)
         plane_normal = scene.sprytile_data.paint_normal_vector.copy()
         plane_normal *= layer_move * direction
-        grid_position = scene.cursor_location + plane_normal
-        scene.cursor_location = grid_position
+        grid_position = scene.cursor.location + plane_normal
+        scene.cursor.location = grid_position
 
     def cursor_snap(self, context, event):
         if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
@@ -701,7 +701,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Snap cursor, depending on setting
         if scene.sprytile_data.cursor_snap == 'GRID':
-            location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor_location, plane_normal)
+            location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor.location, plane_normal)
             if location is None:
                 return
             world_pixels = scene.sprytile_data.world_pixels
@@ -710,11 +710,11 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             grid_y = target_grid.grid[1]
 
             grid_position, x_vector, y_vector = sprytile_utils.get_grid_pos(
-                location, scene.cursor_location,
+                location, scene.cursor.location,
                 right_vector.copy(), up_vector.copy(),
                 world_pixels, grid_x, grid_y
             )
-            scene.cursor_location = grid_position
+            scene.cursor.location = grid_position
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
             # Get if user is holding down tile picker modifier
@@ -756,7 +756,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                     closest_dist = test_dist
             # convert back to world space
             if closest_vtx != -1:
-                scene.cursor_location = matrix * face.verts[closest_vtx].co
+                scene.cursor.location = matrix * face.verts[closest_vtx].co
 
             # If find face tile button pressed, set work plane normal too
             if check_modifier:

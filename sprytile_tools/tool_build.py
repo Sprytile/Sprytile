@@ -169,7 +169,7 @@ class ToolBuild:
                 faces_verts.extend(face_verts)
         # Build mode without auto join, try operation on each build coordinate
         else:
-            virtual_cursor = scene.cursor_location + \
+            virtual_cursor = scene.cursor.location + \
                              (grid_coord[0] * grid_right) + \
                              (grid_coord[1] * grid_up)
             self.modal.add_virtual_cursor(virtual_cursor)
@@ -202,7 +202,7 @@ class ToolBuild:
                 if data.work_layer != 'BASE':
                     new_cursor_pos -= plane_normal * data.mesh_decal_offset
                 # Calculate the world position of old start_coord
-                old_start_pos = scene.cursor_location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
+                old_start_pos = scene.cursor.location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
                 # find the offset of the old start position from the new cursor position
                 new_start_offset = old_start_pos - new_cursor_pos
                 # get how much the grid x/y vectors need to scale by to normalize
@@ -218,7 +218,7 @@ class ToolBuild:
                 # for the nice painting snap
                 self.start_coord = new_start_coord
 
-                scene.cursor_location = new_cursor_pos
+                scene.cursor.location = new_cursor_pos
 
     def build_preview(self, context, scene, ray_origin, ray_vector):
         obj = context.object
@@ -248,7 +248,7 @@ class ToolBuild:
                 return
 
             # Do a coplanar check between hit location and cursor
-            grid_origin = scene.cursor_location.copy()
+            grid_origin = scene.cursor.location.copy()
             grid_origin += hit_normal * data.mesh_decal_offset
 
             check_coplanar = distance_point_to_plane(location, grid_origin, hit_normal)
