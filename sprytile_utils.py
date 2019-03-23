@@ -848,8 +848,7 @@ class UTIL_OP_SprytileSetupViewport(bpy.types.Operator):
         # Reflect changes
         context.scene.update_tag()
         for area in context.screen.areas:
-            if area.type == 'PROPERTIES':
-                area.tag_redraw()
+            area.tag_redraw()
 
         return {'FINISHED'}
 
