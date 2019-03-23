@@ -832,6 +832,28 @@ class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class UTIL_OP_SprytileSetupViewport(bpy.types.Operator):
+    bl_idname = "sprytile.viewport_setup"
+    bl_label = "Setup Pixel Viewport"
+    bl_description = "Set optimal 3D viewport settings for pixel art"
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        # Disable Eevee's TAA, which causes noticeable artefacts with pixel art
+        context.scene.eevee.taa_samples = 1
+        context.scene.eevee.use_taa_reprojection = False
+
+        # Reflect changes
+        context.scene.update_tag()
+        for area in context.screen.areas:
+            if area.type == 'PROPERTIES':
+                area.tag_redraw()
+
+        return {'FINISHED'}
+
+
 class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
     bl_idname = "sprytile.tileset_load"
     bl_label = "Load Tileset"
@@ -1464,6 +1486,7 @@ class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
         layout.separator()
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
+        layout.operator("sprytile.viewport_setup")
         layout.operator("sprytile.add_new_material")
         layout.separator()
         layout.operator("sprytile.props_teardown")
@@ -1655,6 +1678,7 @@ classes = (
     UTIL_OP_SprytileLoadTileset,
     UTIL_OP_SprytileNewTileset,
     UTIL_OP_SprytileSetupTexture,
+    UTIL_OP_SprytileSetupViewport,
     UTIL_OP_SprytileValidateGridList,
     UTIL_OP_SprytileBuildGridList,
     UTIL_OP_SprytileRotateLeft,
