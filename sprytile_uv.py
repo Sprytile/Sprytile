@@ -98,7 +98,7 @@ def get_uv_pos_size(data, image_size, target_grid, origin_xy, size_x, size_y,
         uv_center = Vector((0.5, 0.5, 0.0))
         uv_center.x *= uv_unit_x
         uv_center.y *= uv_unit_y
-        uv_center = uv_matrix * uv_center
+        uv_center = uv_matrix @ uv_center
         uv_verts = get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale,
                                        uv_unit_x, uv_unit_y, uv_min, uv_max,
                                        uv_center, Vector((pixel_uv_x, pixel_uv_y)))
@@ -150,14 +150,14 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit
 
     # Generate tile bounds with auto padding
     half_uv = Vector((uv_unit_x / 2, uv_unit_y / 2, 0))
-    pad_matrix = Matrix.Scale(pad_scale.x, 4, Vector((1, 0, 0))) * Matrix.Scale(pad_scale.y, 4, Vector((0, 1, 0)))
-    tile_min = pad_matrix * Vector((-half_uv.x, -half_uv.y, 0)) + half_uv
-    tile_max = pad_matrix * Vector((half_uv.x, half_uv.y, 0)) + half_uv
-    tile_min = uv_matrix * tile_min
-    tile_max = uv_matrix * tile_max
+    pad_matrix = Matrix.Scale(pad_scale.x, 4, Vector((1, 0, 0))) @ Matrix.Scale(pad_scale.y, 4, Vector((0, 1, 0)))
+    tile_min = pad_matrix @ Vector((-half_uv.x, -half_uv.y, 0)) + half_uv
+    tile_max = pad_matrix @ Vector((half_uv.x, half_uv.y, 0)) + half_uv
+    tile_min = uv_matrix @ tile_min
+    tile_max = uv_matrix @ tile_max
     # Actual bounds without auto padding
-    tile_bound_min = uv_matrix * Vector((0, 0, 0))
-    tile_bound_max = uv_matrix * Vector((uv_unit_x, uv_unit_y, 0))
+    tile_bound_min = uv_matrix @ Vector((0, 0, 0))
+    tile_bound_max = uv_matrix @ Vector((uv_unit_x, uv_unit_y, 0))
 
     # Calculate tile stretch
     scale_x = 1
@@ -170,14 +170,14 @@ def get_uv_paint_modify(data, uv_verts, uv_matrix, pad_scale, uv_unit_x, uv_unit
     if data.paint_stretch_y and face_size.y > 0:
         scale_y = tile_size.y / face_size.y
 
-    matrix_stretch = Matrix.Scale(scale_x, 2, Vector((1, 0))) * Matrix.Scale(scale_y, 2, Vector((0, 1)))
+    matrix_stretch = Matrix.Scale(scale_x, 2, Vector((1, 0))) @ Matrix.Scale(scale_y, 2, Vector((0, 1)))
 
     threshold = tile_size * data.edge_threshold
     for uv_vert in uv_verts:
         # First, apply the stretch matrix
         uv = Vector((uv_vert.x, uv_vert.y))
         uv -= uv_center.xy
-        uv = matrix_stretch * uv
+        uv = matrix_stretch @ uv
         uv += uv_center.xy
         # Next, check if want to snap to edges
         if data.paint_edge_snap:

@@ -36,8 +36,8 @@ def get_current_grid_vectors(scene, with_rotation=True):
 
     if with_rotation:
         rotation = Quaternion(-normal_vector, scene.sprytile_data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
     return up_vector, right_vector, normal_vector
 

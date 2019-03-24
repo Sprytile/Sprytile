@@ -575,8 +575,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # downward, with up on Y axis. Apply view rotation to get current up
 
         rv3d = context.region_data
-        view_up_vector = rv3d.view_rotation * Vector((0.0, 1.0, 0.0))
-        view_right_vector = rv3d.view_rotation * Vector((1.0, 0.0, 0.0))
+        view_up_vector = rv3d.view_rotation @ Vector((0.0, 1.0, 0.0))
+        view_right_vector = rv3d.view_rotation @ Vector((1.0, 0.0, 0.0))
         data = context.scene.sprytile_data
 
         if self.bmesh is None or self.bmesh.faces is None:
@@ -588,7 +588,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Convert the face normal to world space
         normal_inv = context.object.matrix_world.copy().inverted().transposed()
-        face_normal = normal_inv * face.normal.copy()
+        face_normal = normal_inv @ face.normal.copy()
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
@@ -596,10 +596,10 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             if isinstance(selection, bmesh.types.BMEdge):
                 # Figure out which side of the face this edge is on
                 # selected edge is considered the bottom of the face
-                vtx1 = world_matrix * selection.verts[0].co.copy()
-                vtx2 = world_matrix * selection.verts[1].co.copy()
+                vtx1 = world_matrix @ selection.verts[0].co.copy()
+                vtx2 = world_matrix @ selection.verts[1].co.copy()
                 edge_center = (vtx1 + vtx2) / 2
-                face_center = world_matrix * face.calc_center_bounds()
+                face_center = world_matrix @ face.calc_center_bounds()
                 # Get the rough heading of the up vector
                 estimated_up = face_center - edge_center
                 estimated_up.normalize()
@@ -627,8 +627,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         for edge in face.edges:
             idx += 1
             # Move vertices to world space
-            vtx1 = world_matrix * edge.verts[0].co
-            vtx2 = world_matrix * edge.verts[1].co
+            vtx1 = world_matrix @ edge.verts[0].co
+            vtx2 = world_matrix @ edge.verts[1].co
             edge_vec = vtx2 - vtx1
             edge_vec.normalize()
             edge_up_dot = 1 - abs(edge_vec.dot(view_up_vector))
@@ -762,7 +762,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             if check_modifier:
                 sprytile_data = context.scene.sprytile_data
                 # Check if mouse is hitting object
-                target_normal = context.object.matrix_world.to_quaternion() * normal
+                target_normal = context.object.matrix_world.to_quaternion() @ normal
                 face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
                 if face_up_vector is not None:
                     sprytile_data.paint_normal_vector = target_normal

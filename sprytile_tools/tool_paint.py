@@ -58,7 +58,7 @@ class ToolPaint:
         face = modal.bmesh.faces[face_index]
         for loop in face.loops:
             vert = loop.vert
-            face_verts.append(context.object.matrix_world * vert.co)
+            face_verts.append(context.object.matrix_world @ vert.co)
 
         # Get the center of the preview verts
         vtx_min = Vector((float('inf'), float('inf'), float('inf')))
@@ -86,8 +86,8 @@ class ToolPaint:
             right_vector = face_right
 
         rotation = Quaternion(rotate_normal, data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
         up_vector.normalize()
         right_vector.normalize()
