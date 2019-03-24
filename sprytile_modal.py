@@ -778,6 +778,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
 
+        # TODO: This is a quick fix. Tools should be ported to the new toolbar.
+        ui_x = 0
+        for reg in context.area.regions:
+            if reg.type == 'UI':
+                ui_x = reg.x
+                break
+        out_of_region = out_of_region or coord.x >= ui_x
+
         if sprytile_data.is_running is False:
             do_exit = True
         if event.type == 'ESC':
@@ -908,7 +916,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             return {'PASS_THROUGH'} if VIEW3D_OP_SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
             check_modifier = False
-            #TODO: Support preferences
+            # TODO: Support preferences
             #addon_prefs = context.user_preferences.addons[__package__].preferences
             #if addon_prefs.tile_picker_key == 'Alt':
             #    check_modifier = event.alt
