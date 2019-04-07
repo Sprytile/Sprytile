@@ -57,6 +57,10 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         name="Sprytile Paint Modal Map"
     )
 
+    addon_keymaps = []
+    default_keymaps = []
+    tool_map_name = "Sprytile Tools Map"
+    
     keymaps = {}
     modal_values = []
 
@@ -777,14 +781,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         region = context.region
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
-
-        # TODO: This is a quick fix. Tools should be ported to the new toolbar.
-        ui_x = 0
-        for reg in context.area.regions:
-            if reg.type == 'UI':
-                ui_x = reg.x
-                break
-        out_of_region = out_of_region or coord.x >= ui_x
 
         if sprytile_data.is_running is False:
             do_exit = True

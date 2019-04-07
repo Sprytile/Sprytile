@@ -39,8 +39,10 @@ else:
 import bpy
 import bpy.utils.previews
 #from . import addon_updater_ops
+from bpy.utils.toolsystem import ToolDef
 from bpy.props import *
 import rna_keymap_ui
+
 
 class SprytileSceneSettings(bpy.types.PropertyGroup):
     def set_normal(self, value):
@@ -884,10 +886,88 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
 
         addon_updater_ops.update_settings_ui(self, context)
 
+
+@ToolDef.from_fn
+def toolbar_build():
+    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
+
+    return dict(
+        idname="sprytile.tool_build",
+        label="Sprytile Build",
+        description=(
+            "Make new tiles"
+        ),
+        icon=os.path.join(icons_dir, "sprytile.build_tool"),
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name
+    )
+
+
+@ToolDef.from_fn
+def toolbar_paint():
+    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
+
+    return dict(
+        idname="sprytile.tool_paint",
+        label="Sprytile Paint",
+        description=(
+            "Paint existing tiles/faces"
+        ),
+        icon=os.path.join(icons_dir, "sprytile.paint_tool")
+    )
+
+
+@ToolDef.from_fn
+def toolbar_fill():
+    def draw_settings(context, layout, tool):
+        pass
+
+    icons_dir = os.path.join(os.path.dirname(__file__), "icons")
+
+    return dict(
+        idname="sprytile.tool_fill",
+        label="Sprytile Fill",
+        description=(
+            "Fill existing tiles/faces"
+        ),
+        icon=os.path.join(icons_dir, "sprytile.fill_tool")
+    )
+
+
+def get_tool_list(space_type, context_mode):
+    from bl_ui.space_toolsystem_common import ToolSelectPanelHelper
+    cls = ToolSelectPanelHelper._tool_class_from_space_type(space_type)
+    return cls._tools[context_mode]
+
+
+def register_tools():
+    tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
+
+    for index, tool in enumerate(tools, 1):
+        t = type(tool)
+        if isinstance(tool, tuple) and len(tool) >= 2:
+            if isinstance(tool[0], ToolDef) and tool[0].label == "Scale":
+                break
+
+    tools[:index] += None, toolbar_build, toolbar_paint, toolbar_fill
+
+
+def unregister_tools():
+    tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
+
+    index = tools.index(tool_line) - 1 # None
+    tools.pop(index)
+    tools.remove(toolbar_build)
+    tools.remove(toolbar_paint)
+    tools.remove(toolbar_fill)
+    
+
 def setup_keymap():
     km_array = sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps
+    km_default = sprytile_modal.VIEW3D_OP_SprytileModalTool.default_keymaps
+    km_addon = sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
+    key_config_default = win_mgr.keyconfigs.default
 
     keymap = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
     km_array[keymap] = [
@@ -915,6 +995,14 @@ def setup_keymap():
         'Flip Y'
     ]
 
+    keymap = key_config.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name, space_type='VIEW_3D', region_type='WINDOW')
+    km_items = keymap.keymap_items
+    km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
+    km_addon.append(keymap)
+
+    keymap = key_config_default.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name, space_type='VIEW_3D', region_type='WINDOW')
+    km_default.append(keymap)
+
 
 def teardown_keymap():
     for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps:
@@ -922,6 +1010,14 @@ def teardown_keymap():
         for keymap_item in kmi_list:
             keymap.keymap_items.remove(keymap_item)
     sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps.clear()
+
+    for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps:
+        bpy.context.window_manager.keyconfigs.addon.keymaps.remove(keymap)
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps.clear()
+
+    for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.default_keymaps:
+        bpy.context.window_manager.keyconfigs.default.keymaps.remove(keymap)
+    sprytile_modal.VIEW3D_OP_SprytileModalTool.default_keymaps.clear()
 
 
 # module classes
@@ -977,11 +1073,13 @@ def register():
         submod.register()
 
     PROP_OP_SprytilePropsSetup.props_setup()
+    register_tools()
     setup_keymap()
 
 
 def unregister():
     teardown_keymap()
+    unregister_tools()
     PROP_OP_SprytilePropsTeardown.props_teardown()
 
     for cl in classes:
