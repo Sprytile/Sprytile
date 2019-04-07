@@ -962,38 +962,11 @@ def unregister_tools():
     
 
 def setup_keymap():
-    km_array = sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps
     km_default = sprytile_modal.VIEW3D_OP_SprytileModalTool.default_keymaps
     km_addon = sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps
     win_mgr = bpy.context.window_manager
     key_config = win_mgr.keyconfigs.addon
     key_config_default = win_mgr.keyconfigs.default
-
-    keymap = key_config.keymaps.new(name='Mesh', space_type='EMPTY')
-    km_array[keymap] = [
-        keymap.keymap_items.new("sprytile.modal_tool", 'SPACE', 'PRESS', ctrl=True, shift=True)
-    ]
-
-    keymap = key_config.keymaps.new(name="Sprytile Paint Modal Map", space_type='EMPTY', region_type='WINDOW', modal=True)
-    km_items = keymap.keymap_items
-    km_array[keymap] = [
-        km_items.new_modal('CANCEL', 'ESC', 'PRESS'),
-        km_items.new_modal('SNAP', 'S', 'ANY'),
-        km_items.new_modal('FOCUS', 'W', 'PRESS'),
-        km_items.new_modal('ROTATE_LEFT', 'ONE', 'PRESS'),
-        km_items.new_modal('ROTATE_RIGHT', 'TWO', 'PRESS'),
-        km_items.new_modal('FLIP_X', 'THREE', 'PRESS'),
-        km_items.new_modal('FLIP_Y', 'FOUR', 'PRESS')
-    ]
-    sprytile_modal.VIEW3D_OP_SprytileModalTool.modal_values = [
-        'Cancel',
-        'Cursor Snap',
-        'Cursor Focus',
-        'Rotate Left',
-        'Rotate Right',
-        'Flip X',
-        'Flip Y'
-    ]
 
     keymap = key_config.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name, space_type='VIEW_3D', region_type='WINDOW')
     km_items = keymap.keymap_items
@@ -1005,12 +978,6 @@ def setup_keymap():
 
 
 def teardown_keymap():
-    for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps:
-        kmi_list = keymap.keymap_items
-        for keymap_item in kmi_list:
-            keymap.keymap_items.remove(keymap_item)
-    sprytile_modal.VIEW3D_OP_SprytileModalTool.keymaps.clear()
-
     for keymap in sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps:
         bpy.context.window_manager.keyconfigs.addon.keymaps.remove(keymap)
     sprytile_modal.VIEW3D_OP_SprytileModalTool.addon_keymaps.clear()

@@ -60,9 +60,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     addon_keymaps = []
     default_keymaps = []
     tool_map_name = "Sprytile Tools Map"
-    
-    keymaps = {}
-    modal_values = []
 
     @staticmethod
     def calculate_view_axis(context):
@@ -963,45 +960,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 return {'PASS_THROUGH'}
 
         sprytile_data = context.scene.sprytile_data
-        # Hack to use modal keymap
-        used_key = False
-        build_preview = False
-        for keymap, kmi_list in self.keymaps.items():
-            if not keymap.is_modal:
-                continue
-            for kmi_idx, keymap_item in enumerate(kmi_list):
-                if keymap_is_evt(keymap_item, event):
-                    modal_evt = self.modal_values[kmi_idx]
-                    # print(event.type, modal_evt)
-                    if modal_evt == 'Cancel':
-                        context.scene.sprytile_data.is_running = False
-                    elif modal_evt == 'Cursor Snap':
-                        last_snap = context.scene.sprytile_data.is_snapping
-                        new_snap = event.value == 'PRESS'
-                        sprytile_data.is_snapping = new_snap
-                        # Ask UI to redraw snapping changed
-                        context.scene.sprytile_ui.is_dirty = last_snap != new_snap
-                    elif modal_evt == 'Cursor Focus':
-                        bpy.ops.view3d.view_center_cursor('INVOKE_DEFAULT')
-                    elif modal_evt == 'Rotate Left':
-                        bpy.ops.sprytile.rotate_left()
-                        build_preview = True
-                    elif modal_evt == 'Rotate Right':
-                        bpy.ops.sprytile.rotate_right()
-                        build_preview = True
-                    elif modal_evt == 'Flip X':
-                        sprytile_data.uv_flip_x = not sprytile_data.uv_flip_x
-                        build_preview = True
-                    elif modal_evt == 'Flip Y':
-                        sprytile_data.uv_flip_y = not sprytile_data.uv_flip_y
-                        build_preview = True
-                    used_key = True
-        # Key event used by fake modal map
-        if used_key:
-            # If key need to build preview, set flag and return none
-            if build_preview:
-                self.draw_preview = True
-            return {'RUNNING_MODAL'}
         if event.shift and context.scene.sprytile_data.is_snapping:
             self.cursor_snap(context, event)
             return {'RUNNING_MODAL'}
