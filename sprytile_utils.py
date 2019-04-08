@@ -385,6 +385,8 @@ def get_paint_settings(sprytile_data):
         for x in range(4, 8):  # All toggles on
             paint_settings += 1 << x
     if sprytile_data.paint_mode == 'PAINT':
+        if not "paint_align" in sprytile_data.keys():
+            sprytile_data["paint_align"] = 5
         paint_settings += sprytile_data["paint_align"]
         paint_settings += (1 if sprytile_data.paint_uv_snap else 0) << 7
         paint_settings += (1 if sprytile_data.paint_edge_snap else 0) << 6

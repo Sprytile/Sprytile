@@ -47,19 +47,25 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     preview_is_quads = True
     no_undo = False
 
-    modal_map: bpy.props.EnumProperty(
+    paint_mode : bpy.props.EnumProperty(
         items=[
-            ("SNAP", "Snap Cursor", "", 1),
-            ("FOCUS", "Focus on Cursor", "", 2),
-            ("ROTATE_LEFT", "Rotate Left", "", 3),
-            ("ROTATE_RIGHT", "Rotate Right", "", 4),
+            ("PAINT", "Paint", "Advanced UV paint tools", 1),
+            ("MAKE_FACE", "Build", "Only create new faces", 3),
+            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2),
+            ("FILL", "Fill", "Fill the work plane cursor", 4)
         ],
-        name="Sprytile Paint Modal Map"
+        name="Sprytile Paint Mode",
+        description="Paint mode",
+        default='MAKE_FACE'
     )
 
     addon_keymaps = []
     default_keymaps = []
-    tool_map_name = "Sprytile Tools Map"
+    tool_keymaps = { 
+        'MAKE_FACE' : "Sprytile Build Tool Map", 
+        'PAINT' : "Sprytile Paint Tool Map", 
+        'FILL' : "Sprytile Fill Tool Map"
+        }
 
     @staticmethod
     def calculate_view_axis(context):
@@ -781,14 +787,12 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         if sprytile_data.is_running is False:
             do_exit = True
-        if event.type == 'ESC':
-            do_exit = True
-        if event.type == 'RIGHTMOUSE' and out_of_region:
+        if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
             do_exit = True
         if context.object.mode != 'EDIT':
             do_exit = True
         if do_exit:
-            self.exit_modal(context)
+            self.exit_modal(event, context)
             return {'CANCELLED'}
 
         if VIEW3D_OP_SprytileModalTool.no_undo and sprytile_data.is_grid_translate is False:
@@ -875,18 +879,24 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         else:
             self.rx_data = None
 
+        self.call_tool(event, True)
+
+        return modal_return
+
+
+    def call_tool(self, event, left_down):
         # Push the event data out through rx_observer for tool observers
+        sprytile_data = bpy.context.scene.sprytile_data
         if self.rx_observer is not None:
             self.rx_observer.on_next(
                 DataObjectDict(
                     paint_mode=sprytile_data.paint_mode,
                     event=event,
-                    left_down=self.left_down,
+                    left_down=left_down,
                     build_preview=self.draw_preview,
                 )
             )
 
-        return modal_return
 
     def handle_mouse(self, context, event, draw_preview):
         """"""
@@ -918,7 +928,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             #if addon_prefs.tile_picker_key == 'Shift':
             #    check_modifier = event.shift
 
-            self.left_down = event.value == 'PRESS' and check_modifier is False
             if event.value == 'PRESS' and check_modifier is True:
                 self.find_face_tile(context, event)
             return {'RUNNING_MODAL'}
@@ -970,6 +979,9 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
+        # Set active paint mode
+        context.scene.sprytile_data.paint_mode = self.paint_mode
+
         if context.scene.sprytile_data.is_running:
             return {'CANCELLED'}
         if context.space_data.type != 'VIEW_3D':
@@ -999,7 +1011,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         self.virtual_cursor = deque([], 3)
         VIEW3D_OP_SprytileModalTool.no_undo = False
-        self.left_down = False
         self.update_bmesh_tree(context)
         self.refresh_mesh = False
 
@@ -1030,6 +1041,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         context.scene.sprytile_ui.is_dirty = True
         #bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN') #TODO: Renable once ui works
+        self.modal(context, event)
+
         return {'RUNNING_MODAL'}
 
     def setup_rx_observer(self, observer):
@@ -1085,7 +1098,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                     continue
                 self.intercept_keys.append((cmd_entry, arg))
 
-    def exit_modal(self, context):
+    def exit_modal(self, event, context):
+        self.call_tool(event, False)
         context.scene.sprytile_data.is_running = False
         if self.rx_observer is not None:
             self.rx_observer.on_completed()

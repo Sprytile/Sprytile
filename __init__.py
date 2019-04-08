@@ -898,7 +898,7 @@ def toolbar_build():
             "Make new tiles"
         ),
         icon=os.path.join(icons_dir, "sprytile.build_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['MAKE_FACE']
     )
 
 
@@ -912,7 +912,8 @@ def toolbar_paint():
         description=(
             "Paint existing tiles/faces"
         ),
-        icon=os.path.join(icons_dir, "sprytile.paint_tool")
+        icon=os.path.join(icons_dir, "sprytile.paint_tool"),
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['PAINT']
     )
 
 
@@ -929,7 +930,8 @@ def toolbar_fill():
         description=(
             "Fill existing tiles/faces"
         ),
-        icon=os.path.join(icons_dir, "sprytile.fill_tool")
+        icon=os.path.join(icons_dir, "sprytile.fill_tool"),
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['FILL']
     )
 
 
@@ -959,7 +961,16 @@ def unregister_tools():
     tools.remove(toolbar_build)
     tools.remove(toolbar_paint)
     tools.remove(toolbar_fill)
-    
+
+
+def generate_tool_keymap(keyconfig, paint_mode):
+    keymap = keyconfig.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps[paint_mode], space_type='VIEW_3D', region_type='WINDOW')
+    km_items = keymap.keymap_items
+    kmi = km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
+    kmi.properties.paint_mode = paint_mode
+
+    return keymap
+
 
 def setup_keymap():
     km_default = sprytile_modal.VIEW3D_OP_SprytileModalTool.default_keymaps
@@ -968,13 +979,13 @@ def setup_keymap():
     key_config = win_mgr.keyconfigs.addon
     key_config_default = win_mgr.keyconfigs.default
 
-    keymap = key_config.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name, space_type='VIEW_3D', region_type='WINDOW')
-    km_items = keymap.keymap_items
-    km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
-    km_addon.append(keymap)
+    tools = ['MAKE_FACE', 'PAINT', 'FILL']
 
-    keymap = key_config_default.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_map_name, space_type='VIEW_3D', region_type='WINDOW')
-    km_default.append(keymap)
+    for tool in tools:
+        keymap = generate_tool_keymap(key_config, tool)
+        km_addon.append(keymap)
+        keymap =  key_config_default.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps[tool], space_type='VIEW_3D', region_type='WINDOW')
+        km_default.append(keymap)
 
 
 def teardown_keymap():
