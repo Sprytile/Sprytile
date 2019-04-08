@@ -1472,7 +1472,6 @@ class UTIL_OP_SprytileResetData(bpy.types.Operator):
 
     def invoke(self, context, event):
         context.scene.sprytile_data.auto_reload = False
-        context.scene.sprytile_data.is_running = False
         return {'FINISHED'}
 
 

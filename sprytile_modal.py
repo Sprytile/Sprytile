@@ -785,8 +785,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         coord = Vector((event.mouse_region_x, event.mouse_region_y))
         out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
 
-        if sprytile_data.is_running is False:
-            do_exit = True
         if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
             do_exit = True
         if context.object.mode != 'EDIT':
@@ -982,8 +980,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # Set active paint mode
         context.scene.sprytile_data.paint_mode = self.paint_mode
 
-        if context.scene.sprytile_data.is_running:
-            return {'CANCELLED'}
         if context.space_data.type != 'VIEW_3D':
             self.report({'WARNING'}, "Active space must be a View3d: {0}".format(context.space_data.type))
             return {'CANCELLED'}
@@ -1036,7 +1032,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         win_mgr.modal_handler_add(self)
 
         sprytile_data = context.scene.sprytile_data
-        sprytile_data.is_running = True
         sprytile_data.is_snapping = False
 
         context.scene.sprytile_ui.is_dirty = True
@@ -1100,7 +1095,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
     def exit_modal(self, event, context):
         self.call_tool(event, False)
-        context.scene.sprytile_data.is_running = False
         if self.rx_observer is not None:
             self.rx_observer.on_completed()
         self.tree = None

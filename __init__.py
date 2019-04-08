@@ -100,83 +100,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default='MAKE_FACE'
     )
 
-    def set_show_tools(self, value):
-        keys = self.keys()
-        if "show_tools" not in keys:
-            self["show_tools"] = False
-        self["show_tools"] = value
-        if value is False:
-            if "paint_mode" not in keys:
-                self["paint_mode"] = 3
-            if self["paint_mode"] in {2, 4}:
-                self["paint_mode"] = 3
-
-    def get_show_tools(self):
-        if "show_tools" not in self.keys():
-            self["show_tools"] = False
-        return self["show_tools"]
-
-    show_tools : BoolProperty(
-        default=False,
-        set=set_show_tools,
-        get=get_show_tools
-    )
-
-    def set_dummy(self, value):
-        current_value = self.get_dummy_actual(True)
-        value = list(value)
-        for idx in range(len(value)):
-            if current_value[idx] and current_value[idx] & value[idx]:
-                value[idx] = False
-
-        mode_value_idx = [1, 3, 2, 4]
-
-        def get_mode_value(arr_value):
-            for i in range(len(arr_value)):
-                if arr_value[i]:
-                    return mode_value_idx[i]
-            return -1
-
-        run_modal = True
-        paint_mode = get_mode_value(value)
-        if paint_mode > 0:
-            self["paint_mode"] = paint_mode
-        else:
-            run_modal = False
-            if "is_running" in self.keys():
-                if self["is_running"]:
-                    self["is_running"] = False
-                else:
-                    run_modal = True
-
-        if run_modal:
-            bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
-
-    def get_dummy_actual(self, force_real):
-        if "paint_mode" not in self.keys():
-            self["paint_mode"] = 3
-
-        out_value = [False, False, False, False]
-        if self["is_running"] or force_real:
-            index_value_lookup = 1, 3, 2, 4
-            set_idx = index_value_lookup.index(self["paint_mode"])
-            out_value[set_idx] = True
-        return out_value
-
-    def get_dummy(self):
-        if "is_running" not in self.keys():
-            self["is_running"] = False
-        is_running = self["is_running"]
-        return self.get_dummy_actual(is_running)
-
-    set_paint_mode : BoolVectorProperty(
-        name="Set Paint Mode",
-        description="Set Sprytile Tool Mode",
-        size=4,
-        set=set_dummy,
-        get=get_dummy
-    )
-
     work_layer : EnumProperty(
         items=[
             ("BASE", "Base", "Base layer", 1),
@@ -421,10 +344,6 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         description="Snap UV vertices to texture pixels"
     )
 
-    is_running : BoolProperty(
-        name="Sprytile Running",
-        description="Exit Sprytile tool"
-    )
     is_snapping : BoolProperty(
         name="Is Cursor Snap",
         description="Is cursor snapping currently activated"
@@ -1028,22 +947,6 @@ submodules = (
 def register():
     #addon_updater_ops.register(bl_info)
 
-    sprytile_panel.icons = bpy.utils.previews.new()
-    dirname = os.path.dirname(__file__)
-    icon_names = ('SPRYTILE_ICON_BUILD',
-                  'SPRYTILE_ICON_PAINT',
-                  'SPRYTILE_ICON_FILL',
-                  'SPRYTILE_ICON_NORMAL')
-    icon_paths = ('icon-build.png',
-                  'icon-paint.png',
-                  'icon-fill.png',
-                  'icon-setnormal.png')
-
-    for i in range(0, len(icon_names)):
-        icon_path = os.path.join(dirname, "icons")
-        icon_path = os.path.join(icon_path, icon_paths[i])
-        sprytile_panel.icons.load(icon_names[i], icon_path, 'IMAGE')
-
     for cl in classes:
         bpy.utils.register_class(cl)
 
@@ -1065,8 +968,6 @@ def unregister():
 
     for submod in submodules:
         submod.unregister()
-
-    bpy.utils.previews.remove(sprytile_panel.icons)
 
     # Unregister self from sys.path as well
     cmd_subfolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
