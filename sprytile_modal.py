@@ -796,15 +796,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         if VIEW3D_OP_SprytileModalTool.no_undo and sprytile_data.is_grid_translate is False:
             VIEW3D_OP_SprytileModalTool.no_undo = False
 
-        if event.type == 'TIMER':
-            view_axis = self.find_view_axis(context)
-            if view_axis is not None:
-                if view_axis != sprytile_data.normal_mode:
-                    self.virtual_cursor.clear()
-                    sprytile_data.normal_mode = view_axis
-                    sprytile_data.lock_normal = False
-            return {'PASS_THROUGH'}
-
         # Mouse in Sprytile UI, eat this event without doing anything
         if context.scene.sprytile_ui.use_mouse:
             self.clear_preview_data()
@@ -1024,9 +1015,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             "set_normal": ToolSetNormal(self, self.rx_source)
         }
 
-        # Set up timer callback
         win_mgr = context.window_manager
-        self.view_axis_timer = win_mgr.event_timer_add(0.1, window = context.window)
 
         self.setup_user_keys(context)
         win_mgr.modal_handler_add(self)
@@ -1036,6 +1025,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         context.scene.sprytile_ui.is_dirty = True
         #bpy.ops.sprytile.gui_win('INVOKE_REGION_WIN') #TODO: Renable once ui works
+
+        #Update view axis
+        view_axis = self.find_view_axis(context)
+        if view_axis is not None:
+            if view_axis != sprytile_data.normal_mode:
+                sprytile_data.normal_mode = view_axis
+                sprytile_data.lock_normal = False
+
         self.modal(context, event)
 
         return {'RUNNING_MODAL'}
@@ -1099,8 +1096,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             self.rx_observer.on_completed()
         self.tree = None
         self.tools = None
-        if hasattr(self, "view_axis_timer"):
-            context.window_manager.event_timer_remove(self.view_axis_timer)
         if context.object.mode == 'EDIT':
             bmesh.update_edit_mesh(context.object.data, True, True)
 
