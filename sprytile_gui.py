@@ -161,7 +161,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         context.scene.sprytile_ui.zoom = zoom_level
 
     def handle_ui(self, context, event):
-        return #TODO: temp
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
             self.mouse_pt = Vector((event.mouse_region_x, event.mouse_region_y))
 
@@ -212,7 +211,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                 elif paint_mode == 'FILL':
                     cursor_data = 'SCROLL_XY'
 
-                addon_prefs = context.user_preferences.addons[__package__].preferences
+                addon_prefs = context.preferences.addons[__package__].preferences
                 if addon_prefs.tile_picker_key == 'Alt' and event.alt:
                     cursor_data = 'EYEDROPPER'
                 if addon_prefs.tile_picker_key == 'Ctrl' and event.ctrl:
