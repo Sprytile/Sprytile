@@ -818,7 +818,8 @@ def toolbar_build():
         ),
         icon=os.path.join(icons_dir, "sprytile.build_tool"),
         keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['MAKE_FACE'],
-        widget="VIEW3D_GGT_sprytile_gui"
+        widget="VIEW3D_GGT_sprytile_gui",
+        cursor="KNIFE"
     )
 
 
@@ -834,7 +835,8 @@ def toolbar_paint():
         ),
         icon=os.path.join(icons_dir, "sprytile.paint_tool"),
         keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['PAINT'],
-        widget="VIEW3D_GGT_sprytile_gui"
+        widget="VIEW3D_GGT_sprytile_gui",
+        cursor="PAINT_BRUSH"
     )
 
 
@@ -853,7 +855,8 @@ def toolbar_fill():
         ),
         icon=os.path.join(icons_dir, "sprytile.fill_tool"),
         keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['FILL'],
-        widget="VIEW3D_GGT_sprytile_gui"
+        widget="VIEW3D_GGT_sprytile_gui",
+        cursor="SCROLL_XY"
     )
 
 
@@ -888,8 +891,7 @@ def unregister_tools():
 def generate_tool_keymap(keyconfig, paint_mode):
     keymap = keyconfig.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps[paint_mode], space_type='VIEW_3D', region_type='WINDOW')
     km_items = keymap.keymap_items
-    kmi = km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
-    kmi.properties.paint_mode = paint_mode
+    km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
 
     return keymap
 

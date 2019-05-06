@@ -47,18 +47,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     preview_is_quads = True
     no_undo = False
 
-    paint_mode : bpy.props.EnumProperty(
-        items=[
-            ("PAINT", "Paint", "Advanced UV paint tools", 1),
-            ("MAKE_FACE", "Build", "Only create new faces", 3),
-            ("SET_NORMAL", "Set Normal", "Select a normal to use for face creation", 2),
-            ("FILL", "Fill", "Fill the work plane cursor", 4)
-        ],
-        name="Sprytile Paint Mode",
-        description="Paint mode",
-        default='MAKE_FACE'
-    )
-
     addon_keymaps = []
     default_keymaps = []
     tool_keymaps = { 
@@ -968,9 +956,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
-        # Set active paint mode
-        context.scene.sprytile_data.paint_mode = self.paint_mode
-
         if context.space_data.type != 'VIEW_3D':
             self.report({'WARNING'}, "Active space must be a View3d: {0}".format(context.space_data.type))
             return {'CANCELLED'}

@@ -197,31 +197,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             mouse_in_gui = gui_min.x <= mouse_pt.x <= gui_max.x and gui_min.y <= mouse_pt.y <= gui_max.y
 
             context.scene.sprytile_ui.use_mouse = mouse_in_gui
-
-            if mouse_in_gui:
-                context.window.cursor_modal_restore()
-            elif mouse_in_region or context.scene.sprytile_ui.is_dirty:
-                is_snapping = context.scene.sprytile_data.is_snapping
-                cursor_data = 'PAINT_BRUSH' if not is_snapping else 'CROSSHAIR'
-                paint_mode = context.scene.sprytile_data.paint_mode
-                if paint_mode == 'MAKE_FACE':
-                    cursor_data = 'KNIFE'
-                elif paint_mode == 'SET_NORMAL':
-                    cursor_data = 'CROSSHAIR'
-                elif paint_mode == 'FILL':
-                    cursor_data = 'SCROLL_XY'
-
-                addon_prefs = context.preferences.addons[__package__].preferences
-                if addon_prefs.tile_picker_key == 'Alt' and event.alt:
-                    cursor_data = 'EYEDROPPER'
-                if addon_prefs.tile_picker_key == 'Ctrl' and event.ctrl:
-                    cursor_data = 'EYEDROPPER'
-                if addon_prefs.tile_picker_key == 'Shift' and event.shift:
-                    cursor_data = 'EYEDROPPER'
-                context.window.cursor_modal_set(cursor_data)
-
-            if not mouse_in_region and self.prev_in_region:
-                context.window.cursor_modal_restore()
             self.prev_in_region = mouse_in_region
 
         if context.scene.sprytile_ui.use_mouse is False:
@@ -375,7 +350,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def handler_remove(self, context):
-        context.window.cursor_modal_restore()
         if hasattr(VIEW3D_OP_SprytileGui, "draw_callback") and VIEW3D_OP_SprytileGui.draw_callback is not None:
             bpy.types.SpaceView3D.draw_handler_remove(VIEW3D_OP_SprytileGui.draw_callback, 'WINDOW')
         VIEW3D_OP_SprytileGui.draw_callback = None
@@ -868,13 +842,23 @@ class SprytileGuiWidgetGroup(bpy.types.GizmoGroup):
         # Trick to detect when the sprytile tools are selected, using an empty widget. 
         # There doesn't seem to be a better way at the moment.
         override_context = bpy.context.copy()
+        cur_tool = sprytile_utils.get_current_tool(context)
+        sprytile_data = context.scene.sprytile_data
         def call_gui_op():
-            bpy.ops.sprytile.gui_win(override_context, 'INVOKE_REGION_WIN')
+            # Set paint mode
+            if cur_tool == 'sprytile.tool_build':
+               sprytile_data.paint_mode = 'MAKE_FACE'
+            elif cur_tool == 'sprytile.tool_paint':
+                sprytile_data.paint_mode = 'PAINT'
+            elif cur_tool == 'sprytile.tool_fill':
+                sprytile_data.paint_mode = 'FILL'
+
+            if not VIEW3D_OP_SprytileGui.is_running:
+                bpy.ops.sprytile.gui_win(override_context, 'INVOKE_REGION_WIN')
             return None
 
-        if not VIEW3D_OP_SprytileGui.is_running:
-            # Differ call to timer because operators cannot be called here
-            bpy.app.timers.register(call_gui_op)
+        # Differ call to timer because operators cannot be called here
+        bpy.app.timers.register(call_gui_op)
 
 # module classes
 classes = (
