@@ -817,7 +817,8 @@ def toolbar_build():
             "Make new tiles"
         ),
         icon=os.path.join(icons_dir, "sprytile.build_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['MAKE_FACE']
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['MAKE_FACE'],
+        widget="VIEW3D_GGT_sprytile_gui"
     )
 
 
@@ -832,7 +833,8 @@ def toolbar_paint():
             "Paint existing tiles/faces"
         ),
         icon=os.path.join(icons_dir, "sprytile.paint_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['PAINT']
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['PAINT'],
+        widget="VIEW3D_GGT_sprytile_gui"
     )
 
 
@@ -850,7 +852,8 @@ def toolbar_fill():
             "Fill existing tiles/faces"
         ),
         icon=os.path.join(icons_dir, "sprytile.fill_tool"),
-        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['FILL']
+        keymap=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps['FILL'],
+        widget="VIEW3D_GGT_sprytile_gui"
     )
 
 

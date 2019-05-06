@@ -353,6 +353,13 @@ def get_mat_data(context, mat_id):
             return mat_data
     return None
 
+def get_current_tool(context):
+    '''
+    Returns the active tool in edit mode
+    '''
+    cur_tool = context.workspace.tools.from_space_view3d_mode('EDIT_MESH', create=False).idname
+    return cur_tool
+
 
 def get_paint_settings(sprytile_data):
     '''
