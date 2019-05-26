@@ -974,11 +974,6 @@ class UTIL_OP_SprytileSetupTexture(bpy.types.Operator):
         target_node.interpolation = 'Closest'
         target_img = target_node.image
 
-        if not target_img:
-            return
-        
-        target_img.use_alpha = True
-
         # We don't have these in 2.8, but the behaviour with nodes and Closest filtering is equivalent.
         # However, 2.8 doesn't currently offer an option to disable mipmaps?
         # target_texture.use_preview_alpha = True
