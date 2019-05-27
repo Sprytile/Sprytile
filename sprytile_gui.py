@@ -10,6 +10,59 @@ from mathutils import Vector, Matrix
 from . import sprytile_utils, sprytile_modal
 
 
+# Shaders
+flat_vertex_shader = '''
+    uniform mat4 u_modelViewProjectionMatrix;
+
+    in vec2 i_position;
+    in vec4 i_color;
+
+    out vec4 o_color;
+
+    void main()
+    {
+        o_color = i_color;
+        gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
+    }
+'''
+
+flat_fragment_shader = '''
+    in vec4 o_color;
+
+    void main()
+    {
+        gl_FragColor = o_color;
+    }
+'''
+
+image_vertex_shader = '''
+    uniform mat4 u_modelViewProjectionMatrix;
+
+    in vec2 i_position;
+    in vec2 i_uv;
+
+    out vec2 o_uv;
+
+    void main()
+    {
+        o_uv = i_uv;
+        gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
+    }
+'''
+
+image_fragment_shader = '''
+    uniform sampler2D u_image;
+
+    in vec2 o_uv;
+
+    void main()
+    {
+        gl_FragColor = texture(u_image, o_uv);
+    }
+'''
+
+
+
 class SprytileGuiData(bpy.types.PropertyGroup):
     zoom : FloatProperty(
         name="Sprytile UI zoom",
