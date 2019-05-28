@@ -8,6 +8,7 @@ from bgl import *
 from bpy.props import *
 from mathutils import Vector, Matrix
 from . import sprytile_utils, sprytile_modal
+from gpu_extras.batch import batch_for_shader
 
 
 # Shaders
@@ -60,6 +61,9 @@ image_fragment_shader = '''
         gl_FragColor = texture(u_image, o_uv);
     }
 '''
+
+flat_shader = gpu.types.GPUShader(flat_vertex_shader, flat_fragment_shader)
+image_shader = gpu.types.GPUShader(image_vertex_shader, image_fragment_shader)
 
 
 
@@ -409,13 +413,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
     @staticmethod
     def draw_callback_handler(self, context, region):
-        return #TODO: temp
         """Callback handler"""
-        if region.id is not context.region.id:
-            return
         sprytile_data = context.scene.sprytile_data
-        if sprytile_data.is_running is False:
-            return
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
 
@@ -424,11 +423,11 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         middle_btn = context.scene.sprytile_ui.middle_btn
 
-        VIEW3D_OP_SprytileGui.draw_offscreen(context)
-        VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
-                                     self.label_counter, tilegrid, sprytile_data,
-                                     context.scene.cursor.location, region, rv3d,
-                                     middle_btn, context)
+        #VIEW3D_OP_SprytileGui.draw_offscreen(context)
+        #VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
+        #                             self.label_counter, tilegrid, sprytile_data,
+        #                             context.scene.cursor.location, region, rv3d,
+        #                             middle_btn, context)
 
     @staticmethod
     def draw_selection(sel_min, sel_max, adjust=1):
@@ -452,23 +451,22 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         tex_size = VIEW3D_OP_SprytileGui.tex_size
 
         offscreen.bind()
+        
         glClear(GL_COLOR_BUFFER_BIT)
         glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluOrtho2D(0, tex_size[0], 0, tex_size[1])
+
+        projection_mat = sprytile_utils.get_ortho2D_matrix(0, tex_size[0], 0, tex_size[1])
 
         def draw_full_quad():
-            texco = [(0, 0), (0, 1), (1, 1), (1, 0)]
-            verco = [(0, 0), (0, tex_size[1]), (tex_size[0], tex_size[1]), (tex_size[0], 0)]
-            glBegin(bgl.GL_QUADS)
-            for i in range(4):
-                glTexCoord2f(texco[i][0], texco[i][1])
-                glVertex2f(verco[i][0], verco[i][1])
-            glEnd()
+            flat_shader.bind()
+            
+            vercol = ((0, 0, 0, 0.5),)*4
+            vercoord = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
+            batch = batch_for_shader(flat_shader, 'TRI_STRIP', { "i_position": vercoord, "i_color": vercol})
+            flat_shader.uniform_float("u_modelViewProjectionMatrix", projection_mat)
+            batch.draw(flat_shader)
 
-        glColor4f(0.0, 0.0, 0.0, 0.5)
         draw_full_quad()
 
         if target_img is not None:

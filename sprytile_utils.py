@@ -18,6 +18,14 @@ import sprytile_modal
 import addon_updater_ops
 
 
+def get_ortho2D_matrix(left, right, bottom, top):
+    rl = right - left
+    rl2 = right + left
+    tb = top - bottom
+    tb2 = top + bottom
+    
+    return Matrix([(2.0 / rl, 0, 0, -(rl2 / rl)), (0, 2.0 / tb, 0, -(tb2 / tb)), (0, 0, -1, 0), (0, 0, 0, 1)])
+
 def get_current_grid_vectors(scene, with_rotation=True):
     """Returns the current grid X/Y/Z vectors from scene data
     :param scene: scene data
