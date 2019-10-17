@@ -787,7 +787,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         layout.prop(self, "preview_transparency")
 
         box = layout.box()
-        box.label("Keyboard Shortcuts")
+        box.label(text = "Keyboard Shortcuts")
         box.prop(self, "tile_picker_key")
         box.prop(self, "tile_sel_move_key")
 
@@ -803,7 +803,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
             col.context_pointer_set("keymap", km)
             rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
-        addon_updater_ops.update_settings_ui(self, context)
+        #addon_updater_ops.update_settings_ui(self, context)
 
 
 @ToolDef.from_fn
