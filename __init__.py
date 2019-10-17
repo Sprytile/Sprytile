@@ -870,10 +870,8 @@ def register_tools():
     tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
 
     for index, tool in enumerate(tools, 1):
-        t = type(tool)
-        if isinstance(tool, tuple) and len(tool) >= 2:
-            if isinstance(tool[0], ToolDef) and tool[0].label == "Scale":
-                break
+        if isinstance(tool, ToolDef) and tool.label == "Transform":
+            break
 
     tools[:index] += None, toolbar_build, toolbar_paint, toolbar_fill
 
@@ -881,7 +879,7 @@ def register_tools():
 def unregister_tools():
     tools = get_tool_list('VIEW_3D', 'EDIT_MESH')
 
-    index = tools.index(tool_line) - 1 # None
+    index = tools.index(toolbar_build) - 1 # None
     tools.pop(index)
     tools.remove(toolbar_build)
     tools.remove(toolbar_paint)
