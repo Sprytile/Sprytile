@@ -39,7 +39,7 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
 
 
 class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
-    bl_idname = 'sprytile.grid_drop_down'
+    bl_idname = 'VIEW3D_MT_SprytileGridDropDown'
     bl_label = "Grid drop down"
 
     def draw(self, context):
@@ -50,7 +50,7 @@ class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
 
 
 class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
-    bl_idname = "sprytile.panel"
+    bl_idname = "VIEW3D_PT_SprytilePanel"
     bl_label = "Sprytile Painter"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -132,7 +132,7 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.operator
         col.operator('sprytile.grid_add', icon='ADD', text='')
         col.operator('sprytile.grid_remove', icon='REMOVE', text='')
-        col.menu('sprytile.grid_drop_down', icon='DOWNARROW_HLT', text='')
+        col.menu('VIEW3D_MT_SprytileGridDropDown', icon='DOWNARROW_HLT', text='')
         col.separator()
         col.operator('sprytile.grid_move', icon='TRIA_UP', text='').direction = -1
         col.operator('sprytile.grid_move', icon='TRIA_DOWN', text='').direction = 1

@@ -1486,7 +1486,7 @@ class UTIL_OP_SprytileResetData(bpy.types.Operator):
 
 
 class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
-    bl_idname = 'sprytile.object_drop'
+    bl_idname = 'VIEW3D_MT_SprytileObjectDropDown'
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
 
@@ -1504,7 +1504,7 @@ class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
 
 class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
     bl_label = "Sprytile Tools"
-    bl_idname = "sprytile.panel_object"
+    bl_idname = "VIEW3D_PT_SprytileObjectPanel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Sprytile"
@@ -1529,7 +1529,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
             box.operator("sprytile.props_setup")
             return
 
-        layout.menu('sprytile.object_drop')
+        layout.menu('VIEW3D_MT_SprytileObjectDropDown')
 
         selection_enabled = True
         if context.object is None:
@@ -1565,7 +1565,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
 
 
 class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
-    bl_idname = 'sprytile.work_drop'
+    bl_idname = 'VIEW3D_MT_SprytileWorkDropDown'
     bl_label = "Sprytile Utilites"
     bl_description = "Sprytile helper functions"
 
@@ -1585,7 +1585,7 @@ class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
 
 class VIEW3D_PT_SprytileLayerPanel(bpy.types.Panel):
     bl_label = "Layers"
-    bl_idname = "sprytile.panel_layers"
+    bl_idname = "VIEW3D_PT_SprytileLayerPanel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Sprytile"
@@ -1613,7 +1613,7 @@ class VIEW3D_PT_SprytileLayerPanel(bpy.types.Panel):
 
 class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
     bl_label = "Workflow"
-    bl_idname = "sprytile.panel_workflow"
+    bl_idname = "VIEW3D_PT_SprytileWorkflowPanel"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Sprytile"
@@ -1668,7 +1668,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         # layout.prop(data, "snap_translate", toggle=True)
 
         layout.prop(data, "world_pixels")
-        layout.menu("sprytile.work_drop")
+        layout.menu("VIEW3D_MT_SprytileWorkDropDown")
 
         split = layout.split(factor=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
