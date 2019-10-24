@@ -714,7 +714,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
             # Get if user is holding down tile picker modifier
             check_modifier = False
-            addon_prefs = context.user_preferences.addons[__package__].preferences
+            addon_prefs = context.preferences.addons[__package__].preferences
             if addon_prefs.tile_picker_key == 'Alt':
                 check_modifier = event.alt
             if addon_prefs.tile_picker_key == 'Ctrl':
@@ -897,7 +897,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         elif event.type == 'LEFTMOUSE':
             check_modifier = False
             # TODO: Support preferences
-            #addon_prefs = context.user_preferences.addons[__package__].preferences
+            #addon_prefs = context.preferences.addons[__package__].preferences
             #if addon_prefs.tile_picker_key == 'Alt':
             #    check_modifier = event.alt
             #if addon_prefs.tile_picker_key == 'Ctrl':
