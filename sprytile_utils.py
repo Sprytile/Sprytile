@@ -1651,7 +1651,7 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         sub_row.prop(data, "axis_plane_display", expand=True)
 
         if data.axis_plane_settings:
-            addon_prefs = context.user_preferences.addons[__package__].preferences
+            addon_prefs = context.preferences.addons[__package__].preferences
             layout.prop(addon_prefs, "preview_transparency")
             layout.prop(data, "axis_plane_color")
             layout.prop(data, "axis_plane_size")

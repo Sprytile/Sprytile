@@ -23,7 +23,7 @@ import os
 # updater import, import safely
 # Prevents popups for users with invalid python installs e.g. missing libraries
 try:
-    from .addon_updater import Updater as updater
+    from addon_updater import Updater as updater
 except Exception as e:
     print("ERROR INITIALIZING UPDATER")
     print(str(e))
@@ -154,7 +154,7 @@ class ADDON_OP_addon_updater_check_now(bpy.types.Operator):
             return {'CANCELLED'}
 
         # apply the UI settings
-        settings = context.user_preferences.addons[__package__].preferences
+        settings = context.preferences.addons[__package__].preferences
         updater.set_check_interval(enable=settings.auto_check_update,
                                    months=settings.updater_intrval_months,
                                    days=settings.updater_intrval_days,
@@ -627,7 +627,7 @@ def check_for_update_background():
         return
 
     # apply the UI settings
-    addon_prefs = bpy.context.user_preferences.addons.get(__package__, None)
+    addon_prefs = bpy.context.preferences.addons.get(__package__, None)
     if not addon_prefs:
         return
     settings = addon_prefs.preferences
@@ -657,7 +657,7 @@ def check_for_update_nonthreaded(self, context):
     # only check if it's ready, ie after the time interval specified
     # should be the async wrapper call here
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
     updater.set_check_interval(enable=settings.auto_check_update,
                                months=settings.updater_intrval_months,
                                days=settings.updater_intrval_days,
@@ -730,7 +730,7 @@ def update_notice_box_ui(self, context):
 
     if updater.update_ready != True: return
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
     layout = self.layout
     box = layout.box()
     col = box.column(align=True)
@@ -763,7 +763,7 @@ def update_settings_ui(self, context):
         box.label(updater.error_msg)
         return
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
 
     # auto-update settings
     box.label("Updater Settings")

@@ -29,10 +29,11 @@ flat_vertex_shader = '''
 
 flat_fragment_shader = '''
     in vec4 o_color;
+    out vec4 frag_color;
 
     void main()
     {
-        gl_FragColor = o_color;
+        frag_color = o_color;
     }
 '''
 
@@ -55,10 +56,11 @@ image_fragment_shader = '''
     uniform sampler2D u_image;
 
     in vec2 o_uv;
+    out vec4 frag_color;
 
     void main()
     {
-        gl_FragColor = texture(u_image, o_uv);
+        frag_color = texture(u_image, o_uv);
     }
 '''
 
@@ -288,7 +290,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             VIEW3D_OP_SprytileGui.cursor_grid_pos = grid_pos
 
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and VIEW3D_OP_SprytileGui.is_selecting is False:
-                addon_prefs = context.user_preferences.addons[__package__].preferences
+                addon_prefs = context.preferences.addons[__package__].preferences
                 move_mod_pressed = False
                 if addon_prefs.tile_sel_move_key == 'Alt':
                     move_mod_pressed = event.alt
@@ -739,7 +741,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                 return
             screen_verts.append(screen_vtx)
 
-        addon_prefs = context.user_preferences.addons[__package__].preferences
+        addon_prefs = context.preferences.addons[__package__].preferences
         preview_alpha = addon_prefs.preview_transparency
         sprytile_data = context.scene.sprytile_data
 
