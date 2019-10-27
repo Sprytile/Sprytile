@@ -41,26 +41,32 @@ image_vertex_shader = '''
     uniform mat4 u_modelViewProjectionMatrix;
 
     in vec2 i_position;
+    in vec4 i_color;
     in vec2 i_uv;
 
     out vec2 o_uv;
+    out vec4 o_color;
 
     void main()
     {
         o_uv = i_uv;
+        o_color = i_color;
         gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
     }
 '''
 
 image_fragment_shader = '''
     uniform sampler2D u_image;
+    uniform float u_correct;
 
     in vec2 o_uv;
+    in vec4 o_color;
     out vec4 frag_color;
 
     void main()
     {
-        frag_color = texture(u_image, o_uv);
+        vec4 col = texture(u_image, o_uv) * o_color;
+        frag_color = pow(col, vec4(u_correct));
     }
 '''
 
@@ -425,25 +431,50 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         middle_btn = context.scene.sprytile_ui.middle_btn
 
-        #VIEW3D_OP_SprytileGui.draw_offscreen(context)
+        VIEW3D_OP_SprytileGui.draw_offscreen(context)
         #VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
         #                             self.label_counter, tilegrid, sprytile_data,
         #                             context.scene.cursor.location, region, rv3d,
         #                             middle_btn, context)
 
     @staticmethod
-    def draw_selection(sel_min, sel_max, adjust=1):
+    def draw_selection(mvpMat, color, sel_min, sel_max, adjust=1):
+        flat_shader.bind()
+        
         sel_vtx = [
-            (sel_min[0] + adjust, sel_min[1] + adjust),
-            (sel_max[0], sel_min[1]),
-            (sel_max[0], sel_max[1]),
-            (sel_min[0], sel_max[1])
+        (sel_min[0] + adjust, sel_min[1] + adjust),
+        (sel_max[0], sel_min[1]),
+        (sel_max[0], sel_max[1]),
+        (sel_min[0], sel_max[1]),
+        (sel_min[0] + adjust, sel_min[1])
         ]
-        glBegin(GL_LINE_STRIP)
-        for vtx in sel_vtx:
-            glVertex2i(vtx[0], vtx[1])
-        glVertex2i(sel_vtx[0][0], sel_vtx[0][1] - adjust)
-        glEnd()
+        vercol = (color,)*5
+
+        batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": sel_vtx, "i_color": vercol})
+        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+        batch.draw(flat_shader)
+
+    @staticmethod
+    def draw_full_quad(pos, mvpMat, color = (1, 1, 1, 1)):
+        flat_shader.bind()
+        
+        vercol = (color,)*4
+        batch = batch_for_shader(flat_shader, 'TRI_STRIP', { "i_position": pos, "i_color": vercol})
+        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+        batch.draw(flat_shader)
+
+    @staticmethod
+    def draw_full_tex_quad(pos, mvpMat, textureUnit, gammaCorrect = False, uvs = None, color = (1, 1, 1, 1)):
+        image_shader.bind()
+
+        vercol = (color,)*4
+        if not uvs:
+            uvs = ((0,0),(1,0),(0,1),(1,1))
+        batch = batch_for_shader(image_shader, 'TRI_STRIP', { "i_position": pos, "i_color": vercol, "i_uv": uvs})
+        image_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+        image_shader.uniform_int("u_image", textureUnit)
+        image_shader.uniform_float("u_correct", gammaCorrect and (1.0/2.2) or 1.0)
+        batch.draw(image_shader)
 
     @staticmethod
     def draw_offscreen(context):
@@ -451,47 +482,31 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         offscreen = VIEW3D_OP_SprytileGui.offscreen
         target_img = VIEW3D_OP_SprytileGui.texture_grid
         tex_size = VIEW3D_OP_SprytileGui.tex_size
+        projection_mat = sprytile_utils.get_ortho2D_matrix(0, tex_size[0], 0, tex_size[1])
 
         offscreen.bind()
-        
+        glClearColor(0, 0, 0, 0.5)
         glClear(GL_COLOR_BUFFER_BIT)
         glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
 
-        projection_mat = sprytile_utils.get_ortho2D_matrix(0, tex_size[0], 0, tex_size[1])
-
-        def draw_full_quad():
-            flat_shader.bind()
-            
-            vercol = ((0, 0, 0, 0.5),)*4
-            vercoord = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
-            batch = batch_for_shader(flat_shader, 'TRI_STRIP', { "i_position": vercoord, "i_color": vercol})
-            flat_shader.uniform_float("u_modelViewProjectionMatrix", projection_mat)
-            batch.draw(flat_shader)
-
-        draw_full_quad()
-
         if target_img is not None:
-            glColor4f(1.0, 1.0, 1.0, 1.0)
-            target_img.gl_load(0, GL_NEAREST, GL_NEAREST)
-            glBindTexture(GL_TEXTURE_2D, target_img.bindcode[0])
+            target_img.gl_load()
+            glActiveTexture(bgl.GL_TEXTURE0)
+            glBindTexture(GL_TEXTURE_2D, target_img.bindcode)
             # We need to backup and restore the MAG_FILTER to avoid messing up the Blender viewport
             old_mag_filter = Buffer(GL_INT, 1)
             glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
             glEnable(GL_TEXTURE_2D)
-            draw_full_quad()
+            quad_pos = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
+            VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, True)
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
         # Translate the gl context by grid matrix
         grid_matrix = sprytile_utils.get_grid_matrix(VIEW3D_OP_SprytileGui.loaded_grid)
-        matrix_vals = [grid_matrix[j][i] for i in range(4) for j in range(4)]
-        grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
-
-        glMatrixMode(GL_MODELVIEW)
-        glPushMatrix()
-        glLoadIdentity()
-        glLoadMatrixf(grid_buff)
+        matrix_vals = [(grid_matrix[i][0], grid_matrix[i][1], grid_matrix[i][2], grid_matrix[i][3]) for i in range(4)]
+        mvp_mat = projection_mat @ Matrix(matrix_vals)
 
         glDisable(GL_TEXTURE_2D)
 
@@ -513,17 +528,17 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         draw_outline = sprytile_data.outline_preview or is_not_base_layer
         if draw_outline and is_selecting is False and not is_pixel_grid:
             if is_not_base_layer:
-                glColor4f(0.98, 0.94, 0.12, 1.0)
+                sel_color = (0.98, 0.94, 0.12, 1.0)
             elif VIEW3D_OP_SprytileGui.is_moving:
-                glColor4f(1.0, 0.0, 0.0, 1.0)
+                sel_color = (1.0, 0.0, 0.0, 1.0)
             else:
-                glColor4f(1.0, 1.0, 1.0, 1.0)
+                sel_color = (1.0, 1.0, 1.0, 1.0)
             curr_sel_min, curr_sel_max = VIEW3D_OP_SprytileGui.get_sel_bounds(
                                                     grid_size, padding, margin,
                                                     curr_sel[0], curr_sel[1],
                                                     curr_sel[2], curr_sel[3]
                                                 )
-            VIEW3D_OP_SprytileGui.draw_selection(curr_sel_min, curr_sel_max)
+            VIEW3D_OP_SprytileGui.draw_selection(mvp_mat, sel_color, curr_sel_min, curr_sel_max)
 
         # Inside gui, draw appropriate selection for under mouse
         if is_use_mouse and is_selecting is False and VIEW3D_OP_SprytileGui.cursor_grid_pos is not None:
@@ -531,24 +546,22 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             cursor_pos = VIEW3D_OP_SprytileGui.cursor_grid_pos
             # In pixel grid, draw cross hair
             if is_pixel_grid and VIEW3D_OP_SprytileGui.is_moving is False:
-                glColor4f(1.0, 1.0, 1.0, 0.5)
-                glBegin(GL_LINE_STRIP)
-                glVertex2i(0, int(cursor_pos.y + 1))
-                glVertex2i(tex_size[0], int(cursor_pos.y + 1))
-                glEnd()
+                vtx_pos = ((0, int(cursor_pos.y + 1)), (tex_size[0], int(cursor_pos.y + 1)))
+                vtx_col = ((1.0, 1.0, 1.0, 0.5),)*2
+                batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vtx_pos, "i_color": vtx_col})
+                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+                batch.draw(flat_shader)
 
-                glBegin(GL_LINE_STRIP)
-                glVertex2i(int(cursor_pos.x + 1), 0)
-                glVertex2i(int(cursor_pos.x + 1), tex_size[1])
-                glEnd()
+                vtx_pos = ((int(cursor_pos.x + 1), 0), (int(cursor_pos.x + 1), tex_size[1]))
+                batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vtx_pos, "i_color": vtx_col})
+                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+                batch.draw(flat_shader)
             # Draw box around selection
             elif VIEW3D_OP_SprytileGui.is_moving is False:
-                glColor4f(1.0, 0.0, 0.0, 1.0)
                 cursor_min, cursor_max = VIEW3D_OP_SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                                     int(cursor_pos.x), int(cursor_pos.y),)
-                VIEW3D_OP_SprytileGui.draw_selection(cursor_min, cursor_max)
+                VIEW3D_OP_SprytileGui.draw_selection(mvp_mat, (1.0, 0.0, 0.0, 1.0), cursor_min, cursor_max)
 
-        glPopMatrix()
         offscreen.unbind()
 
     @staticmethod
