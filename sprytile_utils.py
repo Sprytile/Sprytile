@@ -862,6 +862,9 @@ class UTIL_OP_SprytileSetupViewport(bpy.types.Operator):
         context.scene.eevee.taa_samples = 1
         context.scene.eevee.use_taa_reprojection = False
 
+        # Set view transform to standard, for correct texture brightness
+        context.scene.view_settings.view_transform = 'Standard'
+
         # Reflect changes
         context.scene.update_tag()
         for area in context.screen.areas:
