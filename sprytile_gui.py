@@ -9,6 +9,9 @@ from bpy.props import *
 from mathutils import Vector, Matrix
 from . import sprytile_utils, sprytile_modal
 from gpu_extras.batch import batch_for_shader
+from sprytile_tools.tool_build import ToolBuild
+from sprytile_tools.tool_paint import ToolPaint
+import sprytile_preview
 
 
 # Shaders
@@ -97,6 +100,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     sel_origin = None
     is_running = False
 
+    build_previews = {
+        'MAKE_FACE' : ToolBuild,
+        'PAINT' : ToolPaint,
+        'SET_NORMAL' : None,
+        'FILL' : None
+    } 
+
     # ================
     # Modal functions
     # ================
@@ -151,6 +161,22 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         self.handle_ui(context, event)
+
+        # Build the data that will be used by tool observers
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+        no_data = rv3d is None
+
+        if no_data is False:
+            # get the ray from the viewport and mouse
+            ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+            ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+            mode = bpy.context.scene.sprytile_data.paint_mode
+            if VIEW3D_OP_SprytileGui.build_previews[mode]:
+                VIEW3D_OP_SprytileGui.build_previews[mode].build_preview(context, context.scene, ray_origin, ray_vector)
+
         context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
         return {'PASS_THROUGH'}
@@ -432,10 +458,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         middle_btn = context.scene.sprytile_ui.middle_btn
 
         VIEW3D_OP_SprytileGui.draw_offscreen(context)
-        #VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
-        #                             self.label_counter, tilegrid, sprytile_data,
-        #                             context.scene.cursor.location, region, rv3d,
-        #                             middle_btn, context)
+        VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
+                                     self.label_counter, tilegrid, sprytile_data,
+                                     context.scene.cursor.location, region, rv3d,
+                                     middle_btn, context)
 
     @staticmethod
     def draw_selection(mvpMat, color, sel_min, sel_max, adjust=1):
@@ -734,17 +760,17 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         glPopMatrix()
 
     @staticmethod
-    def draw_preview_tile(context, region, rv3d):
+    def draw_preview_tile(context, region, rv3d, mvp_mat):
         if sprytile_modal.VIEW3D_OP_SprytileModalTool.no_undo is True:
             return
-        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts is None:
+        if sprytile_preview.preview_verts is None:
             return
-        if sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs is None:
+        if sprytile_preview.preview_uvs is None:
             return
 
-        uv = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_uvs
-        world_verts = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_verts
-        is_quads = sprytile_modal.VIEW3D_OP_SprytileModalTool.preview_is_quads
+        uv = sprytile_preview.preview_uvs
+        world_verts = sprytile_preview.preview_verts
+        is_quads = sprytile_preview.preview_is_quads
 
         # Turn the world vert positions into screen positions
         screen_verts = []
@@ -763,32 +789,27 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if sprytile_data.paint_mode == 'PAINT':
             preview_alpha = 0.9
 
-        bgl.glColor4f(1.0, 1.0, 1.0, preview_alpha)
+        color = (1.0, 1.0, 1.0, preview_alpha)
+        uvs = []
+        vtxs = []
 
         # paint preview only draws one polygon
-        if not is_quads:
-            bgl.glBegin(bgl.GL_POLYGON)
-
         for i in range(len(uv)):
             mod = i % 4
 
-            # Per tile polygon preview, begin and end every four verts
-            if is_quads and mod == 0:
-                bgl.glBegin(bgl.GL_POLYGON)
+            uvs.append((uv[i].x, uv[i].y))
+            vtxs.append((screen_verts[i][0], screen_verts[i][1]))
 
-            glTexCoord2f(uv[i].x, uv[i].y)
-            glVertex2f(screen_verts[i][0], screen_verts[i][1])
-
-            if is_quads and mod == 3:
-                bgl.glEnd()
-
-        if not is_quads:
-            bgl.glEnd()
+            if mod == 3:
+                VIEW3D_OP_SprytileGui.draw_full_tex_quad((vtxs[0], vtxs[3], vtxs[1], vtxs[2]), mvp_mat, 0, False, (uvs[0], uvs[3], uvs[1], uvs[2]), color)
+                uvs.clear()
+                vtxs.clear()
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
                          cursor_loc, region, rv3d, middle_btn, context):
         """Draw the offscreen texture into the viewport"""
+        projection_mat = sprytile_utils.get_ortho2D_matrix(0, context.region.width, 0, context.region.height)
 
         # Prepare some data that will be used for drawing
         grid_size = VIEW3D_OP_SprytileGui.loaded_grid.grid
@@ -798,11 +819,12 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         is_pixel = sprytile_utils.grid_is_single_pixel(VIEW3D_OP_SprytileGui.loaded_grid)
 
         # Draw work plane
-        VIEW3D_OP_SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
+        #VIEW3D_OP_SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
 
         # Setup GL for drawing the offscreen texture
-        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
+        bgl.glActiveTexture(bgl.GL_TEXTURE0)
         bgl.glBindTexture(bgl.GL_TEXTURE_2D, VIEW3D_OP_SprytileGui.texture)
+
         # Backup texture settings
         old_mag_filter = Buffer(bgl.GL_INT, 1)
         glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
@@ -822,7 +844,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         # Draw the preview tile
         if middle_btn is False:
-            VIEW3D_OP_SprytileGui.draw_preview_tile(context, region, rv3d)
+            VIEW3D_OP_SprytileGui.draw_preview_tile(context, region, rv3d, projection_mat)
 
         # Calculate actual view size
         view_size = int(view_max.x - view_min.x), int(view_max.y - view_min.y)
@@ -833,8 +855,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glScissor(int(view_min.x) + scissor_box[0], int(view_min.y) + scissor_box[1], view_size[0], view_size[1])
 
         # Draw the tile select UI
-        VIEW3D_OP_SprytileGui.draw_tile_select_ui(view_min, view_max, view_size, VIEW3D_OP_SprytileGui.tex_size,
-                                        grid_size, tile_sel, padding, margin, show_extra, is_pixel)
+        #VIEW3D_OP_SprytileGui.draw_tile_select_ui(projection_mat, view_min, view_max, view_size, VIEW3D_OP_SprytileGui.tex_size,
+        #                               grid_size, tile_sel, padding, margin, show_extra, is_pixel)
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
@@ -890,7 +912,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         bgl.glDisable(bgl.GL_BLEND)
         bgl.glDisable(bgl.GL_TEXTURE_2D)
-        bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
 
 
 class SprytileGuiWidgetGroup(bpy.types.GizmoGroup):

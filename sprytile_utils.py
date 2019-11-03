@@ -18,6 +18,28 @@ import sprytile_modal
 import addon_updater_ops
 
 
+def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
+    """Get the world position vertices for a new face, at the given position"""
+    x_dot = right_vector.dot(x_vector.normalized())
+    y_dot = up_vector.dot(y_vector.normalized())
+    x_positive = x_dot > 0
+    y_positive = y_dot > 0
+
+    # These are in world positions
+    vtx1 = position
+    vtx2 = position + y_vector
+    vtx3 = position + x_vector + y_vector
+    vtx4 = position + x_vector
+
+    # Quadrant II, IV
+    face_order = (vtx1, vtx2, vtx3, vtx4)
+    # Quadrant I, III
+    if x_positive == y_positive:
+        face_order = (vtx1, vtx4, vtx3, vtx2)
+
+    return face_order
+
+
 def get_ortho2D_matrix(left, right, bottom, top):
     rl = right - left
     rl2 = right + left

@@ -17,6 +17,7 @@ from sprytile_tools.tool_set_normal import ToolSetNormal
 import sprytile_uv
 from sprytile_uv import UvDataLayers
 import sprytile_utils
+import sprytile_preview
 
 
 class DataObjectDict(dict):
@@ -42,9 +43,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
     bl_label = "Sprytile Paint"
     bl_options = {'REGISTER'}
 
-    preview_verts = None
-    preview_uvs = None
-    preview_is_quads = True
     no_undo = False
 
     addon_keymaps = []
@@ -296,10 +294,11 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         ray_direction = -normal
 
-        return self.raycast_object(obj, ray_origin, ray_direction, ray_dist=ray_offset*2,
+        return VIEW3D_OP_SprytileModalTool.raycast_object(obj, ray_origin, ray_direction, ray_dist=ray_offset*2,
                                    work_layer_mask=work_layer_mask)
 
-    def raycast_object(self, obj, ray_origin, ray_direction, ray_dist=1000.0,
+    @staticmethod
+    def raycast_object(obj, ray_origin, ray_direction, ray_dist=1000.0,
                        world_normal=False, work_layer_mask=0, pass_dist=0.001):
         matrix = obj.matrix_world.copy()
         # get the ray relative to the object
@@ -307,14 +306,16 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         ray_origin_obj = matrix_inv @ ray_origin
         ray_target_obj = matrix_inv @ (ray_origin + ray_direction)
         ray_direction_obj = ray_target_obj - ray_origin_obj
+        mesh = bmesh.from_edit_mesh(obj.data)
+        tree = BVHTree.FromBMesh(mesh)
 
-        location, normal, face_index, distance = self.tree.ray_cast(ray_origin_obj, ray_direction_obj, ray_dist)
+        location, normal, face_index, distance = tree.ray_cast(ray_origin_obj, ray_direction_obj, ray_dist)
         if face_index is None:
             return None, None, None, None
 
-        face = self.bmesh.faces[face_index]
+        face = mesh.faces[face_index]
 
-        work_layer_id = self.bmesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
+        work_layer_id = mesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
         work_layer_value = face[work_layer_id]
 
         # Pass through faces under certain conditions
@@ -336,7 +337,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             # add shift offset if passing through
             shift_vec = ray_direction.normalized() * pass_dist
             new_ray_origin = location + shift_vec
-            return self.raycast_object(obj, new_ray_origin, ray_direction, work_layer_mask=work_layer_mask)
+            return VIEW3D_OP_SprytileModalTool.raycast_object(obj, new_ray_origin, ray_direction, work_layer_mask=work_layer_mask)
 
         if world_normal:
             normal = matrix @ normal
@@ -360,45 +361,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             self.bmesh = bmesh.from_edit_mesh(context.object.data)
         self.tree = BVHTree.FromBMesh(self.bmesh)
 
-    def set_preview_data(self, verts, uvs, is_quads=True):
-        """
-        Set the preview data for SprytileGUI to draw
-        :param verts:
-        :param uvs:
-        :param is_quads:
-        :return:
-        """
-        VIEW3D_OP_SprytileModalTool.preview_verts = verts
-        VIEW3D_OP_SprytileModalTool.preview_uvs = uvs
-        VIEW3D_OP_SprytileModalTool.preview_is_quads = is_quads
-
-    def clear_preview_data(self):
-        VIEW3D_OP_SprytileModalTool.preview_verts = None
-        VIEW3D_OP_SprytileModalTool.preview_uvs = None
-        VIEW3D_OP_SprytileModalTool.preview_is_quads = True
-
-
-    @staticmethod
-    def get_build_vertices(position, x_vector, y_vector, up_vector, right_vector):
-        """Get the world position vertices for a new face, at the given position"""
-        x_dot = right_vector.dot(x_vector.normalized())
-        y_dot = up_vector.dot(y_vector.normalized())
-        x_positive = x_dot > 0
-        y_positive = y_dot > 0
-
-        # These are in world positions
-        vtx1 = position
-        vtx2 = position + y_vector
-        vtx3 = position + x_vector + y_vector
-        vtx4 = position + x_vector
-
-        # Quadrant II, IV
-        face_order = (vtx1, vtx2, vtx3, vtx4)
-        # Quadrant I, III
-        if x_positive == y_positive:
-            face_order = (vtx1, vtx4, vtx3, vtx2)
-
-        return face_order
 
     def construct_face(self, context, grid_coord, grid_size,
                        tile_xy, tile_origin,
@@ -456,7 +418,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         if face_index is None or face_index < 0:
             face_position = grid_origin + grid_coord[0] * grid_right + grid_coord[1] * grid_up
 
-            face_verts = self.get_build_vertices(face_position,
+            face_verts = sprytile_utils.get_build_vertices(face_position,
                                                  grid_right * grid_size[0], grid_up * grid_size[1],
                                                  up_vector, right_vector)
             face_index = self.create_face(context, face_verts)
@@ -557,7 +519,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.refresh_mesh = True
         return face.index
 
-    def get_face_up_vector(self, context, face_index, sensitivity=0.1, bias_right=False):
+    @staticmethod
+    def get_face_up_vector(obj, context, face_index, sensitivity=0.1, bias_right=False):
         """
         Find the edge of the given face that most closely matches view up vector
         :param context:
@@ -573,13 +536,14 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         view_up_vector = rv3d.view_rotation @ Vector((0.0, 1.0, 0.0))
         view_right_vector = rv3d.view_rotation @ Vector((1.0, 0.0, 0.0))
         data = context.scene.sprytile_data
+        mesh = bmesh.from_edit_mesh(obj.data)
 
-        if self.bmesh is None or self.bmesh.faces is None:
-            self.refresh_mesh = True
-            return None, None
+        #if mesh is None or mesh.faces is None:
+        #    self.refresh_mesh = True
+        #    return None, None
 
         world_matrix = context.object.matrix_world
-        face = self.bmesh.faces[face_index]
+        face = mesh.faces[face_index]
 
         # Convert the face normal to world space
         normal_inv = context.object.matrix_world.copy().inverted().transposed()
@@ -587,7 +551,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
-            selection = self.bmesh.select_history.active
+            selection = mesh.select_history.active
             if isinstance(selection, bmesh.types.BMEdge):
                 # Figure out which side of the face this edge is on
                 # selected edge is considered the bottom of the face
@@ -786,7 +750,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Mouse in Sprytile UI, eat this event without doing anything
         if context.scene.sprytile_ui.use_mouse:
-            self.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             return {'RUNNING_MODAL'}
 
         # Mouse move triggers preview drawing
@@ -814,8 +778,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # If outside the region, pass through
         if out_of_region:
             # If preview data exists, clear it
-            if VIEW3D_OP_SprytileModalTool.preview_verts is not None:
-                self.clear_preview_data()
+            if sprytile_preview.preview_verts is not None:
+                sprytile_preview.clear_preview_data()
             return {'PASS_THROUGH'}
 
         modal_return = {'PASS_THROUGH'}
@@ -823,7 +787,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # Process keyboard events, if returned something end here
         key_return = self.handle_keys(context, event)
         if key_return is not None:
-            self.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             modal_return = key_return
         # Didn't process keyboard, process mouse now
         else:
@@ -835,8 +799,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.draw_preview = draw_preview and self.refresh_mesh is False
         # Clear preview data if not drawing preview
         if not self.draw_preview:
-            VIEW3D_OP_SprytileModalTool.preview_verts = None
-            VIEW3D_OP_SprytileModalTool.preview_uvs = None
+            sprytile_preview.preview_verts = None
+            sprytile_preview.preview_uvs = None
 
         # Build the data that will be used by tool observers
         region = context.region
@@ -937,8 +901,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 continue
             # print("Special key is", arg)
             if arg == 'move_sel':
-                VIEW3D_OP_SprytileModalTool.preview_uvs = None
-                VIEW3D_OP_SprytileModalTool.preview_verts = None
+                sprytile_preview.preview_uvs = None
+                sprytile_preview.preview_verts = None
                 VIEW3D_OP_SprytileModalTool.no_undo = True
                 bpy.ops.sprytile.translate_grid('INVOKE_REGION_WIN')
                 return {'RUNNING_MODAL'}

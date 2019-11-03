@@ -1,8 +1,11 @@
 import bpy
+import bmesh
 from mathutils import Vector, Matrix, Quaternion
 
 import sprytile_utils
 import sprytile_uv
+import sprytile_preview
+import sprytile_modal
 
 
 class ToolPaint:
@@ -36,11 +39,11 @@ class ToolPaint:
             self.left_down = False
             bpy.ops.ed.undo_push()
 
-        if modal_evt.build_preview:
-            self.build_preview(context, scene, ray_origin, ray_vector)
+        #if modal_evt.build_preview:
+        #    self.build_preview(context, scene, ray_origin, ray_vector)
 
     @staticmethod
-    def process_preview(modal, context, scene, face_index):
+    def process_preview(context, scene, face_index):
         obj = context.object
         data = scene.sprytile_data
 
@@ -54,8 +57,9 @@ class ToolPaint:
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
 
         face_verts = []
+        mesh = bmesh.from_edit_mesh(context.object.data)
 
-        face = modal.bmesh.faces[face_index]
+        face = mesh.faces[face_index]
         for loop in face.loops:
             vert = loop.vert
             face_verts.append(context.object.matrix_world @ vert.co)
@@ -75,7 +79,7 @@ class ToolPaint:
         rotate_normal = plane_normal
 
         # Recalculate the rotation normal
-        face_up, face_right = modal.get_face_up_vector(context, face_index)
+        face_up, face_right = sprytile_modal.VIEW3D_OP_SprytileModalTool.get_face_up_vector(context.object, context, face_index)
 
         if face_up is not None and face_right is not None:
             rotate_normal = face_right.cross(face_up)
@@ -122,7 +126,6 @@ class ToolPaint:
             return
 
         face, verts, uvs, target_grid, data, target_img, tile_xy = ToolPaint.process_preview(
-                                                                        self.modal,
                                                                         context,
                                                                         scene,
                                                                         face_index)
@@ -134,27 +137,27 @@ class ToolPaint:
                               self.modal.bmesh, data, target_img,
                               tile_xy, origin_xy=tile_xy)
 
-    def build_preview(self, context, scene, ray_origin, ray_vector):
+    @staticmethod
+    def build_preview(context, scene, ray_origin, ray_vector):
         # Raycast the object
         obj = context.object
         # Get the work layer filter, based on layer settings
         work_layer_mask = sprytile_utils.get_work_layer_data(scene.sprytile_data)
-        hit_loc, hit_normal, face_index, hit_dist = self.modal.raycast_object(obj, ray_origin, ray_vector,
+        hit_loc, hit_normal, face_index, hit_dist = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(obj, ray_origin, ray_vector,
                                                                               work_layer_mask=work_layer_mask)
         if hit_loc is None:
-            self.modal.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             return
 
         face, verts, uvs, target_grid, data, target_img, tile_xy = ToolPaint.process_preview(
-                                                                        self.modal,
                                                                         context,
                                                                         scene,
                                                                         face_index)
         if face is None:
-            self.modal.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             return
 
-        self.modal.set_preview_data(verts, uvs, is_quads=False)
+        sprytile_preview.set_preview_data(verts, uvs, is_quads=False)
 
     def handle_error(self, err):
         pass

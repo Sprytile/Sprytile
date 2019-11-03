@@ -1,5 +1,5 @@
 import bpy
-
+import sprytile_preview
 
 class ToolSetNormal:
     modal = None
@@ -18,7 +18,7 @@ class ToolSetNormal:
         if self.modal.rx_data is None:
             return
 
-        self.modal.clear_preview_data()
+        sprytile_preview.clear_preview_data()
         if modal_evt.left_down is False:
             return
 
