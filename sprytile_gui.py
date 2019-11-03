@@ -147,6 +147,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             self.exit(context)
             return {'CANCELLED'}
 
+        if context.mode != 'EDIT_MESH':
+            VIEW3D_OP_SprytileGui.is_running = False
+            return {'PASS_THROUGH'}
+        elif not VIEW3D_OP_SprytileGui.is_running:
+            VIEW3D_OP_SprytileGui.is_running = True
+
+
         if event.type == 'TIMER':
             if self.label_counter > 0:
                 self.label_counter -= 1
@@ -448,6 +455,9 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     @staticmethod
     def draw_callback_handler(self, context, region):
         """Callback handler"""
+        if not VIEW3D_OP_SprytileGui.is_running:
+            return
+
         sprytile_data = context.scene.sprytile_data
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
