@@ -707,7 +707,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if p0 is None or p1 is None or p2 is None or p3 is None:
             return
 
-        vcol = (color,)*4
+        vcol = (color,)*5
         vpos = ((p0.x, p0.y), (p1.x, p1.y), (p2.x, p2.y), (p3.x, p3.y), (p0.x, p0.y))
         batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vpos, "i_color": vcol})
         batch.draw(flat_shader)
