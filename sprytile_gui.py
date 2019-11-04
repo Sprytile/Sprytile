@@ -634,7 +634,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         return sel_min, sel_max
 
     @staticmethod
-    def draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
+    def draw_work_plane(mvp_mat, grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn):
         display_grid = (grid_size[0], grid_size[1])
         # For single pixel grids, use world pixel density
         if grid_size[0] == 1 or grid_size[1] == 1:
@@ -655,6 +655,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                     return
 
         # First, draw the world grid size overlay
+        flat_shader.bind()
+        flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
         paint_up_vector = sprytile_data.paint_up_vector
         paint_right_vector = sprytile_data.paint_normal_vector.cross(paint_up_vector)
 
@@ -668,28 +670,29 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         grid_min, grid_max = sprytile_utils.get_workplane_area(plane_size[0], plane_size[1])
 
-        def draw_world_line(world_start, world_end):
+        def draw_world_line(world_start, world_end, color):
             start = view3d_utils.location_3d_to_region_2d(region, rv3d, world_start)
             end = view3d_utils.location_3d_to_region_2d(region, rv3d, world_end)
             if start is None or end is None:
                 return
-            glBegin(GL_LINES)
-            glVertex2f(start.x, start.y)
-            glVertex2f(end.x, end.y)
-            glEnd()
+
+            vcol = (color,)*2
+            vpos = ((start.x, start.y), (end.x, end.y))
+            batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vpos, "i_color": vcol})
+            batch.draw(flat_shader)
 
         plane_col = sprytile_data.axis_plane_color
-        glColor4f(plane_col[0], plane_col[1], plane_col[2], 1)
+        color = (plane_col[0], plane_col[1], plane_col[2], 1)
         glLineWidth(2)
 
         for x in range(grid_min[0] + 1, grid_max[0]):
             draw_start = cursor_loc + (paint_right_vector * x) + (paint_up_vector * grid_min[1])
             draw_end = draw_start + paint_up_vector * plane_size[1]
-            draw_world_line(draw_start, draw_end)
+            draw_world_line(draw_start, draw_end, color)
         for y in range(grid_min[1] + 1, grid_max[1]):
             draw_start = cursor_loc + (paint_right_vector * grid_min[0]) + (paint_up_vector * y)
             draw_end = draw_start + paint_right_vector * plane_size[0]
-            draw_world_line(draw_start, draw_end)
+            draw_world_line(draw_start, draw_end, color)
 
         x_offset_min = paint_right_vector * grid_min[0]
         x_offset_max = paint_right_vector * grid_max[0]
@@ -704,13 +707,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if p0 is None or p1 is None or p2 is None or p3 is None:
             return
 
-        glBegin(GL_LINE_STRIP)
-        glVertex2f(p0.x, p0.y)
-        glVertex2f(p1.x, p1.y)
-        glVertex2f(p2.x, p2.y)
-        glVertex2f(p3.x, p3.y)
-        glVertex2f(p0.x, p0.y)
-        glEnd()
+        vcol = (color,)*4
+        vpos = ((p0.x, p0.y), (p1.x, p1.y), (p2.x, p2.y), (p3.x, p3.y), (p0.x, p0.y))
+        batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vpos, "i_color": vcol})
+        batch.draw(flat_shader)
 
     @staticmethod
     def draw_tile_select_ui(mvp_mat, view_min, view_max, view_size,
@@ -828,7 +828,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         is_pixel = sprytile_utils.grid_is_single_pixel(VIEW3D_OP_SprytileGui.loaded_grid)
 
         # Draw work plane
-        #VIEW3D_OP_SprytileGui.draw_work_plane(grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
+        VIEW3D_OP_SprytileGui.draw_work_plane(projection_mat, grid_size, sprytile_data, cursor_loc, region, rv3d, middle_btn)
 
         # Setup GL for drawing the offscreen texture
         bgl.glActiveTexture(bgl.GL_TEXTURE0)
