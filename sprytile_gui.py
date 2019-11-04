@@ -149,6 +149,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
+        if context.area is None:
+            self.exit(context)
+            return {'CANCELLED'}
+
         if not sprytile_utils.get_current_tool(context).startswith("sprytile"):
             self.exit(context)
             return {'CANCELLED'}
@@ -208,7 +212,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         VIEW3D_OP_SprytileGui.tile_ui_active = False
         if hasattr(self, "win_timer"):
             context.window_manager.event_timer_remove(self.win_timer)
-        context.area.tag_redraw()
+        if context.area is not None:
+            context.area.tag_redraw()
 
     def set_zoom_level(self, context, zoom_shift):
         region = context.region
