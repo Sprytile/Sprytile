@@ -1233,7 +1233,7 @@ class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):
         self.last_check_time = None
         self.check_files()
         wm = context.window_manager
-        self._timer = wm.event_timer_add(2, context.window)
+        self._timer = wm.event_timer_add(2, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
@@ -1444,7 +1444,7 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         self.draw_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback, args, 'WINDOW', 'POST_PIXEL')
 
         win_mgr = context.window_manager
-        self.timer = win_mgr.event_timer_add(0.1, context.window)
+        self.timer = win_mgr.event_timer_add(0.1, window=context.window)
         win_mgr.modal_handler_add(self)
         context.scene.sprytile_data.is_grid_translate = True
         # Now go up to modal function to read the rest
