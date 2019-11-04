@@ -167,7 +167,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             # Skip redrawing on this frame
             return {'PASS_THROUGH'}
 
-        self.handle_ui(context, event)
+        ret_val = self.handle_ui(context, event)
 
         # Build the data that will be used by tool observers
         region = context.region
@@ -186,7 +186,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
-        return {'PASS_THROUGH'}
+        return {ret_val}
 
     def exit(self, context):
         VIEW3D_OP_SprytileGui.handler_remove(self, context)
@@ -266,6 +266,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         region = context.region
         obj = context.object
+        ret_val = 'RUNNING_MODAL'
 
         tilegrid = sprytile_utils.get_grid(context, obj.sprytile_gridid)
         tex_size = VIEW3D_OP_SprytileGui.tex_size
@@ -273,17 +274,19 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         display_scale = context.scene.sprytile_ui.zoom
         display_size = VIEW3D_OP_SprytileGui.display_size
         display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
-        display_pad = 5
+        display_pad_x = 30
+        display_pad_y = 5
 
-        gui_min = Vector((region.width - (int(display_size[0]) + display_pad), display_pad))
-        gui_max = Vector((region.width - display_pad, (int(display_size[1]) + display_pad)))
+        gui_min = Vector((region.width - (int(display_size[0]) + display_pad_x), display_pad_y))
+        gui_max = Vector((region.width - display_pad_x, (int(display_size[1]) + display_pad_y)))
 
         self.gui_min = gui_min
         self.gui_max = gui_max
 
         reject_region = context.space_data.type != 'VIEW_3D' or region.type != 'WINDOW'
         if event is None or reject_region:
-            return
+            ret_val = 'PASS_THROUGH'
+            return ret_val
 
         if event.type == 'MIDDLEMOUSE':
             context.scene.sprytile_ui.middle_btn = True
@@ -298,7 +301,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             self.prev_in_region = mouse_in_region
 
         if context.scene.sprytile_ui.use_mouse is False:
-            return
+            ret_val = 'PASS_THROUGH'
+            return ret_val
 
         if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             if event.ctrl is False:
@@ -315,7 +319,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1], 0))
             # Apply grid matrix to tex_pos
             grid_matrix = sprytile_utils.get_grid_matrix(VIEW3D_OP_SprytileGui.loaded_grid)
-            tex_pos = grid_matrix.inverted() * tex_pos
+            tex_pos = grid_matrix.inverted() @ tex_pos
 
             grid_max = Vector((ceil(tex_size[0]/tilegrid.grid[0])-1, ceil(tex_size[1]/tilegrid.grid[1])-1))
             cell_size = Vector((
@@ -390,6 +394,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
             bpy.ops.sprytile.grid_cycle()
             self.label_counter = VIEW3D_OP_SprytileGui.label_frames
+
+        return ret_val
 
     # ==================
     # Actual GUI drawing
@@ -704,19 +710,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         glEnd()
 
     @staticmethod
-    def draw_tile_select_ui(view_min, view_max, view_size,
+    def draw_tile_select_ui(mvp_mat, view_min, view_max, view_size,
                             tex_size, grid_size, tile_selection,
                             padding, margin, show_extra, is_pixel):
         # Draw the texture quad
-        bgl.glColor4f(1.0, 1.0, 1.0, 1.0)
-        bgl.glBegin(bgl.GL_QUADS)
-        uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        vtx = [(view_min.x, view_min.y), (view_min.x, view_max.y),
-               (view_max.x, view_max.y), (view_max.x, view_min.y)]
-        for i in range(4):
-            glTexCoord2f(uv[i][0], uv[i][1])
-            glVertex2f(vtx[i][0], vtx[i][1])
-        bgl.glEnd()
+        quad_pos = ((view_min.x, view_min.y), (view_max.x, view_min.y),
+               (view_min.x, view_max.y), (view_max.x, view_max.y))
+        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, mvp_mat, 0)
         
         # Translate the gl context by grid matrix
         scale_factor = (view_size[0] / tex_size[0], view_size[1] / tex_size[1])
@@ -724,20 +724,16 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         # Setup to draw grid into viewport
         offset_matrix = Matrix.Translation((view_min.x, view_min.y, 0))
         grid_matrix = sprytile_utils.get_grid_matrix(VIEW3D_OP_SprytileGui.loaded_grid)
-        grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) * Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) * grid_matrix
-        calc_matrix = offset_matrix * grid_matrix
-        matrix_vals = [calc_matrix[j][i] for i in range(4) for j in range(4)]
-        grid_buff = bgl.Buffer(bgl.GL_FLOAT, 16, matrix_vals)
-        glPushMatrix()
-        glLoadIdentity()
-        glLoadMatrixf(grid_buff)
-        glDisable(GL_TEXTURE_2D)
-
+        grid_matrix = Matrix.Scale(scale_factor[0], 4, Vector((1, 0, 0))) @ Matrix.Scale(scale_factor[1], 4, Vector((0, 1, 0))) @ grid_matrix
+        calc_matrix = offset_matrix @ grid_matrix
+        matrix_vals = [(calc_matrix[i][0], calc_matrix[i][1], calc_matrix[i][2], calc_matrix[i][3]) for i in range(4)]
+        grid_mat = mvp_mat @ Matrix(matrix_vals)
+        
         glLineWidth(1)
 
         # Draw tileset grid, if not pixel size and show extra is on
         if show_extra and is_pixel is False:
-            glColor4f(0.0, 0.0, 0.0, 0.5)
+            color = (0.0, 0.0, 0.0, 0.5)
             # Draw the grid
             cell_size = (
                 grid_size[0] + padding[0] * 2 + margin[1] + margin[3],
@@ -747,27 +743,27 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             y_divs = ceil(tex_size[1] / cell_size[1])
             x_end = x_divs * cell_size[0]
             y_end = y_divs * cell_size[1]
+
+            flat_shader.bind()
+            flat_shader.uniform_float("u_modelViewProjectionMatrix", grid_mat)
             for x in range(x_divs + 1):
                 x_pos = (x * cell_size[0])
-                glBegin(GL_LINES)
-                glVertex2f(x_pos, 0)
-                glVertex2f(x_pos, y_end)
-                glEnd()
+                vtxs = ((x_pos, 0), (x_pos, y_end))
+                vcol = (color,)*2
+                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtxs, "i_color": vcol})
+                batch.draw(flat_shader)
             for y in range(y_divs + 1):
                 y_pos = (y * cell_size[1])
-                glBegin(GL_LINES)
-                glVertex2f(0, y_pos)
-                glVertex2f(x_end, y_pos)
-                glEnd()
+                vtxs = ((0, y_pos), (x_end, y_pos))
+                vcol = (color,)*2
+                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtxs, "i_color": vcol})
+                batch.draw(flat_shader)
 
         # Draw selected tile outline
         sel_min, sel_max = VIEW3D_OP_SprytileGui.get_sel_bounds(grid_size, padding, margin,
                                                       tile_selection[0], tile_selection[1],
                                                       tile_selection[2], tile_selection[3])
-        glColor4f(1.0, 1.0, 1.0, 1.0)
-        VIEW3D_OP_SprytileGui.draw_selection(sel_min, sel_max, 0)
-
-        glPopMatrix()
+        VIEW3D_OP_SprytileGui.draw_selection(grid_mat, (1, 1, 1, 1), sel_min, sel_max, 0)
 
     @staticmethod
     def draw_preview_tile(context, region, rv3d, mvp_mat):
@@ -865,8 +861,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glScissor(int(view_min.x) + scissor_box[0], int(view_min.y) + scissor_box[1], view_size[0], view_size[1])
 
         # Draw the tile select UI
-        #VIEW3D_OP_SprytileGui.draw_tile_select_ui(projection_mat, view_min, view_max, view_size, VIEW3D_OP_SprytileGui.tex_size,
-        #                               grid_size, tile_sel, padding, margin, show_extra, is_pixel)
+        VIEW3D_OP_SprytileGui.draw_tile_select_ui(projection_mat, view_min, view_max, view_size, VIEW3D_OP_SprytileGui.tex_size,
+                                       grid_size, tile_sel, padding, margin, show_extra, is_pixel)
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
