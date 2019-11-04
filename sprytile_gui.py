@@ -367,12 +367,12 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and VIEW3D_OP_SprytileGui.is_selecting is False:
                 addon_prefs = context.preferences.addons[__package__].preferences
                 move_mod_pressed = False
-                if addon_prefs.tile_sel_move_key == 'Alt':
-                    move_mod_pressed = event.alt
-                if addon_prefs.tile_sel_move_key == 'Ctrl':
-                    move_mod_pressed = event.ctrl
-                if addon_prefs.tile_sel_move_key == 'Shift':
-                    move_mod_pressed = event.shift
+                #if addon_prefs.tile_sel_move_key == 'Alt':
+                #    move_mod_pressed = event.alt
+                #if addon_prefs.tile_sel_move_key == 'Ctrl':
+                #    move_mod_pressed = event.ctrl
+                #if addon_prefs.tile_sel_move_key == 'Shift':
+                #    move_mod_pressed = event.shift
 
                 VIEW3D_OP_SprytileGui.is_selecting = move_mod_pressed is False
                 VIEW3D_OP_SprytileGui.is_moving = move_mod_pressed is True
