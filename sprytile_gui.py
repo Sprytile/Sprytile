@@ -892,7 +892,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         # Save the original scissor box, and then set new scissor setting
         scissor_box = bgl.Buffer(bgl.GL_INT, [4])
         bgl.glGetIntegerv(bgl.GL_SCISSOR_BOX, scissor_box)
-        bgl.glScissor(int(view_min.x) + scissor_box[0], int(view_min.y) + scissor_box[1], view_size[0], view_size[1])
+        bgl.glScissor(int(view_min.x) + scissor_box[0] - 1, int(view_min.y) + scissor_box[1] - 1, view_size[0] + 1, view_size[1] + 1)
+        bgl.glEnable(bgl.GL_SCISSOR_TEST)
 
         # Draw the tile select UI
         VIEW3D_OP_SprytileGui.draw_tile_select_ui(projection_mat, view_min, view_max, view_size, VIEW3D_OP_SprytileGui.tex_size,
@@ -900,6 +901,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         # restore opengl defaults
         bgl.glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3])
+        bgl.glDisable(bgl.GL_SCISSOR_TEST)
         bgl.glLineWidth(1)
         bgl.glTexParameteriv(bgl.GL_TEXTURE_2D, bgl.GL_TEXTURE_MAG_FILTER, old_mag_filter)
         bgl.glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, old_wrap_S)
