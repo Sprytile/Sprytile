@@ -147,7 +147,18 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         win_mgr = context.window_manager
         self.win_timer = win_mgr.event_timer_add(0.1, window=context.window)
 
+        # Update view axis
+        self.update_view_axis(context)
+
         return {'RUNNING_MODAL'}
+
+    def update_view_axis(self, context):
+        sprytile_data = context.scene.sprytile_data
+        view_axis = sprytile_modal.VIEW3D_OP_SprytileModalTool.find_view_axis(context)
+        if view_axis is not None:
+            if view_axis != sprytile_data.normal_mode:
+                sprytile_data.normal_mode = view_axis
+                sprytile_data.lock_normal = False
 
     def modal(self, context, event):        
         if context.area is None:
@@ -170,12 +181,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         VIEW3D_OP_SprytileGui.out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
 
         if event.type == 'TIMER':
-            sprytile_data = context.scene.sprytile_data
-            view_axis = sprytile_modal.VIEW3D_OP_SprytileModalTool.find_view_axis(context)
-            if view_axis is not None:
-                if view_axis != sprytile_data.normal_mode:
-                    sprytile_data.normal_mode = view_axis
-                    sprytile_data.lock_normal = False
+            self.update_view_axis(context)
 
             if self.label_counter > 0:
                 self.label_counter -= 1
