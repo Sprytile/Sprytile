@@ -100,6 +100,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     sel_origin = None
     is_running = False
     tile_ui_active = False
+    out_of_region = False
 
     build_previews = {
         'MAKE_FACE' : ToolBuild,
@@ -148,7 +149,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         return {'RUNNING_MODAL'}
 
-    def modal(self, context, event):
+    def modal(self, context, event):        
         if context.area is None:
             self.exit(context)
             return {'CANCELLED'}
@@ -163,6 +164,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         elif not VIEW3D_OP_SprytileGui.is_running:
             VIEW3D_OP_SprytileGui.is_running = True
 
+        # Check that the mouse is inside the region
+        region = context.region
+        coord = Vector((event.mouse_region_x, event.mouse_region_y))
+        VIEW3D_OP_SprytileGui.out_of_region = coord.x < 0 or coord.y < 0 or coord.x > region.width or coord.y > region.height
 
         if event.type == 'TIMER':
             sprytile_data = context.scene.sprytile_data
@@ -188,7 +193,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         VIEW3D_OP_SprytileGui.tile_ui_active = ret_val == 'RUNNING_MODAL'
 
         # Build the data that will be used by tool observers
-        region = context.region
         rv3d = context.region_data
         coord = event.mouse_region_x, event.mouse_region_y
         no_data = rv3d is None
@@ -800,6 +804,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if VIEW3D_OP_SprytileGui.tile_ui_active:
             return
         if context.scene.sprytile_data.is_picking:
+            return
+        if VIEW3D_OP_SprytileGui.out_of_region:
             return
 
         uv = sprytile_preview.preview_uvs
