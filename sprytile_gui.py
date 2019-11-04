@@ -161,6 +161,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
 
         if event.type == 'TIMER':
+            sprytile_data = context.scene.sprytile_data
+            view_axis = sprytile_modal.VIEW3D_OP_SprytileModalTool.find_view_axis(context)
+            if view_axis is not None:
+                if view_axis != sprytile_data.normal_mode:
+                    sprytile_data.normal_mode = view_axis
+                    sprytile_data.lock_normal = False
+
             if self.label_counter > 0:
                 self.label_counter -= 1
 
