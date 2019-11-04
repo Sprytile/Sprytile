@@ -154,8 +154,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             return {'CANCELLED'}
 
         if context.mode != 'EDIT_MESH':
-            VIEW3D_OP_SprytileGui.is_running = False
-            return {'PASS_THROUGH'}
+            self.exit(context)
+            return {'CANCELLED'}
         elif not VIEW3D_OP_SprytileGui.is_running:
             VIEW3D_OP_SprytileGui.is_running = True
 
