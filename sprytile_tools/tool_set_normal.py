@@ -1,5 +1,5 @@
 import bpy
-
+import sprytile_preview
 
 class ToolSetNormal:
     modal = None
@@ -18,7 +18,7 @@ class ToolSetNormal:
         if self.modal.rx_data is None:
             return
 
-        self.modal.clear_preview_data()
+        sprytile_preview.clear_preview_data()
         if modal_evt.left_down is False:
             return
 
@@ -30,7 +30,7 @@ class ToolSetNormal:
         hit_loc, hit_normal, face_index, distance = self.modal.raycast_object(context.object, ray_origin, ray_vector)
         if hit_loc is None:
             return
-        hit_normal = context.object.matrix_world.to_quaternion() * hit_normal
+        hit_normal = context.object.matrix_world.to_quaternion() @ hit_normal
 
         face_up_vector, face_right_vector = self.modal.get_face_up_vector(context, face_index)
         if face_up_vector is None:
@@ -51,11 +51,11 @@ class ToolSetNormal:
 
 
 def register():
-    bpy.utils.register_module(__name__)
+    pass
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    pass
 
 
 if __name__ == '__main__':
