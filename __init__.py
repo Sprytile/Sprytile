@@ -891,6 +891,9 @@ def generate_tool_keymap(keyconfig, paint_mode):
     km_items = keymap.keymap_items
     km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
 
+    if paint_mode == 'MAKE_FACE':
+        km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
+
     return keymap
 
 

@@ -636,97 +636,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         grid_position = scene.cursor.location + plane_normal
         scene.cursor.location = grid_position
 
-    def cursor_snap(self, context, event):
-        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
-            return
-
-        # get the context arguments
-        scene = context.scene
-        region = context.region
-        rv3d = context.region_data
-        coord = event.mouse_region_x, event.mouse_region_y
-
-        # get the ray from the viewport and mouse
-        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
-        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
-
-        up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene)
-
-        if event.type in self.is_keyboard_list and event.shift and event.value == 'PRESS':
-            if scene.sprytile_data.cursor_snap == 'GRID':
-                scene.sprytile_data.cursor_snap = 'VERTEX'
-            else:
-                scene.sprytile_data.cursor_snap = 'GRID'
-
-        # Snap cursor, depending on setting
-        if scene.sprytile_data.cursor_snap == 'GRID':
-            location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor.location, plane_normal)
-            if location is None:
-                return
-            world_pixels = scene.sprytile_data.world_pixels
-            target_grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
-            grid_x = target_grid.grid[0]
-            grid_y = target_grid.grid[1]
-
-            grid_position, x_vector, y_vector = sprytile_utils.get_grid_pos(
-                location, scene.cursor.location,
-                right_vector.copy(), up_vector.copy(),
-                world_pixels, grid_x, grid_y
-            )
-            scene.cursor.location = grid_position
-
-        elif scene.sprytile_data.cursor_snap == 'VERTEX':
-            # Get if user is holding down tile picker modifier
-            check_modifier = False
-            addon_prefs = context.preferences.addons[__package__].preferences
-            if addon_prefs.tile_picker_key == 'Alt':
-                check_modifier = event.alt
-            if addon_prefs.tile_picker_key == 'Ctrl':
-                check_modifier = event.ctrl
-            if addon_prefs.tile_picker_key == 'Shift':
-                check_modifier = event.shift
-
-            location, normal, face_index, distance = self.raycast_object(context.object, ray_origin, ray_vector)
-            if location is None:
-                if check_modifier:
-                    scene.sprytile_data.lock_normal = False
-                return
-            # Location in world space, convert to object space
-            matrix = context.object.matrix_world.copy()
-            matrix_inv = matrix.inverted()
-            location, normal, face_index, dist = self.tree.find_nearest(matrix_inv * location)
-            if location is None:
-                return
-
-            # Found the nearest face, go to BMesh to find the nearest vertex
-            if self.bmesh is None:
-                self.refresh_mesh = True
-                return
-            if face_index >= len(self.bmesh.faces) or face_index < 0:
-                return
-            face = self.bmesh.faces[face_index]
-            closest_vtx = -1
-            closest_dist = float('inf')
-            # positions are in object space
-            for vtx_idx, vertex in enumerate(face.verts):
-                test_dist = (location - vertex.co).magnitude
-                if test_dist < closest_dist:
-                    closest_vtx = vtx_idx
-                    closest_dist = test_dist
-            # convert back to world space
-            if closest_vtx != -1:
-                scene.cursor.location = matrix * face.verts[closest_vtx].co
-
-            # If find face tile button pressed, set work plane normal too
-            if check_modifier:
-                sprytile_data = context.scene.sprytile_data
-                # Check if mouse is hitting object
-                target_normal = context.object.matrix_world.to_quaternion() @ normal
-                face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
-                if face_up_vector is not None:
-                    sprytile_data.paint_normal_vector = target_normal
-                    sprytile_data.paint_up_vector = face_up_vector
-                    sprytile_data.lock_normal = True
 
     def modal(self, context, event):
         do_exit = False
@@ -844,11 +753,11 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         if 'MOUSE' not in event.type:
             return None
 
-        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            if context.scene.sprytile_data.is_snapping:
-                direction = -1 if event.type == 'WHEELUPMOUSE' else 1
-                self.cursor_move_layer(context, direction)
-                return {'RUNNING_MODAL'}
+        #if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+        #    if context.scene.sprytile_data.is_snapping:
+        #        direction = -1 if event.type == 'WHEELUPMOUSE' else 1
+        #        self.cursor_move_layer(context, direction)
+        #        return {'RUNNING_MODAL'}
         # no_undo flag is up, process no other mouse events until it is cleared
         if VIEW3D_OP_SprytileModalTool.no_undo:
             # print("No undo flag is on", event.type, event.value)
@@ -875,8 +784,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         elif event.type == 'MOUSEMOVE':
             if draw_preview and not VIEW3D_OP_SprytileModalTool.no_undo and event.type not in self.is_keyboard_list:
                 self.draw_preview = True
-            if context.scene.sprytile_data.is_snapping:
-                self.cursor_snap(context, event)
+            #if context.scene.sprytile_data.is_snapping:
+            #    self.cursor_snap(context, event)
 
         return None
 
@@ -909,10 +818,10 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             if arg == 'sel_mesh':
                 return {'PASS_THROUGH'}
 
-        sprytile_data = context.scene.sprytile_data
-        if event.shift and context.scene.sprytile_data.is_snapping:
-            self.cursor_snap(context, event)
-            return {'RUNNING_MODAL'}
+        #sprytile_data = context.scene.sprytile_data
+        #if event.shift and context.scene.sprytile_data.is_snapping:
+        #    self.cursor_snap(context, event)
+        #    return {'RUNNING_MODAL'}
         # Pass through every key event we don't handle ourselves
         return {'PASS_THROUGH'}
 

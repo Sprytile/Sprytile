@@ -11,6 +11,7 @@ from bpy.props import StringProperty
 from bmesh.types import BMVert, BMEdge, BMFace
 from mathutils import Matrix, Vector, Quaternion
 from mathutils.geometry import intersect_line_plane, distance_point_to_plane
+from mathutils.bvhtree import BVHTree
 from bpy.path import abspath
 from datetime import datetime
 from os import path
@@ -1500,6 +1501,131 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class UTIL_OP_SprytileSnapCursor(bpy.types.Operator):
+    bl_idname = "sprytile.snap_cursor"
+    bl_label = "Snap Cursor (Sprytile)"
+
+    def modal(self, context, event):
+        if event.type == 'S' and event.value == 'RELEASE':
+            context.scene.sprytile_data.is_snapping = False
+            bpy.context.window.cursor_modal_restore()
+            return {'FINISHED'}
+
+        self.snap_cursor(context, event)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        if event.type == 'S' and event.value == 'RELEASE':
+            context.scene.sprytile_data.is_snapping = False
+            return {'CANCELLED'}
+        
+        self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
+        self.snap_cursor(context, event)
+        context.scene.sprytile_data.is_snapping = True
+
+        # Add actual modal handler
+        context.window_manager.modal_handler_add(self)
+        bpy.context.window.cursor_modal_set("CROSSHAIR")
+
+        return {'RUNNING_MODAL'}
+
+    def snap_cursor(self, context, event):
+        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
+            return
+
+        # get the context arguments
+        scene = context.scene
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+
+        # get the ray from the viewport and mouse
+        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+        up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
+
+        #if event.shift and event.value == 'PRESS':
+        #    if scene.sprytile_data.cursor_snap == 'GRID':
+        #        scene.sprytile_data.cursor_snap = 'VERTEX'
+        #    else:
+        #        scene.sprytile_data.cursor_snap = 'GRID'
+
+        # Snap cursor, depending on setting
+        if scene.sprytile_data.cursor_snap == 'GRID':
+            location = intersect_line_plane(ray_origin, ray_origin + ray_vector, scene.cursor.location, plane_normal)
+            if location is None:
+                return
+            world_pixels = scene.sprytile_data.world_pixels
+            target_grid = get_grid(context, context.object.sprytile_gridid)
+            grid_x = target_grid.grid[0]
+            grid_y = target_grid.grid[1]
+
+            grid_position, x_vector, y_vector = get_grid_pos(
+                location, scene.cursor.location,
+                right_vector.copy(), up_vector.copy(),
+                world_pixels, grid_x, grid_y
+            )
+            scene.cursor.location = grid_position
+
+        elif scene.sprytile_data.cursor_snap == 'VERTEX':
+            # Get if user is holding down tile picker modifier
+            #check_modifier = False
+            #addon_prefs = context.preferences.addons[__package__].preferences
+            #if addon_prefs.tile_picker_key == 'Alt':
+            #    check_modifier = event.alt
+            #if addon_prefs.tile_picker_key == 'Ctrl':
+            #    check_modifier = event.ctrl
+            #if addon_prefs.tile_picker_key == 'Shift':
+            #    check_modifier = event.shift
+
+            location, normal, face_index, distance = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(context.object, ray_origin, ray_vector)
+            if location is None:
+                #if check_modifier:
+                #    scene.sprytile_data.lock_normal = False
+                return
+            # Location in world space, convert to object space
+            matrix = context.object.matrix_world.copy()
+            matrix_inv = matrix.inverted()
+            location, normal, face_index, dist = self.tree.find_nearest(matrix_inv @ location)
+            if location is None:
+                return
+
+            # Found the nearest face, go to BMesh to find the nearest vertex
+            if self.bmesh is None:
+                #self.refresh_mesh = True
+                return
+            if face_index >= len(self.bmesh.faces) or face_index < 0:
+                return
+            face = self.bmesh.faces[face_index]
+            closest_vtx = -1
+            closest_dist = float('inf')
+            # positions are in object space
+            for vtx_idx, vertex in enumerate(face.verts):
+                test_dist = (location - vertex.co).magnitude
+                if test_dist < closest_dist:
+                    closest_vtx = vtx_idx
+                    closest_dist = test_dist
+            # convert back to world space
+            if closest_vtx != -1:
+                scene.cursor.location = matrix @ face.verts[closest_vtx].co
+
+            # If find face tile button pressed, set work plane normal too
+            #if check_modifier:
+            #    sprytile_data = context.scene.sprytile_data
+            #    # Check if mouse is hitting object
+            #    target_normal = context.object.matrix_world.to_quaternion() @ normal
+            #    face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
+            #    if face_up_vector is not None:
+            #        sprytile_data.paint_normal_vector = target_normal
+            #        sprytile_data.paint_up_vector = face_up_vector
+            #        sprytile_data.lock_normal = True
+
+
 class UTIL_OP_SprytileResetData(bpy.types.Operator):
     bl_idname = "sprytile.reset_sprytile"
     bl_label = "Reset Sprytile"
@@ -1725,6 +1851,7 @@ classes = (
     UTIL_OP_SprytileSetupGrid,
     UTIL_OP_SprytileGridTranslate,
     UTIL_OP_SprytileResetData,
+    UTIL_OP_SprytileSnapCursor,
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,

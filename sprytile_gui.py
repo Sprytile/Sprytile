@@ -790,6 +790,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             return
         if sprytile_preview.preview_uvs is None:
             return
+        if context.scene.sprytile_data.is_snapping:
+            return
+        if VIEW3D_OP_SprytileGui.tile_ui_active:
+            return
 
         uv = sprytile_preview.preview_uvs
         world_verts = sprytile_preview.preview_verts
@@ -866,7 +870,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glEnable(bgl.GL_BLEND)
 
         # Draw the preview tile
-        if middle_btn is False and VIEW3D_OP_SprytileGui.tile_ui_active is False:
+        if middle_btn is False:
             VIEW3D_OP_SprytileGui.draw_preview_tile(context, region, rv3d, projection_mat)
 
         # Calculate actual view size
