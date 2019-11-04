@@ -93,7 +93,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     bl_label = "Sprytile GUI"
 
     mouse_pt = None
-    label_frames = 50
+    label_frames = 30
     is_selecting = False
     is_moving = False
     sel_start = None
@@ -141,6 +141,11 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         # Add actual modal handler
         context.window_manager.modal_handler_add(self)
+
+        # Add timer event
+        win_mgr = context.window_manager
+        self.win_timer = win_mgr.event_timer_add(0.1, window=context.window)
+
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
@@ -194,6 +199,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         VIEW3D_OP_SprytileGui.handler_remove(self, context)
         VIEW3D_OP_SprytileGui.is_running = False
         VIEW3D_OP_SprytileGui.tile_ui_active = False
+        if hasattr(self, "win_timer"):
+            context.window_manager.event_timer_remove(self.win_timer)
         context.area.tag_redraw()
 
     def set_zoom_level(self, context, zoom_shift):
@@ -890,16 +897,11 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             fade = ease_out_circ(fade, 0, VIEW3D_OP_SprytileGui.label_frames, VIEW3D_OP_SprytileGui.label_frames)
             fade /= VIEW3D_OP_SprytileGui.label_frames
 
-            bgl.glColor4f(0.0, 0.0, 0.0, 0.75 * fade)
-            bgl.glBegin(bgl.GL_QUADS)
-            uv = [(0, 0), (0, 1), (1, 1), (1, 0)]
-            vtx = [(view_min.x, view_max.y), (view_min.x, view_max.y + box_pad), (view_max.x, view_max.y + +box_pad), (view_max.x, view_max.y)]
-            for i in range(4):
-                glTexCoord2f(uv[i][0], uv[i][1])
-                glVertex2f(vtx[i][0], vtx[i][1])
-            bgl.glEnd()
+            color = (0.0, 0.0, 0.0, 0.75 * fade)
+            vtx = [(view_min.x, view_max.y + box_pad), (view_min.x, view_max.y), (view_max.x, view_max.y + +box_pad), (view_max.x, view_max.y)]
+            VIEW3D_OP_SprytileGui.draw_full_quad(vtx, projection_mat, color)
 
-            bgl.glColor4f(1.0, 1.0, 1.0, 1.0 * fade)
+            blf.color(font_id, 1.0, 1.0, 1.0, 1.0 * fade)
             blf.size(font_id, font_size, 72)
 
             x_pos = view_min.x + pad
@@ -935,8 +937,7 @@ class SprytileGuiWidgetGroup(bpy.types.GizmoGroup):
         return context.mode == 'EDIT_MESH'
 
     def setup(self, context):
-        # Trick to detect when the sprytile tools are selected, using an empty widget. 
-        # There doesn't seem to be a better way at the moment.
+        # Get current selected tool
         override_context = bpy.context.copy()
         cur_tool = sprytile_utils.get_current_tool(context)
         sprytile_data = context.scene.sprytile_data
