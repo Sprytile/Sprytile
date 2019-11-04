@@ -102,11 +102,12 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         return new_mode
 
     def get_tiledata_from_index(self, face_index):
-        return self.get_face_tiledata(self.bmesh.faces[face_index])
+        return VIEW3D_OP_SprytileModalTool.get_face_tiledata(self.bmesh, self.bmesh.faces[face_index])
 
-    def get_face_tiledata(self, face):
-        grid_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_INDEX)
-        tile_id_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_TILE_ID)
+    @staticmethod
+    def get_face_tiledata(bmesh, face):
+        grid_id_layer = bmesh.faces.layers.int.get(UvDataLayers.GRID_INDEX)
+        tile_id_layer = bmesh.faces.layers.int.get(UvDataLayers.GRID_TILE_ID)
         if grid_id_layer is None or tile_id_layer is None:
             return None, None, None, None, None
 
@@ -114,21 +115,21 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         tile_packed_id = face[tile_id_layer]
 
         width = 1
-        width_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_WIDTH)
+        width_layer = bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_WIDTH)
         if width_layer is not None:
             width = face[width_layer]
             if width is None:
                 width = 1
 
         height = 1
-        height_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
+        height_layer = bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_HEIGHT)
         if height_layer is not None:
             height = face[height_layer]
             if height is None:
                 height = 1
 
         origin = -1
-        origin_layer = self.bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
+        origin_layer = bmesh.faces.layers.int.get(UvDataLayers.GRID_SEL_ORIGIN)
         if origin_layer is not None:
             origin = face[origin_layer]
             if origin is None:
@@ -144,71 +145,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         # print("get tile data - grid:{0}, tile_id:{1}, w:{2}, h:{3}, o:{4}"
         #       .format(grid_id, tile_packed_id, width, height, origin))
         return grid_id, tile_packed_id, width, height, origin
-
-    def find_face_tile(self, context, event):
-        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
-            return None
-
-        # get the context arguments
-        region = context.region
-        rv3d = context.region_data
-        coord = event.mouse_region_x, event.mouse_region_y
-
-        # get the ray from the viewport and mouse
-        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
-        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
-
-        work_layer_mask = sprytile_utils.get_work_layer_data(context.scene.sprytile_data)
-        location, normal, face_index, distance = self.raycast_object(context.object, ray_origin,
-                                                                     ray_vector, work_layer_mask=work_layer_mask)
-        if location is None:
-            return None
-
-        face = self.bmesh.faces[face_index]
-
-        grid_id, tile_packed_id, width, height, origin_id = self.get_face_tiledata(face)
-        if None in {grid_id, tile_packed_id}:
-            return None
-
-        tilegrid = sprytile_utils.get_grid(context, grid_id)
-        if tilegrid is None:
-            return None
-
-        texture = sprytile_utils.get_grid_texture(context.object, tilegrid)
-        if texture is None:
-            return None
-
-        paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
-        if paint_setting_layer is not None:
-            paint_setting = face[paint_setting_layer]
-            sprytile_utils.from_paint_settings(context.scene.sprytile_data, paint_setting)
-
-        # Extract the tile orientation/selection data packed in paint settings
-        row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
-        tile_y = math.floor(tile_packed_id / row_size)
-        tile_x = tile_packed_id % row_size
-        if event.ctrl:
-            width = 1
-            height = 1
-        elif origin_id > -1:
-            origin_y = math.floor(origin_id / row_size)
-            origin_x = origin_id % row_size
-            tile_x = min(origin_x, tile_x)
-            tile_y = min(origin_y, tile_y)
-
-        if width == 0:
-            width = 1
-        if height == 0:
-            height = 1
-
-        context.object.sprytile_gridid = grid_id
-        tilegrid.tile_selection[0] = tile_x
-        tilegrid.tile_selection[1] = tile_y
-        tilegrid.tile_selection[2] = width
-        tilegrid.tile_selection[3] = height
-
-        bpy.ops.sprytile.build_grid_list()
-        return face_index
 
     def add_virtual_cursor(self, cursor_pos):
         cursor_len = len(self.virtual_cursor)
@@ -768,7 +704,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 VIEW3D_OP_SprytileModalTool.no_undo = False
             return {'PASS_THROUGH'} if VIEW3D_OP_SprytileModalTool.no_undo else {'RUNNING_MODAL'}
         elif event.type == 'LEFTMOUSE':
-            check_modifier = False
+        #    check_modifier = False
             # TODO: Support preferences
             #addon_prefs = context.preferences.addons[__package__].preferences
             #if addon_prefs.tile_picker_key == 'Alt':
@@ -778,8 +714,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             #if addon_prefs.tile_picker_key == 'Shift':
             #    check_modifier = event.shift
 
-            if event.value == 'PRESS' and check_modifier is True:
-                self.find_face_tile(context, event)
+        #    if event.value == 'PRESS' and check_modifier is True:
+        #        self.find_face_tile(context, event)
             return {'RUNNING_MODAL'}
         elif event.type == 'MOUSEMOVE':
             if draw_preview and not VIEW3D_OP_SprytileModalTool.no_undo and event.type not in self.is_keyboard_list:

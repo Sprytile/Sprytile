@@ -1626,6 +1626,105 @@ class UTIL_OP_SprytileSnapCursor(bpy.types.Operator):
             #        sprytile_data.lock_normal = True
 
 
+class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
+    bl_idname = "sprytile.tile_picker"
+    bl_label = "Tile Picker (Sprytile)"
+
+    def modal(self, context, event):
+        if event.type == 'LEFT_ALT' and event.value == 'RELEASE':
+            bpy.context.window.cursor_modal_restore()
+            context.scene.sprytile_data.is_picking = False
+            return {'FINISHED'}
+
+        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            self.tile_pick(context, event)
+
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        if event.alt and event.value == 'RELEASE':
+            context.scene.sprytile_data.is_picking = False
+            return {'CANCELLED'}
+        
+        self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
+
+        # Add actual modal handler
+        context.window_manager.modal_handler_add(self)
+        bpy.context.window.cursor_modal_set("EYEDROPPER")
+        context.scene.sprytile_data.is_picking = True
+
+        return {'RUNNING_MODAL'}
+
+    def tile_pick(self, context, event):
+        if self.tree is None or context.scene.sprytile_ui.use_mouse is True:
+            return None
+
+        # get the context arguments
+        region = context.region
+        rv3d = context.region_data
+        coord = event.mouse_region_x, event.mouse_region_y
+
+        # get the ray from the viewport and mouse
+        ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+        work_layer_mask = get_work_layer_data(context.scene.sprytile_data)
+        location, normal, face_index, distance = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(context.object, ray_origin,
+                                                                     ray_vector, work_layer_mask=work_layer_mask)
+        if location is None:
+            return None
+
+        face = self.bmesh.faces[face_index]
+
+        grid_id, tile_packed_id, width, height, origin_id = sprytile_modal.VIEW3D_OP_SprytileModalTool.get_face_tiledata(self.bmesh, face)
+        if None in {grid_id, tile_packed_id}:
+            return None
+
+        tilegrid = get_grid(context, grid_id)
+        if tilegrid is None:
+            return None
+
+        texture = get_grid_texture(context.object, tilegrid)
+        if texture is None:
+            return None
+
+        paint_setting_layer = self.bmesh.faces.layers.int.get('paint_settings')
+        if paint_setting_layer is not None:
+            paint_setting = face[paint_setting_layer]
+            from_paint_settings(context.scene.sprytile_data, paint_setting)
+
+        # Extract the tile orientation/selection data packed in paint settings
+        row_size = math.ceil(texture.size[0] / tilegrid.grid[0])
+        tile_y = math.floor(tile_packed_id / row_size)
+        tile_x = tile_packed_id % row_size
+        if event.ctrl:
+            width = 1
+            height = 1
+        elif origin_id > -1:
+            origin_y = math.floor(origin_id / row_size)
+            origin_x = origin_id % row_size
+            tile_x = min(origin_x, tile_x)
+            tile_y = min(origin_y, tile_y)
+
+        if width == 0:
+            width = 1
+        if height == 0:
+            height = 1
+
+        context.object.sprytile_gridid = grid_id
+        tilegrid.tile_selection[0] = tile_x
+        tilegrid.tile_selection[1] = tile_y
+        tilegrid.tile_selection[2] = width
+        tilegrid.tile_selection[3] = height
+
+        bpy.ops.sprytile.build_grid_list()
+        return face_index
+
+
 class UTIL_OP_SprytileResetData(bpy.types.Operator):
     bl_idname = "sprytile.reset_sprytile"
     bl_label = "Reset Sprytile"
@@ -1852,6 +1951,7 @@ classes = (
     UTIL_OP_SprytileGridTranslate,
     UTIL_OP_SprytileResetData,
     UTIL_OP_SprytileSnapCursor,
+    UTIL_OP_SprytileTilePicker,
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,

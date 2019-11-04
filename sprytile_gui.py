@@ -794,6 +794,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             return
         if VIEW3D_OP_SprytileGui.tile_ui_active:
             return
+        if context.scene.sprytile_data.is_picking:
+            return
 
         uv = sprytile_preview.preview_uvs
         world_verts = sprytile_preview.preview_verts
@@ -936,6 +938,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glDisable(bgl.GL_TEXTURE_2D)
 
 
+# Dummy widget to detect when sprytile tool is selected
 class SprytileGuiWidgetGroup(bpy.types.GizmoGroup):
     bl_idname = "VIEW3D_GGT_sprytile_gui"
     bl_label = "Sprytile GUI"

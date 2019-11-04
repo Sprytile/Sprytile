@@ -348,6 +348,10 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         name="Is Cursor Snap",
         description="Is cursor snapping currently activated"
     )
+    is_picking : BoolProperty(
+        name="Is Tile Picking",
+        description="Is tile picking currently activated"
+    )
     has_selection : BoolProperty(
         name="Has selection",
         description="Is there a mesh element selected"
@@ -890,6 +894,7 @@ def generate_tool_keymap(keyconfig, paint_mode):
     keymap = keyconfig.keymaps.new(name=sprytile_modal.VIEW3D_OP_SprytileModalTool.tool_keymaps[paint_mode], space_type='VIEW_3D', region_type='WINDOW')
     km_items = keymap.keymap_items
     km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
+    km_items.new("sprytile.tile_picker", 'LEFT_ALT', 'PRESS')
 
     if paint_mode == 'MAKE_FACE':
         km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
