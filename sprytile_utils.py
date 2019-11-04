@@ -1955,7 +1955,7 @@ classes = (
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,
-    VIEW3D_PT_SprytileLayerPanel,
+    #VIEW3D_PT_SprytileLayerPanel,
     VIEW3D_PT_SprytileWorkflowPanel
 )
 
