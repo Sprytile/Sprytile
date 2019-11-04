@@ -99,6 +99,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     sel_start = None
     sel_origin = None
     is_running = False
+    tile_ui_active = False
 
     build_previews = {
         'MAKE_FACE' : ToolBuild,
@@ -168,6 +169,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         ret_val = self.handle_ui(context, event)
+        VIEW3D_OP_SprytileGui.tile_ui_active = ret_val == 'RUNNING_MODAL'
 
         # Build the data that will be used by tool observers
         region = context.region
@@ -191,6 +193,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     def exit(self, context):
         VIEW3D_OP_SprytileGui.handler_remove(self, context)
         VIEW3D_OP_SprytileGui.is_running = False
+        VIEW3D_OP_SprytileGui.tile_ui_active = False
         context.area.tag_redraw()
 
     def set_zoom_level(self, context, zoom_shift):
@@ -849,7 +852,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         bgl.glEnable(bgl.GL_BLEND)
 
         # Draw the preview tile
-        if middle_btn is False:
+        if middle_btn is False and VIEW3D_OP_SprytileGui.tile_ui_active is False:
             VIEW3D_OP_SprytileGui.draw_preview_tile(context, region, rv3d, projection_mat)
 
         # Calculate actual view size
