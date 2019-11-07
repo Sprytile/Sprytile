@@ -230,7 +230,10 @@ class ToolBuild:
 
         # Reset can build flag
         ToolBuild.can_build = False
-
+        
+        if target_grid is None:
+            return
+            
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
             sprytile_preview.clear_preview_data()
