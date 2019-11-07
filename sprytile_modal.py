@@ -252,6 +252,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         face = mesh.faces[face_index]
 
         work_layer_id = mesh.faces.layers.int.get(UvDataLayers.WORK_LAYER)
+        if work_layer_id is None:
+            return None, None, None, None
         work_layer_value = face[work_layer_id]
 
         # Pass through faces under certain conditions
@@ -283,19 +285,25 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.bmesh = bmesh.from_edit_mesh(context.object.data)
         if update_index:
             # Verify layers are created
-            for layer_name in UvDataLayers.LAYER_NAMES:
-                layer_data = self.bmesh.faces.layers.int.get(layer_name)
-                if layer_data is None:
-                    print('Creating face layer:', layer_name)
-                    self.bmesh.faces.layers.int.new(layer_name)
+            VIEW3D_OP_SprytileModalTool.verify_bmesh_layers(self.bmesh)
+            self.bmesh = bmesh.from_edit_mesh(context.object.data)
+        self.tree = BVHTree.FromBMesh(self.bmesh)
 
-            for el in [self.bmesh.faces, self.bmesh.verts, self.bmesh.edges]:
+
+    @staticmethod
+    def verify_bmesh_layers(bmesh):
+        # Verify layers are created
+        for layer_name in UvDataLayers.LAYER_NAMES:
+            layer_data = bmesh.faces.layers.int.get(layer_name)
+            if layer_data is None:
+                print('Creating face layer:', layer_name)
+                bmesh.faces.layers.int.new(layer_name)
+
+            for el in [bmesh.faces, bmesh.verts, bmesh.edges]:
                 el.index_update()
                 el.ensure_lookup_table()
 
-            self.bmesh.loops.layers.uv.verify()
-            self.bmesh = bmesh.from_edit_mesh(context.object.data)
-        self.tree = BVHTree.FromBMesh(self.bmesh)
+            bmesh.loops.layers.uv.verify()
 
 
     def construct_face(self, context, grid_coord, grid_size,
@@ -606,7 +614,9 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         # Refreshing the mesh, preview needs constantly refreshed
         # mesh or bad things seem to happen. This can potentially get expensive
-        if self.refresh_mesh or self.bmesh.is_valid is False or draw_preview:
+        #if self.refresh_mesh or self.bmesh.is_valid is False or draw_preview:
+        # @Blender 2.8 note: this now happens inside the GUI operator so no need to do it here
+        if self.refresh_mesh or self.bmesh.is_valid is False:
             self.update_bmesh_tree(context, True)
             self.refresh_mesh = False
 
