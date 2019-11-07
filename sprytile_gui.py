@@ -2,6 +2,7 @@ import bpy
 import bgl
 import gpu
 import blf
+import bmesh
 from bpy_extras import view3d_utils
 from math import floor, ceil, copysign
 from bgl import *
@@ -210,6 +211,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
             mode = bpy.context.scene.sprytile_data.paint_mode
             if VIEW3D_OP_SprytileGui.build_previews[mode]:
+                sprytile_modal.VIEW3D_OP_SprytileModalTool.verify_bmesh_layers(bmesh.from_edit_mesh(context.object.data))
                 VIEW3D_OP_SprytileGui.build_previews[mode].build_preview(context, context.scene, ray_origin, ray_vector)
 
         context.scene.sprytile_ui.is_dirty = False
