@@ -228,6 +228,9 @@ class ToolBuild:
         grid_id = obj.sprytile_gridid
         target_grid = sprytile_utils.get_grid(context, grid_id)
 
+        if target_grid is None:
+            return
+
         # Reset can build flag
         ToolBuild.can_build = False
 
