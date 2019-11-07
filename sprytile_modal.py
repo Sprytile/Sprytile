@@ -837,6 +837,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 sprytile_data.normal_mode = view_axis
                 sprytile_data.lock_normal = False
 
+        self.update_bmesh_tree(context, True)
         self.modal(context, event)
 
         return {'RUNNING_MODAL'}
