@@ -823,7 +823,7 @@ class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
 
     def invoke(self, context, event):
         obj = context.object
-        if obj.type != 'MESH':
+        if obj.type != 'MESH' or len(obj.material_slots) == 0:
             return {'FINISHED'}
 
         mat = obj.material_slots[obj.active_material_index].material
