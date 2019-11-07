@@ -56,12 +56,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
             return
         self["normal_mode"] = value
         self["lock_normal"] = True
-
-        def call_update_axis_op():
+        
+        try:
             bpy.ops.sprytile.axis_update('INVOKE_REGION_WIN')
-
-        # Differ call to timer because operators may not be allowed here
-        bpy.app.timers.register(call_update_axis_op)
+        except:
+            pass
+        
 
     def get_normal(self):
         if "normal_mode" not in self.keys():
