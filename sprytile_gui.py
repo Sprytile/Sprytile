@@ -851,10 +851,21 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             uvs.append((uv[i].x, uv[i].y))
             vtxs.append((screen_verts[i][0], screen_verts[i][1]))
 
-            if mod == 3:
+            if mod == 3 and is_quads:
                 VIEW3D_OP_SprytileGui.draw_full_tex_quad((vtxs[0], vtxs[3], vtxs[1], vtxs[2]), mvp_mat, 0, False, (uvs[0], uvs[3], uvs[1], uvs[2]), color)
                 uvs.clear()
                 vtxs.clear()
+
+        if not is_quads:
+            # Draw polygon
+            image_shader.bind()
+
+            vercol = (color,)*len(uvs)
+            batch = batch_for_shader(image_shader, 'TRI_FAN', { "i_position": vtxs, "i_color": vercol, "i_uv": uvs})
+            image_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
+            image_shader.uniform_int("u_image", 0)
+            image_shader.uniform_float("u_correct", 1.0)
+            batch.draw(image_shader)
 
     @staticmethod
     def draw_to_viewport(view_min, view_max, show_extra, label_counter, tilegrid, sprytile_data,
