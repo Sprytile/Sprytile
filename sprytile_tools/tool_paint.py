@@ -50,6 +50,9 @@ class ToolPaint:
         grid_id = obj.sprytile_gridid
         target_grid = sprytile_utils.get_grid(context, grid_id)
 
+        if target_grid is None:
+            return None, None, None, None, None, None, None
+
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
             return None, None, None, None, None, None, None

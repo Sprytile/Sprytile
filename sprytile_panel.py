@@ -108,8 +108,8 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
             right_col.row(align=True).prop(sprytile_data, "paint_align_bottom", toggle=True, text="")
             right_col.row(align=True).prop(sprytile_data, "paint_hinting")
 
-        if sprytile_data.paint_mode == 'SET_NORMAL':
-            layout.prop(sprytile_data, "paint_hinting")
+        #if sprytile_data.paint_mode == 'SET_NORMAL':
+        #    layout.prop(sprytile_data, "paint_hinting")
 
         if sprytile_data.paint_mode == 'FILL':
             layout.prop(sprytile_data, "auto_merge", toggle=True)
