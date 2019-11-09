@@ -16,6 +16,7 @@ from bpy.path import abspath
 from datetime import datetime
 from os import path
 import sprytile_modal
+import sprytile_preview
 import addon_updater_ops
 
 
@@ -1725,6 +1726,61 @@ class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
         return face_index
 
 
+class UTIL_OP_SprytileSetNormal(bpy.types.Operator):
+    bl_idname = "sprytile.set_normal"
+    bl_label = "Set Normal (Sprytile)"
+
+    def modal(self, context, event):
+        sprytile_preview.clear_preview_data()
+        if event.type == 'N' and event.value == 'RELEASE':
+            bpy.context.window.cursor_modal_restore()
+            context.scene.sprytile_data.is_picking = False
+            return {'FINISHED'}
+
+        if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            # get the context arguments
+            region = context.region
+            rv3d = context.region_data
+            coord = event.mouse_region_x, event.mouse_region_y
+            no_data = rv3d is None
+
+            if no_data is False:
+                # get the ray from the viewport and mouse
+                ray_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
+                ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+
+                hit_loc, hit_normal, face_index, distance = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(context.object, ray_origin, ray_vector)
+                if hit_loc is None:
+                    return {'RUNNING_MODAL'}
+                hit_normal = context.object.matrix_world.to_quaternion() @ hit_normal
+
+                face_up_vector, face_right_vector = sprytile_modal.VIEW3D_OP_SprytileModalTool.get_face_up_vector(context.object, context, face_index)
+                if face_up_vector is None:
+                    return {'RUNNING_MODAL'}
+
+                sprytile_data = context.scene.sprytile_data
+                sprytile_data.paint_normal_vector = hit_normal
+                sprytile_data.paint_up_vector = face_up_vector
+                sprytile_data.lock_normal = True
+                #sprytile_data.paint_mode = 'MAKE_FACE'
+
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+    def invoke(self, context, event):
+        if event.type == 'N' and event.value == 'RELEASE':
+            return {'CANCELLED'}
+
+        # Add actual modal handler
+        context.scene.sprytile_data.is_picking = True
+        context.window_manager.modal_handler_add(self)
+        bpy.context.window.cursor_modal_set("CROSSHAIR")
+
+        return {'RUNNING_MODAL'}
+
+
 class UTIL_OP_SprytileResetData(bpy.types.Operator):
     bl_idname = "sprytile.reset_sprytile"
     bl_label = "Reset Sprytile"
@@ -1952,6 +2008,7 @@ classes = (
     UTIL_OP_SprytileResetData,
     UTIL_OP_SprytileSnapCursor,
     UTIL_OP_SprytileTilePicker,
+    UTIL_OP_SprytileSetNormal,
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,

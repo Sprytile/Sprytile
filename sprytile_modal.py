@@ -13,7 +13,6 @@ from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
 from sprytile_tools.tool_fill import ToolFill
-from sprytile_tools.tool_set_normal import ToolSetNormal
 import sprytile_uv
 from sprytile_uv import UvDataLayers
 import sprytile_utils
@@ -815,8 +814,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.tools = {
             "build": ToolBuild(self, self.rx_source),
             "paint": ToolPaint(self, self.rx_source),
-            "fill": ToolFill(self, self.rx_source),
-            "set_normal": ToolSetNormal(self, self.rx_source)
+            "fill": ToolFill(self, self.rx_source)
         }
 
         win_mgr = context.window_manager

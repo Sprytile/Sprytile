@@ -31,7 +31,6 @@ if "bpy" in locals_list:
     reload(tool_build)
     reload(tool_paint)
     reload(tool_fill)
-    reload(tool_set_normal)
 else:
     from . import sprytile_gui, sprytile_modal, sprytile_panel, sprytile_utils, sprytile_uv
     from sprytile_tools import *
@@ -903,6 +902,7 @@ def generate_tool_keymap(keyconfig, paint_mode):
 
     if paint_mode == 'MAKE_FACE':
         km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
+        km_items.new("sprytile.set_normal", 'N', 'PRESS')
 
     return keymap
 
@@ -956,7 +956,6 @@ submodules = (
     tool_build,
     tool_paint,
     tool_fill,
-    tool_set_normal,
 )
 
 
