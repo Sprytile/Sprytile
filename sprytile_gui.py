@@ -502,7 +502,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
 
-        if tilegrid is None:
+        if tilegrid is None or VIEW3D_OP_SprytileGui.loaded_grid is None:
             return
 
         region = context.region
