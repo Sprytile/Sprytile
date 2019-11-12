@@ -704,6 +704,12 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         max=1
     )
 
+    auto_adjust_viewport_shading: bpy.props.BoolProperty(
+        name="Automatically switch viewport to Look Dev mode",
+        description="If enabled, viewport shading mode will change to Look Dev while using Sprytile tools",
+        default=True,
+    )
+
     #def set_picker(self, value):
     #    if "tile_picker_key" not in self.keys():
     #        self["tile_picker_key"] = 1
@@ -793,6 +799,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         layout = self.layout
 
         layout.prop(self, "preview_transparency")
+        layout.prop(self, "auto_adjust_viewport_shading")
 
         #box = layout.box()
         #box.label(text = "Keyboard Shortcuts")
