@@ -831,7 +831,7 @@ class UTIL_OP_SprytileSetupMaterial(bpy.types.Operator):
 
         # Make material equivalent to a shadeless transparent one in Blender 2.7 
         mat.use_nodes = True
-        mat.blend_method = 'BLEND'
+        mat.blend_method = 'CLIP'
 
         # Get the material texture (if any) so we can keep it
         mat_texture = get_material_texture(mat)
