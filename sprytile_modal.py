@@ -795,9 +795,13 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         if use_default_grid_id:
             obj.sprytile_gridid = context.scene.sprytile_mats[0].grids[0].id
 
-        cur_space = context.area.spaces.active
-        if cur_space.shading.type != 'MATERIAL':
-            cur_space.shading.type = 'MATERIAL'
+
+        addon_prefs = context.preferences.addons[__package__].preferences
+        auto_adjust = addon_prefs.auto_adjust_viewport_shading
+        if auto_adjust:
+            cur_space = context.area.spaces.active
+            if cur_space.shading.type != 'MATERIAL':
+                cur_space.shading.type = 'MATERIAL'
 
         self.virtual_cursor = deque([], 3)
         VIEW3D_OP_SprytileModalTool.no_undo = False
