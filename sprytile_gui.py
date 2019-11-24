@@ -467,7 +467,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             VIEW3D_OP_SprytileGui.clear_offscreen(self)
             offscreen = None
 
-        VIEW3D_OP_SprytileGui.texture_grid = target_img
+        if target_img is None:
+            VIEW3D_OP_SprytileGui.texture_grid = None
+        else:
+            VIEW3D_OP_SprytileGui.texture_grid = target_img.name
         VIEW3D_OP_SprytileGui.tex_size = tex_size
         VIEW3D_OP_SprytileGui.display_size = tex_size
         VIEW3D_OP_SprytileGui.current_grid = grid_id
@@ -502,7 +505,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         show_extra = sprytile_data.show_extra or sprytile_data.show_overlay
         tilegrid = sprytile_utils.get_selected_grid(context)
 
-        if tilegrid is None or VIEW3D_OP_SprytileGui.loaded_grid is None:
+        if tilegrid is None or VIEW3D_OP_SprytileGui.loaded_grid is None or VIEW3D_OP_SprytileGui.texture_grid is None or bpy.data.images.find(VIEW3D_OP_SprytileGui.texture_grid) < 0:
             return
 
         region = context.region
@@ -569,18 +572,18 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         glDisable(GL_DEPTH_TEST)
         glEnable(GL_BLEND)
 
-        if target_img is not None:
-            target_img.gl_load()
-            glActiveTexture(bgl.GL_TEXTURE0)
-            glBindTexture(GL_TEXTURE_2D, target_img.bindcode)
-            # We need to backup and restore the MAG_FILTER to avoid messing up the Blender viewport
-            old_mag_filter = Buffer(GL_INT, 1)
-            glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-            glEnable(GL_TEXTURE_2D)
-            quad_pos = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
-            VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, True)
-            glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        target_img = bpy.data.images[bpy.data.images.find(target_img)]
+        target_img.gl_load()
+        glActiveTexture(bgl.GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, target_img.bindcode)
+        # We need to backup and restore the MAG_FILTER to avoid messing up the Blender viewport
+        old_mag_filter = Buffer(GL_INT, 1)
+        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glEnable(GL_TEXTURE_2D)
+        quad_pos = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
+        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, True)
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
         # Translate the gl context by grid matrix
         grid_matrix = sprytile_utils.get_grid_matrix(VIEW3D_OP_SprytileGui.loaded_grid)
