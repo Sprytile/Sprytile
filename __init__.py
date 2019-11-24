@@ -495,7 +495,7 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
             try:
                 self["padding"] = (0, 0)
             except:
-                pass
+                return (0, 0)
         return self["padding"]
 
     padding : IntVectorProperty(
