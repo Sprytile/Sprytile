@@ -628,15 +628,16 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             cursor_pos = VIEW3D_OP_SprytileGui.cursor_grid_pos
             # In pixel grid, draw cross hair
             if is_pixel_grid and VIEW3D_OP_SprytileGui.is_moving is False:
+                flat_shader.bind()
+                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
                 vtx_pos = ((0, int(cursor_pos.y + 1)), (tex_size[0], int(cursor_pos.y + 1)))
                 vtx_col = ((1.0, 1.0, 1.0, 0.5),)*2
-                batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vtx_pos, "i_color": vtx_col})
-                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtx_pos, "i_color": vtx_col})
+                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvp_mat)
                 batch.draw(flat_shader)
 
                 vtx_pos = ((int(cursor_pos.x + 1), 0), (int(cursor_pos.x + 1), tex_size[1]))
-                batch = batch_for_shader(flat_shader, 'LINE_STRIP', { "i_position": vtx_pos, "i_color": vtx_col})
-                flat_shader.uniform_float("u_modelViewProjectionMatrix", mvpMat)
+                batch = batch_for_shader(flat_shader, 'LINES', { "i_position": vtx_pos, "i_color": vtx_col})
                 batch.draw(flat_shader)
             # Draw box around selection
             elif VIEW3D_OP_SprytileGui.is_moving is False:
