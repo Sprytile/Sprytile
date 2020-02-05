@@ -1632,7 +1632,7 @@ class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
     bl_label = "Tile Picker (Sprytile)"
 
     def modal(self, context, event):
-        if event.type == 'LEFT_ALT' and event.value == 'RELEASE':
+        if not event.alt:
             bpy.context.window.cursor_modal_restore()
             context.scene.sprytile_data.is_picking = False
             return {'FINISHED'}
