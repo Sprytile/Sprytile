@@ -29,7 +29,7 @@ Please don't use GitHub releases, they are used for automatic updates.
 
 ### Community:
 
-* Chat with the fellow users in the [Discord server](https://discordapp.com/invite/Xj4Bc4U)
+* Chat with the fellow users in the [Discord server](http://discord.sprytile.xyz/)
 * Showcase your work or ask for support in the [forum](https://chemikhazi.itch.io/sprytile/community)
 
 ### Issue/Feature requests:
