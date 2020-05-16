@@ -5,7 +5,7 @@ from mathutils.geometry import distance_point_to_plane
 
 import sprytile_utils
 import sprytile_uv
-
+import sprytile_preview
 
 class ToolBuild:
     modal = None
@@ -43,8 +43,8 @@ class ToolBuild:
             # self.modal.virtual_cursor.clear()
             bpy.ops.ed.undo_push()
 
-        if modal_evt.build_preview:
-            self.build_preview(context, scene, ray_origin, ray_vector)
+        #if modal_evt.build_preview:
+        #    self.build_preview(context, scene, ray_origin, ray_vector)
 
     def execute(self, context, scene, ray_origin, ray_vector, is_start):
         data = scene.sprytile_data
@@ -63,7 +63,7 @@ class ToolBuild:
                                                                                    ray_origin,
                                                                                    ray_vector)
             if hit_normal is not None:
-                face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+                face_up, face_right = VIEW3D_OP_SprytileModalTool.get_face_up_vector(context, face_index, 0.4, bias_right=True)
                 if face_up is not None and face_right is not None:
                     plane_normal = hit_normal
                     up_vector = face_up
@@ -71,8 +71,8 @@ class ToolBuild:
 
         # Rotate the vectors
         rotation = Quaternion(plane_normal, data.mesh_rotate)
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
         # raycast grid to get the grid position under the mouse
         grid_coord, grid_right, grid_up, plane_pos = sprytile_utils.raycast_grid(
@@ -169,7 +169,7 @@ class ToolBuild:
                 faces_verts.extend(face_verts)
         # Build mode without auto join, try operation on each build coordinate
         else:
-            virtual_cursor = scene.cursor_location + \
+            virtual_cursor = scene.cursor.location + \
                              (grid_coord[0] * grid_right) + \
                              (grid_coord[1] * grid_up)
             self.modal.add_virtual_cursor(virtual_cursor)
@@ -202,7 +202,7 @@ class ToolBuild:
                 if data.work_layer != 'BASE':
                     new_cursor_pos -= plane_normal * data.mesh_decal_offset
                 # Calculate the world position of old start_coord
-                old_start_pos = scene.cursor_location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
+                old_start_pos = scene.cursor.location + (self.start_coord[0] * grid_right) + (self.start_coord[1] * grid_up)
                 # find the offset of the old start position from the new cursor position
                 new_start_offset = old_start_pos - new_cursor_pos
                 # get how much the grid x/y vectors need to scale by to normalize
@@ -218,58 +218,62 @@ class ToolBuild:
                 # for the nice painting snap
                 self.start_coord = new_start_coord
 
-                scene.cursor_location = new_cursor_pos
+                scene.cursor.location = new_cursor_pos
 
-    def build_preview(self, context, scene, ray_origin, ray_vector):
+    @staticmethod
+    def build_preview(context, scene, ray_origin, ray_vector):
         obj = context.object
         data = scene.sprytile_data
 
         grid_id = obj.sprytile_gridid
         target_grid = sprytile_utils.get_grid(context, grid_id)
 
-        # Reset can build flag
-        self.can_build = False
+        if target_grid is None:
+            return
 
+        # Reset can build flag
+        ToolBuild.can_build = False
+            
         target_img = sprytile_utils.get_grid_texture(obj, target_grid)
         if target_img is None:
-            self.modal.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             return
 
         # If building on base layer, get from current virtual grid
         up_vector, right_vector, plane_normal = sprytile_utils.get_current_grid_vectors(scene, False)
         # Building on decal layer, get from face under mouse
         if data.work_layer == 'DECAL_1' and data.lock_normal is False:
-            location, hit_normal, face_index, distance = self.modal.raycast_object(context.object,
+            location, hit_normal, face_index, distance = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(context.object,
                                                                                    ray_origin,
                                                                                    ray_vector)
             # For decals, if not hitting the object don't draw preview
             if hit_normal is None:
-                self.modal.clear_preview_data()
+                sprytile_preview.clear_preview_data()
                 return
 
             # Do a coplanar check between hit location and cursor
-            grid_origin = scene.cursor_location.copy()
+            grid_origin = scene.cursor.location.copy()
             grid_origin += hit_normal * data.mesh_decal_offset
 
             check_coplanar = distance_point_to_plane(location, grid_origin, hit_normal)
             check_coplanar = abs(check_coplanar) < 0.05
             if check_coplanar is False:
-                self.modal.clear_preview_data()
+                sprytile_preview.clear_preview_data()
                 return
 
-            face_up, face_right = self.modal.get_face_up_vector(context, face_index, 0.4, bias_right=True)
+            face_up, face_right = VIEW3D_OP_SprytileModalTool.get_face_up_vector(context, face_index, 0.4, bias_right=True)
             if face_up is not None and face_right is not None:
                 plane_normal = hit_normal
                 up_vector = face_up
                 right_vector = face_right
             else:
-                self.modal.clear_preview_data()
+                sprytile_preview.clear_preview_data()
                 return
 
         rotation = Quaternion(plane_normal, data.mesh_rotate)
 
-        up_vector = rotation * up_vector
-        right_vector = rotation * right_vector
+        up_vector = rotation @ up_vector
+        right_vector = rotation @ right_vector
 
         # Raycast to the virtual grid
         face_position, x_vector, y_vector, plane_cursor = sprytile_utils.raycast_grid(
@@ -279,11 +283,11 @@ class ToolBuild:
         )
 
         if face_position is None:
-            self.modal.clear_preview_data()
+            sprytile_preview.clear_preview_data()
             return
 
         # Passed can build checks, set flag to true
-        self.can_build = True
+        ToolBuild.can_build = True
 
         offset_tile_id, offset_grid, coord_min, coord_max = sprytile_utils.get_grid_area(
                                                                     target_grid.tile_selection[2],
@@ -305,7 +309,7 @@ class ToolBuild:
             x_vector *= size_x / target_grid.grid[0]
             y_vector *= size_y / target_grid.grid[1]
 
-            preview_verts = self.modal.get_build_vertices(origin_coord,
+            preview_verts = sprytile_utils.get_build_vertices(origin_coord,
                                                           x_vector, y_vector,
                                                           up_vector, right_vector)
             vtx_center = Vector((0, 0, 0))
@@ -320,7 +324,7 @@ class ToolBuild:
                                                       origin_xy, size_x, size_y,
                                                       up_vector, right_vector,
                                                       preview_verts, vtx_center)
-            self.modal.set_preview_data(preview_verts, preview_uvs)
+            sprytile_preview.set_preview_data(preview_verts, preview_uvs)
             return
 
         # Spaced grids need to be tiled
@@ -334,7 +338,7 @@ class ToolBuild:
             y_offset = y_vector * grid_offset[1]
 
             coord_position = face_position + x_offset + y_offset
-            coord_verts = self.modal.get_build_vertices(coord_position, x_vector, y_vector,
+            coord_verts = sprytile_utils.get_build_vertices(coord_position, x_vector, y_vector,
                                                         up_vector, right_vector)
             # Get the center of the preview verts
             vtx_center = Vector((0, 0, 0))
@@ -353,7 +357,7 @@ class ToolBuild:
             preview_verts.extend(coord_verts)
             preview_uvs.extend(coord_uvs)
 
-        self.modal.set_preview_data(preview_verts, preview_uvs)
+        sprytile_preview.set_preview_data(preview_verts, preview_uvs)
 
     def handle_error(self, err):
         print("Error in build mode: {0}".format(err))
@@ -364,11 +368,11 @@ class ToolBuild:
 
 
 def register():
-    bpy.utils.register_module(__name__)
+    pass
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    pass
 
 
 if __name__ == '__main__':

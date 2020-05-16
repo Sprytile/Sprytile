@@ -2,19 +2,17 @@ import bpy
 from . import sprytile_utils
 from bpy.types import Panel, UIList
 
-icons = None
 
-
-class SprytileMaterialGridList(bpy.types.UIList):
+class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
             if mat_data is None or item.mat_id not in bpy.data.materials:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
                 return
             material = bpy.data.materials[item.mat_id]
             if material is None:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
                 return
 
             display_icon = layout.icon(material)
@@ -31,28 +29,31 @@ class SprytileMaterialGridList(bpy.types.UIList):
         elif item.grid_id != "":
             grid = sprytile_utils.get_grid(context, item.grid_id)
             if grid is not None:
-                split = layout.split(0.65, align=True)
+                split = layout.split(factor=0.65, align=True)
                 split.prop(grid, "name", text="")
-                split.label("%dx%d" % (grid.grid[0], grid.grid[1]))
+                split.label(text="%dx%d" % (grid.grid[0], grid.grid[1]))
             else:
-                layout.label("Invalid Data")
+                layout.label(text="Invalid Data")
         else:
-            layout.label("Invalid Data")
+            layout.label(text="Invalid Data")
 
-class SprytileGridDropDown(bpy.types.Menu):
-    bl_idname = "SPRYTILE_grid_drop"
+
+class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):
+    bl_idname = 'VIEW3D_MT_SprytileGridDropDown'
     bl_label = "Grid drop down"
+
     def draw(self, context):
         layout = self.layout
-        layout.operator("sprytile.tileset_new", icon="NEW")
+        layout.operator("sprytile.tileset_new", icon="PRESET_NEW")
         layout.separator()
         layout.operator("sprytile.validate_grids", icon="GRID")
 
-class SprytilePanel(bpy.types.Panel):
+
+class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
+    bl_idname = "VIEW3D_PT_SprytilePanel"
     bl_label = "Sprytile Painter"
-    bl_idname = "sprytile.panel"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Sprytile"
 
     # Only show panel when selected object is a mesh and in edit mode
@@ -67,44 +68,10 @@ class SprytilePanel(bpy.types.Panel):
         obj = context.object
 
         if hasattr(context.scene, "sprytile_data") is False:
-            layout.label("No Sprytile Data")
+            layout.label(text="No Sprytile Data")
             return
 
         sprytile_data = context.scene.sprytile_data
-
-        if icons is not None:
-            icon_build = icons['SPRYTILE_ICON_BUILD'].icon_id
-            icon_paint = icons['SPRYTILE_ICON_PAINT'].icon_id
-            icon_fill = icons['SPRYTILE_ICON_FILL'].icon_id
-            icon_normal = icons['SPRYTILE_ICON_NORMAL'].icon_id
-            row = layout.row(align=True)
-            row.alignment = 'CENTER'
-            row.scale_y = 1.3
-            row.scale_x = 10
-            row.prop(sprytile_data, "set_paint_mode", index=2, text="",
-                     toggle=True, icon_value=icon_normal, expand=True, icon_only=True)
-            row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill",
-                     toggle=True, icon_value=icon_fill, expand=True, icon_only=True)
-            row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint",
-                     toggle=True, icon_value=icon_paint, expand=True, icon_only=True)
-            row.prop(sprytile_data, "set_paint_mode", index=1, text="Build",
-                     toggle=True, icon_value=icon_build, expand=True, icon_only=True)
-        else:
-            row = layout.row(align=True)
-
-            dropdown_icon = "TRIA_DOWN" if sprytile_data.show_tools else "TRIA_RIGHT"
-            row.prop(sprytile_data, "show_tools", icon=dropdown_icon, emboss=True, text="")
-
-            col = row.column(align=True)
-
-            row = col.row(align=True)
-            row.prop(sprytile_data, "set_paint_mode", index=0, text="Paint", toggle=True)
-            row.prop(sprytile_data, "set_paint_mode", index=1, text="Build", toggle=True)
-
-            if sprytile_data.show_tools:
-                row = col.row(align=True)
-                row.prop(sprytile_data, "set_paint_mode", index=2, text="Set Normal", toggle=True)
-                row.prop(sprytile_data, "set_paint_mode", index=3, text="Fill", toggle=True)
 
         row = layout.row(align=True)
         row.prop(sprytile_data, "uv_flip_x", toggle=True)
@@ -122,7 +89,7 @@ class SprytilePanel(bpy.types.Panel):
 
         if sprytile_data.paint_mode == 'PAINT':
             row = layout.row(align=False)
-            split = row.split(percentage=0.65)
+            split = row.split(factor=0.65)
 
             left_col = split.column(align=True)
             left_col.prop(sprytile_data, "paint_uv_snap", text="Pixel Snap")
@@ -141,8 +108,8 @@ class SprytilePanel(bpy.types.Panel):
             right_col.row(align=True).prop(sprytile_data, "paint_align_bottom", toggle=True, text="")
             right_col.row(align=True).prop(sprytile_data, "paint_hinting")
 
-        if sprytile_data.paint_mode == 'SET_NORMAL':
-            layout.prop(sprytile_data, "paint_hinting")
+        #if sprytile_data.paint_mode == 'SET_NORMAL':
+        #    layout.prop(sprytile_data, "paint_hinting")
 
         if sprytile_data.paint_mode == 'FILL':
             layout.prop(sprytile_data, "auto_merge", toggle=True)
@@ -157,17 +124,18 @@ class SprytilePanel(bpy.types.Panel):
         layout.separator()
 
         row = layout.row()
-        row.template_list("SprytileMaterialGridList", "",
+        row.template_list("VIEW3D_UL_SprytileMaterialGridList", "",
                           scene.sprytile_list, "display",
                           scene.sprytile_list, "idx", rows=4)
 
         col = row.column(align=True)
-        col.operator("sprytile.grid_add", icon='ZOOMIN', text="")
-        col.operator("sprytile.grid_remove", icon='ZOOMOUT', text="")
-        col.menu("SPRYTILE_grid_drop", icon='DOWNARROW_HLT', text="")
+        # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.operator
+        col.operator('sprytile.grid_add', icon='ADD', text='')
+        col.operator('sprytile.grid_remove', icon='REMOVE', text='')
+        col.menu('VIEW3D_MT_SprytileGridDropDown', icon='DOWNARROW_HLT', text='')
         col.separator()
-        col.operator("sprytile.grid_move", icon='TRIA_UP', text="").direction = -1
-        col.operator("sprytile.grid_move", icon='TRIA_DOWN', text="").direction = 1
+        col.operator('sprytile.grid_move', icon='TRIA_UP', text='').direction = -1
+        col.operator('sprytile.grid_move', icon='TRIA_DOWN', text='').direction = 1
 
         if len(scene.sprytile_mats) == 0:
             return
@@ -180,7 +148,7 @@ class SprytilePanel(bpy.types.Panel):
 
         row = layout.row()
         row.prop(sprytile_data, "show_overlay", text="", icon='GRID')
-        row.prop(sprytile_data, "outline_preview", text="", icon="BORDER_RECT")
+        row.prop(sprytile_data, "outline_preview", text="", icon="BORDERMOVE")
 
         show_icon = "TRIA_DOWN" if sprytile_data.show_extra else "TRIA_RIGHT"
         row.prop(sprytile_data, "show_extra", icon=show_icon, emboss=False)
@@ -188,7 +156,7 @@ class SprytilePanel(bpy.types.Panel):
         if not sprytile_data.show_extra:
             return
 
-        split = layout.split(percentage=0.3, align=True)
+        split = layout.split(factor=0.3, align=True)
         split.prop(selected_grid, "auto_pad", toggle=True)
 
         pad_row = split.row(align=True)
@@ -198,10 +166,10 @@ class SprytilePanel(bpy.types.Panel):
         layout.prop(selected_grid, "padding")
 
         row = layout.row(align=True)
-        row.label("Margins")
+        row.label(text="Margins")
 
         col = row.column(align=True)
-        
+
         row_margins = col.row(align=True)
         row_margins.prop(selected_grid, "margin", text="Left", index=3)
         row_margins.prop(selected_grid, "margin", text="Right", index=1)
@@ -214,12 +182,22 @@ class SprytilePanel(bpy.types.Panel):
         layout.prop(selected_grid, "offset")
 
 
+# module classes
+classes = (
+    VIEW3D_PT_SprytilePanel,
+    VIEW3D_UL_SprytileMaterialGridList,
+    VIEW3D_MT_SprytileGridDropDown,
+)
+
+
 def register():
-    bpy.utils.register_module(__name__)
+    for cl in classes:
+        bpy.utils.register_class(cl)
 
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    for cl in classes:
+        bpy.utils.unregister_class(cl)
 
 if __name__ == '__main__':
     register()
