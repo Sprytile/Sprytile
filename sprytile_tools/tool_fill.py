@@ -105,11 +105,11 @@ class ToolFill:
         # If lock transform on, cache the paint settings before doing any operations
         paint_setting_cache = None
         if sprytile_data.fill_lock_transform and paint_setting_layer is not None:
-            paint_setting_cache = [len(fill_coords)]
-            for idx, cell_coord in fill_coords:
+            paint_setting_cache = [None]*len(fill_coords)
+            for idx, cell_coord in enumerate(fill_coords):
                 face_index = face_idx_array[cell_coord[1]][cell_coord[0]]
                 if face_index > -1:
-                    face = self.modal.faces[face_index]
+                    face = self.modal.bmesh.faces[face_index]
                     paint_setting_cache[idx] = face[paint_setting_layer]
 
         # Get the work layer filter, based on layer settings
@@ -123,7 +123,8 @@ class ToolFill:
             # Fetch the paint settings from cache
             if paint_setting_cache is not None:
                 paint_setting = paint_setting_cache[idx]
-                sprytile_utils.from_paint_settings(data, paint_setting)
+                if paint_setting is not None:
+                    sprytile_utils.from_paint_settings(data, paint_setting)
 
             # Convert map coord to grid coord
             grid_coord = [grid_min[0] + cell_coord[0],
