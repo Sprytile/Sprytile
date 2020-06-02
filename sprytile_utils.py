@@ -1791,6 +1791,24 @@ class UTIL_OP_SprytileResetData(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class UTIL_OP_SprytileFlipXToggle(bpy.types.Operator):
+    bl_idname = "sprytile.flip_x_toggle"
+    bl_label = "Toggle Flip X"
+
+    def invoke(self, context, event):
+        context.scene.sprytile_data.uv_flip_x = not context.scene.sprytile_data.uv_flip_x
+        return {'FINISHED'}
+
+
+class UTIL_OP_SprytileFlipYToggle(bpy.types.Operator):
+    bl_idname = "sprytile.flip_y_toggle"
+    bl_label = "Toggle Flip Y"
+
+    def invoke(self, context, event):
+        context.scene.sprytile_data.uv_flip_y = not context.scene.sprytile_data.uv_flip_y
+        return {'FINISHED'}
+
+
 class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
     bl_idname = 'VIEW3D_MT_SprytileObjectDropDown'
     bl_label = "Sprytile Utilites"
@@ -2009,6 +2027,8 @@ classes = (
     UTIL_OP_SprytileSnapCursor,
     UTIL_OP_SprytileTilePicker,
     UTIL_OP_SprytileSetNormal,
+    UTIL_OP_SprytileFlipXToggle,
+    UTIL_OP_SprytileFlipYToggle,
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,

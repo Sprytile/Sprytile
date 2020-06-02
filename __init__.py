@@ -909,6 +909,10 @@ def generate_tool_keymap(keyconfig, paint_mode):
     km_items = keymap.keymap_items
     km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
     km_items.new("sprytile.tile_picker", 'LEFT_ALT', 'PRESS')
+    km_items.new("sprytile.rotate_right", 'FOUR', 'PRESS')
+    km_items.new("sprytile.rotate_left", 'FIVE', 'PRESS')
+    km_items.new("sprytile.flip_x_toggle", 'SIX', 'PRESS')
+    km_items.new("sprytile.flip_y_toggle", 'SEVEN', 'PRESS')
 
     if paint_mode == 'MAKE_FACE':
         km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
