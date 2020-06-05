@@ -321,6 +321,18 @@ def set_material_texture(mat, texture):
         return False
 
 
+def get_grid_material(sprytile_grid):
+    """
+    Given the sprytile_grid, returns the corresponding material
+    :param sprytile_grid: the sprytile grid applied to the object
+    :return: Material or None
+    """
+    mat_idx = bpy.data.materials.find(sprytile_grid.mat_id)
+    if mat_idx != -1 and bpy.data.materials[mat_idx] is not None:
+        return bpy.data.materials[mat_idx]
+    
+    return None
+
 def get_grid_texture(obj, sprytile_grid):
     """
     Returns the texture applied to an object, given the sprytile_grid
@@ -328,15 +340,25 @@ def get_grid_texture(obj, sprytile_grid):
     :param sprytile_grid: the sprytile grid applied to the object
     :return: Texture or None
     """
-    mat_idx = obj.material_slots.find(sprytile_grid.mat_id)
-    if mat_idx == -1:
-        return None
-    material = obj.material_slots[mat_idx].material
+    material = get_grid_material(sprytile_grid)
+
     if material is None:
         return None
     
     return get_material_texture(material) or None
 
+def has_material(obj, material):
+    """
+    Checks if the given object has the given material
+    :param obj: the Blender mesh object
+    :param material: the material to search
+    :return: True or False
+    """
+    for slot in obj.material_slots:
+        if slot.material == material:
+            return True
+    
+    return False
 
 def get_selected_grid(context):
     """

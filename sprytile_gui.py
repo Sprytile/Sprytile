@@ -448,7 +448,12 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     def setup_gpu_offscreen(self, context):
         obj = context.object
 
-        grid_id = obj.sprytile_gridid
+        sprytile_list = context.scene.sprytile_list
+        grid_id = sprytile_list.display[sprytile_list.idx].grid_id
+
+        # set current object grid_id to selected grid_id
+        if grid_id != obj.sprytile_gridid:
+            obj.sprytile_gridid = grid_id
 
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = sprytile_utils.get_grid(context, grid_id)

@@ -674,14 +674,24 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         else:
             self.rx_data = None
 
-        self.call_tool(event, True)
+        self.call_tool(event, True, context)
 
         return modal_return
 
 
-    def call_tool(self, event, left_down):
+    def call_tool(self, event, left_down, context):
         # Push the event data out through rx_observer for tool observers
         sprytile_data = bpy.context.scene.sprytile_data
+
+        # If the selected object does not own the painting material, add a slot for it here
+        if left_down:
+            grid = sprytile_utils.get_grid(context, context.object.sprytile_gridid)
+            if grid is not None:
+                grid_mat = sprytile_utils.get_grid_material(grid)
+                if not sprytile_utils.has_material(context.object, grid_mat):
+                    bpy.ops.object.material_slot_add()
+                    context.object.active_material = grid_mat
+
         if self.rx_observer is not None:
             self.rx_observer.on_next(
                 DataObjectDict(
@@ -898,7 +908,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 self.intercept_keys.append((cmd_entry, arg))
 
     def exit_modal(self, event, context):
-        self.call_tool(event, False)
+        self.call_tool(event, False, context)
         if self.rx_observer is not None:
             self.rx_observer.on_completed()
         self.tree = None
