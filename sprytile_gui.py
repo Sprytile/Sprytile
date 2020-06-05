@@ -213,6 +213,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             if VIEW3D_OP_SprytileGui.build_previews[mode]:
                 sprytile_modal.VIEW3D_OP_SprytileModalTool.verify_bmesh_layers(bmesh.from_edit_mesh(context.object.data))
                 VIEW3D_OP_SprytileGui.build_previews[mode].build_preview(context, context.scene, ray_origin, ray_vector)
+            else:
+                sprytile_preview.set_preview_data(None, None)
 
         context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
