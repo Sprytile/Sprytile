@@ -1158,6 +1158,8 @@ class UTIL_OP_SprytileBuildGridList(bpy.types.Operator):
                 idx = len(display_list)
                 grid_display = display_list.add()
                 grid_display.grid_id = mat_grid.id
+                grid_display.parent_mat_name = mat_display.mat_name
+                grid_display.parent_mat_id = mat_display.mat_id
                 if context.object.sprytile_gridid == grid_display.grid_id:
                     context.scene.sprytile_list.idx = idx
 
