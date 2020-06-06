@@ -48,6 +48,8 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
         subrow.prop(self, "filter_name", text="")
         icon = 'ZOOM_OUT' if self.use_filter_invert else 'ZOOM_IN'
         subrow.prop(self, "use_filter_invert", text="", icon=icon)
+        row = layout.row()
+        subrow = row.row(align=True)
         subrow.prop(self, "use_order_name", text="", icon='SORTALPHA')
         icon = 'SORT_DESC' if self.use_order_invert else 'SORT_ASC'
         subrow.prop(self, "use_order_invert", text="", icon=icon)
