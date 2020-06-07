@@ -589,7 +589,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glEnable(GL_TEXTURE_2D)
         quad_pos = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
-        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, True)
+        
+        # Blender > 2.83 expects sRGB
+        gamma_correct = bpy.app.version < (2, 83, 0)
+        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, gamma_correct)
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
         # Translate the gl context by grid matrix

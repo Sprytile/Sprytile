@@ -284,6 +284,9 @@ def get_material_texture_node(mat):
     :param mat: Material
     :return: ShaderNodeImageTexImage or None
     """
+    if mat.node_tree is None:
+        return None
+        
     for node in mat.node_tree.nodes:
         if node.bl_static_type == 'TEX_IMAGE':
             return node
