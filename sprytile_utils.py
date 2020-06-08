@@ -284,6 +284,9 @@ def get_material_texture_node(mat):
     :param mat: Material
     :return: ShaderNodeImageTexImage or None
     """
+    if mat.node_tree is None:
+        return None
+        
     for node in mat.node_tree.nodes:
         if node.bl_static_type == 'TEX_IMAGE':
             return node
@@ -321,6 +324,18 @@ def set_material_texture(mat, texture):
         return False
 
 
+def get_grid_material(sprytile_grid):
+    """
+    Given the sprytile_grid, returns the corresponding material
+    :param sprytile_grid: the sprytile grid applied to the object
+    :return: Material or None
+    """
+    mat_idx = bpy.data.materials.find(sprytile_grid.mat_id)
+    if mat_idx != -1 and bpy.data.materials[mat_idx] is not None:
+        return bpy.data.materials[mat_idx]
+    
+    return None
+
 def get_grid_texture(obj, sprytile_grid):
     """
     Returns the texture applied to an object, given the sprytile_grid
@@ -328,15 +343,25 @@ def get_grid_texture(obj, sprytile_grid):
     :param sprytile_grid: the sprytile grid applied to the object
     :return: Texture or None
     """
-    mat_idx = obj.material_slots.find(sprytile_grid.mat_id)
-    if mat_idx == -1:
-        return None
-    material = obj.material_slots[mat_idx].material
+    material = get_grid_material(sprytile_grid)
+
     if material is None:
         return None
     
     return get_material_texture(material) or None
 
+def has_material(obj, material):
+    """
+    Checks if the given object has the given material
+    :param obj: the Blender mesh object
+    :param material: the material to search
+    :return: True or False
+    """
+    for slot in obj.material_slots:
+        if slot.material == material:
+            return True
+    
+    return False
 
 def get_selected_grid(context):
     """
@@ -1136,6 +1161,8 @@ class UTIL_OP_SprytileBuildGridList(bpy.types.Operator):
                 idx = len(display_list)
                 grid_display = display_list.add()
                 grid_display.grid_id = mat_grid.id
+                grid_display.parent_mat_name = mat_display.mat_name
+                grid_display.parent_mat_id = mat_display.mat_id
                 if context.object.sprytile_gridid == grid_display.grid_id:
                     context.scene.sprytile_list.idx = idx
 
@@ -1791,6 +1818,24 @@ class UTIL_OP_SprytileResetData(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class UTIL_OP_SprytileFlipXToggle(bpy.types.Operator):
+    bl_idname = "sprytile.flip_x_toggle"
+    bl_label = "Toggle Flip X"
+
+    def invoke(self, context, event):
+        context.scene.sprytile_data.uv_flip_x = not context.scene.sprytile_data.uv_flip_x
+        return {'FINISHED'}
+
+
+class UTIL_OP_SprytileFlipYToggle(bpy.types.Operator):
+    bl_idname = "sprytile.flip_y_toggle"
+    bl_label = "Toggle Flip Y"
+
+    def invoke(self, context, event):
+        context.scene.sprytile_data.uv_flip_y = not context.scene.sprytile_data.uv_flip_y
+        return {'FINISHED'}
+
+
 class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
     bl_idname = 'VIEW3D_MT_SprytileObjectDropDown'
     bl_label = "Sprytile Utilites"
@@ -2009,6 +2054,8 @@ classes = (
     UTIL_OP_SprytileSnapCursor,
     UTIL_OP_SprytileTilePicker,
     UTIL_OP_SprytileSetNormal,
+    UTIL_OP_SprytileFlipXToggle,
+    UTIL_OP_SprytileFlipYToggle,
     VIEW3D_MT_SprytileObjectDropDown,
     VIEW3D_PT_SprytileObjectPanel,
     VIEW3D_MT_SprytileWorkDropDown,

@@ -213,6 +213,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             if VIEW3D_OP_SprytileGui.build_previews[mode]:
                 sprytile_modal.VIEW3D_OP_SprytileModalTool.verify_bmesh_layers(bmesh.from_edit_mesh(context.object.data))
                 VIEW3D_OP_SprytileGui.build_previews[mode].build_preview(context, context.scene, ray_origin, ray_vector)
+            else:
+                sprytile_preview.set_preview_data(None, None)
 
         context.scene.sprytile_ui.is_dirty = False
         context.area.tag_redraw()
@@ -448,7 +450,12 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
     def setup_gpu_offscreen(self, context):
         obj = context.object
 
-        grid_id = obj.sprytile_gridid
+        sprytile_list = context.scene.sprytile_list
+        grid_id = sprytile_list.display[sprytile_list.idx].grid_id
+
+        # set current object grid_id to selected grid_id
+        if grid_id != obj.sprytile_gridid:
+            obj.sprytile_gridid = grid_id
 
         # Get the current tile grid, to fetch the texture size to render to
         tilegrid = sprytile_utils.get_grid(context, grid_id)
@@ -582,7 +589,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glEnable(GL_TEXTURE_2D)
         quad_pos = ((0, 0), (tex_size[0], 0), (0, tex_size[1]), (tex_size[0], tex_size[1]))
-        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, True)
+        
+        # Blender > 2.83 expects sRGB
+        gamma_correct = bpy.app.version < (2, 83, 0)
+        VIEW3D_OP_SprytileGui.draw_full_tex_quad(quad_pos, projection_mat, 0, gamma_correct)
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, old_mag_filter)
 
         # Translate the gl context by grid matrix

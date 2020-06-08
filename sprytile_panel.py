@@ -4,6 +4,10 @@ from bpy.types import Panel, UIList
 
 
 class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
+    use_order_name : bpy.props.BoolProperty(default=False, name="Order by Name")
+    use_order_invert : bpy.props.BoolProperty(default=False, name="Reverse Order")
+    obj_mats_only : bpy.props.BoolProperty(default=False, name="Object Materials Only", description="Show only materials already added to the selected object")
+
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         if item.mat_id != "":
             mat_data = sprytile_utils.get_mat_data(context, item.mat_id)
@@ -36,6 +40,84 @@ class VIEW3D_UL_SprytileMaterialGridList(bpy.types.UIList):
                 layout.label(text="Invalid Data")
         else:
             layout.label(text="Invalid Data")
+
+    def draw_filter(self, context, layout):
+        row = layout.row()
+
+        subrow = row.row(align=True)
+        subrow.prop(self, "filter_name", text="")
+        icon = 'ZOOM_OUT' if self.use_filter_invert else 'ZOOM_IN'
+        subrow.prop(self, "use_filter_invert", text="", icon=icon)
+        row = layout.row()
+        subrow = row.row(align=True)
+        subrow.prop(self, "use_order_name", text="", icon='SORTALPHA')
+        icon = 'SORT_DESC' if self.use_order_invert else 'SORT_ASC'
+        subrow.prop(self, "use_order_invert", text="", icon=icon)
+        subrow.prop(self, "obj_mats_only", text="", icon='MESH_CUBE')
+
+    def filter_items(self, context, data, propname):
+        display = getattr(data, propname)
+        
+        helper_funcs = bpy.types.UI_UL_list
+        flt_flags = []
+        flt_neworder = []
+
+        # Filtering by name
+        if self.filter_name:
+            flt_flags = helper_funcs.filter_items_by_name(self.filter_name, self.bitflag_filter_item, display, "search_name",
+                                                          reverse=False)
+        if not flt_flags:
+            flt_flags = [self.bitflag_filter_item] * len(display)
+
+        # Filtering by selected object
+        if self.obj_mats_only and context.object and context.object.type == "MESH":
+            obj_mats = []
+            for slot in context.object.material_slots:
+                if slot.material:
+                    obj_mats.append(slot.material)
+
+            def filter_func(item):
+                nonlocal display
+                if item[1] == 0:
+                    return True
+
+                mat_id = display[item[0]].mat_id or display[item[0]].parent_mat_id
+                mat_idx = bpy.data.materials.find(mat_id)
+                if mat_idx < 0:
+                    return False
+                
+                return not bpy.data.materials[mat_id] in obj_mats
+
+            flt_flags = [0 if filter_func(x) else self.bitflag_filter_item for x in list(enumerate(flt_flags))]
+
+        sort_list = list(enumerate(display))
+        if self.use_order_name:
+            sort_list.sort(key=lambda item: item[1].search_name)
+
+        if self.use_order_invert:
+            invert_list = list(enumerate(sort_list))
+            invert_list_len = len(invert_list) - 1
+            invert_list_cp = invert_list.copy()
+
+            def sort_invert(item):
+                nonlocal invert_list_cp
+                if item[1][1].mat_id:
+                    return (invert_list_len - item[0], 0)
+                else:
+                    i = item[0] - 1
+                    while i >= 0:
+                        if invert_list_cp[i][1][1].mat_id:
+                            return (invert_list_len - i, 1)
+                        i -= 1
+
+                    return (item[0], 1)
+            
+            invert_list.sort(key=sort_invert)
+            sort_list = [x[1] for x in invert_list]
+
+        flt_neworder = [x[0] for x in sort_list]
+
+        return flt_flags, flt_neworder
 
 
 class VIEW3D_MT_SprytileGridDropDown(bpy.types.Menu):

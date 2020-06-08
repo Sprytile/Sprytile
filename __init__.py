@@ -602,10 +602,27 @@ class SprytileGridDisplay(bpy.types.PropertyGroup):
         bpy.data.materials[self.mat_id].name = value
         bpy.ops.sprytile.validate_grids()
 
+    def get_search_name(self):
+        mat_name = self.get_mat_name()
+        if mat_name:
+            return mat_name
+
+        return self.parent_mat_name
+
     mat_name: bpy.props.StringProperty(
         get=get_mat_name,
         set=set_mat_name
     )
+
+    parent_mat_name : bpy.props.StringProperty(default="")
+    parent_mat_id : bpy.props.StringProperty(default="")
+    
+    search_name : bpy.props.StringProperty(
+        get=get_search_name,
+        set=None
+    )
+
+
 
 
 class SprytileGridList(bpy.types.PropertyGroup):
@@ -909,6 +926,10 @@ def generate_tool_keymap(keyconfig, paint_mode):
     km_items = keymap.keymap_items
     km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
     km_items.new("sprytile.tile_picker", 'LEFT_ALT', 'PRESS')
+    km_items.new("sprytile.rotate_right", 'FOUR', 'PRESS')
+    km_items.new("sprytile.rotate_left", 'FIVE', 'PRESS')
+    km_items.new("sprytile.flip_x_toggle", 'SIX', 'PRESS')
+    km_items.new("sprytile.flip_y_toggle", 'SEVEN', 'PRESS')
 
     if paint_mode == 'MAKE_FACE':
         km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
