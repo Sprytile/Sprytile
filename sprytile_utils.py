@@ -1105,6 +1105,9 @@ class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
             if mat_idx < 0:
                 remove_idx.append(idx)
                 continue
+            if (mat.mat_id == "Dots Stroke"):
+                remove_idx.append(idx)
+                continue
             if mat_list[mat_idx].users == 0:
                 remove_idx.append(idx)
             for grid in mat.grids:
@@ -1123,7 +1126,7 @@ class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
                 if mat_data.mat_id == mat.name:
                     is_mat_valid = True
                     break
-            if is_mat_valid is False:
+            if is_mat_valid is False and mat.name != "Dots Stroke":
                 mat_data_entry = mat_data_list.add()
                 mat_data_entry.mat_id = mat.name
                 mat_grid = mat_data_entry.grids.add()
