@@ -23,7 +23,7 @@ import os
 # updater import, import safely
 # Prevents popups for users with invalid python installs e.g. missing libraries
 try:
-    from .addon_updater import Updater as updater
+    from addon_updater import Updater as updater
 except Exception as e:
     print("ERROR INITIALIZING UPDATER")
     print(str(e))
@@ -55,7 +55,7 @@ updater.addon = "sprytile"
 
 
 # simple popup for prompting checking for update & allow to install if available
-class addon_updater_install_popup(bpy.types.Operator):
+class ADDON_OP_addon_updater_install_popup(bpy.types.Operator):
     """Check and install update if available"""
     bl_label = "Update {x} addon".format(x=updater.addon)
     bl_idname = updater.addon + ".updater_install_popup"
@@ -64,7 +64,7 @@ class addon_updater_install_popup(bpy.types.Operator):
     # if true, run clean install - ie remove all files before adding new
     # equivalent to deleting the addon and reinstalling, except the
     # updater folder/backup folder remains
-    clean_install = bpy.props.BoolProperty(
+    clean_install: bpy.props.BoolProperty(
         name="Clean install",
         description="If enabled, completely clear the addon's folder before installing new update, creating a fresh install",
         default=False,
@@ -135,7 +135,7 @@ class addon_updater_install_popup(bpy.types.Operator):
 
 
 # User preference check-now operator
-class addon_updater_check_now(bpy.types.Operator):
+class ADDON_OP_addon_updater_check_now(bpy.types.Operator):
     bl_label = "Check now for " + updater.addon + " update"
     bl_idname = updater.addon + ".updater_check_now"
     bl_description = "Check now for an update to the {x} addon".format(
@@ -154,7 +154,7 @@ class addon_updater_check_now(bpy.types.Operator):
             return {'CANCELLED'}
 
         # apply the UI settings
-        settings = context.user_preferences.addons[__package__].preferences
+        settings = context.preferences.addons[__package__].preferences
         updater.set_check_interval(enable=settings.auto_check_update,
                                    months=settings.updater_intrval_months,
                                    days=settings.updater_intrval_days,
@@ -170,7 +170,7 @@ class addon_updater_check_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_update_now(bpy.types.Operator):
+class ADDON_OP_addon_updater_update_now(bpy.types.Operator):
     bl_label = "Update " + updater.addon + " addon now"
     bl_idname = updater.addon + ".updater_update_now"
     bl_description = "Update to the latest version of the {x} addon".format(
@@ -179,7 +179,7 @@ class addon_updater_update_now(bpy.types.Operator):
     # if true, run clean install - ie remove all files before adding new
     # equivalent to deleting the addon and reinstalling, except the
     # updater folder/backup folder remains
-    clean_install = bpy.props.BoolProperty(
+    clean_install: bpy.props.BoolProperty(
         name="Clean install",
         description="If enabled, completely clear the addon's folder before installing new update, creating a fresh install",
         default=False,
@@ -225,7 +225,7 @@ class addon_updater_update_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_update_target(bpy.types.Operator):
+class ADDON_OP_addon_updater_update_target(bpy.types.Operator):
     bl_label = updater.addon + " addon version target"
     bl_idname = updater.addon + ".updater_update_target"
     bl_description = "Install a targeted version of the {x} addon".format(
@@ -243,7 +243,7 @@ class addon_updater_update_target(bpy.types.Operator):
             i += 1
         return ret
 
-    target = bpy.props.EnumProperty(
+    target: bpy.props.EnumProperty(
         name="Target version",
         description="Select the version to install",
         items=target_version
@@ -252,7 +252,7 @@ class addon_updater_update_target(bpy.types.Operator):
     # if true, run clean install - ie remove all files before adding new
     # equivalent to deleting the addon and reinstalling, except the
     # updater folder/backup folder remains
-    clean_install = bpy.props.BoolProperty(
+    clean_install: bpy.props.BoolProperty(
         name="Clean install",
         description="If enabled, completely clear the addon's folder before installing new update, creating a fresh install",
         default=False,
@@ -301,13 +301,13 @@ class addon_updater_update_target(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_install_manually(bpy.types.Operator):
+class ADDON_OP_addon_updater_install_manually(bpy.types.Operator):
     """As a fallback, direct the user to download the addon manually"""
     bl_label = "Install update manually"
     bl_idname = updater.addon + ".updater_install_manually"
     bl_description = "Proceed to manually install update"
 
-    error = bpy.props.StringProperty(
+    error: bpy.props.StringProperty(
         name="Error Occurred",
         default="",
         options={'HIDDEN'}
@@ -362,14 +362,14 @@ class addon_updater_install_manually(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_updated_successful(bpy.types.Operator):
+class ADDON_OP_addon_updater_updated_successful(bpy.types.Operator):
     """Addon in place, popup telling user it completed or what went wrong"""
     bl_label = "Installation Report"
     bl_idname = updater.addon + ".updater_update_successful"
     bl_description = "Update installation response"
     bl_options = {'REGISTER', 'UNDO'}
 
-    error = bpy.props.StringProperty(
+    error: bpy.props.StringProperty(
         name="Error Occurred",
         default="",
         options={'HIDDEN'}
@@ -430,7 +430,7 @@ class addon_updater_updated_successful(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_restore_backup(bpy.types.Operator):
+class ADDON_OP_addon_updater_restore_backup(bpy.types.Operator):
     """Restore addon from backup"""
     bl_label = "Restore backup"
     bl_idname = updater.addon + ".updater_restore_backup"
@@ -451,7 +451,7 @@ class addon_updater_restore_backup(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_ignore(bpy.types.Operator):
+class ADDON_OP_addon_updater_ignore(bpy.types.Operator):
     """Prevent future update notice popups"""
     bl_label = "Ignore update"
     bl_idname = updater.addon + ".updater_ignore"
@@ -475,7 +475,7 @@ class addon_updater_ignore(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class addon_updater_end_background(bpy.types.Operator):
+class ADDON_OP_addon_updater_end_background(bpy.types.Operator):
     """Stop checking for update in the background"""
     bl_label = "End background check"
     bl_idname = updater.addon + ".end_background_check"
@@ -627,7 +627,7 @@ def check_for_update_background():
         return
 
     # apply the UI settings
-    addon_prefs = bpy.context.user_preferences.addons.get(__package__, None)
+    addon_prefs = bpy.context.preferences.addons.get(__package__, None)
     if not addon_prefs:
         return
     settings = addon_prefs.preferences
@@ -657,7 +657,7 @@ def check_for_update_nonthreaded(self, context):
     # only check if it's ready, ie after the time interval specified
     # should be the async wrapper call here
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
     updater.set_check_interval(enable=settings.auto_check_update,
                                months=settings.updater_intrval_months,
                                days=settings.updater_intrval_days,
@@ -730,7 +730,7 @@ def update_notice_box_ui(self, context):
 
     if updater.update_ready != True: return
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
     layout = self.layout
     box = layout.box()
     col = box.column(align=True)
@@ -763,7 +763,7 @@ def update_settings_ui(self, context):
         box.label(updater.error_msg)
         return
 
-    settings = context.user_preferences.addons[__package__].preferences
+    settings = context.preferences.addons[__package__].preferences
 
     # auto-update settings
     box.label("Updater Settings")
