@@ -1332,11 +1332,16 @@ class UTIL_OP_SprytileSetupGrid(bpy.types.Operator):
 
     def invoke(self, context, event):
         pixel_unit = (1 / context.scene.sprytile_data.world_pixels)
-        space_data = context.space_data
-        space_data.grid_scale = pixel_unit
-        space_data.grid_subdivisions = 1
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if (area.type == 'VIEW_3D'):
+                    for space in area.spaces:
+                        if (space.type == 'VIEW_3D'):
+                            space.overlay.grid_scale = pixel_unit
+                            space.overlay.grid_subdivisions = 1
+        
         context.scene.tool_settings.use_snap = True
-        context.scene.tool_settings.snap_element = 'INCREMENT'
+        context.scene.tool_settings.snap_elements = {'INCREMENT'}
         return {'FINISHED'}
 
 
@@ -1362,8 +1367,6 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         font_id = 0
         font_size = 16
         blf.size(font_id, font_size, 72)
-
-        bgl.glColor4f(1, 1, 1, 1)
 
         readout_axis = ['X', 'Y', 'Z']
         for i in range(3):
@@ -1437,22 +1440,22 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         space_data = context.space_data
         if space_data.type == 'VIEW_3D':
             self.restore_settings = {
-                "grid_scale": space_data.grid_scale,
-                "grid_sub": space_data.grid_subdivisions,
-                "show_floor": space_data.show_floor,
-                "pivot": context.space_data.pivot_point,
-                "orient": context.space_data.transform_orientation,
+                "grid_scale": space_data.overlay.grid_scale,
+                "grid_sub": space_data.overlay.grid_subdivisions,
+                "show_floor": space_data.overlay.show_floor,
+                "pivot": context.scene.tool_settings.transform_pivot_point,
+                "orient": context.scene.transform_orientation_slots[0].type,
                 "use_snap": context.scene.tool_settings.use_snap,
-                "snap_element": context.scene.tool_settings.snap_element
+                "snap_elements": context.scene.tool_settings.snap_elements
             }
             pixel_unit = 1 / context.scene.sprytile_data.world_pixels
-            space_data.grid_scale = pixel_unit
-            space_data.grid_subdivisions = 1
-            space_data.show_floor = False
-            space_data.pivot_point = 'CURSOR'
-            space_data.transform_orientation = 'GLOBAL'
+            space_data.overlay.grid_scale = pixel_unit
+            space_data.overlay.grid_subdivisions = 1
+            space_data.overlay.show_floor = False
+            context.scene.transform_orientation_slots[0].type = 'GLOBAL'
+            context.scene.tool_settings.transform_pivot_point = 'CURSOR'
             context.scene.tool_settings.use_snap = True
-            context.scene.tool_settings.snap_element = 'INCREMENT'
+            context.scene.tool_settings.snap_elements = {'INCREMENT'}
         # Remember what the current active operator is, when it changes
         # we know that the translate operator is complete
         self.watch_operator = context.active_operator
@@ -1486,13 +1489,13 @@ class UTIL_OP_SprytileGridTranslate(bpy.types.Operator):
         pixel_unit = 1 / context.scene.sprytile_data.world_pixels
         # Restore grid settings if changed
         if self.restore_settings is not None:
-            context.space_data.grid_scale = self.restore_settings['grid_scale']
-            context.space_data.grid_subdivisions = self.restore_settings['grid_sub']
-            context.space_data.show_floor = self.restore_settings['show_floor']
-            context.space_data.pivot_point = self.restore_settings['pivot']
-            context.space_data.transform_orientation = self.restore_settings['orient']
+            context.space_data.overlay.grid_scale = self.restore_settings['grid_scale']
+            context.space_data.overlay.grid_subdivisions = self.restore_settings['grid_sub']
+            context.space_data.overlay.show_floor = self.restore_settings['show_floor']
+            context.scene.tool_settings.transform_pivot_point = self.restore_settings['pivot']
+            context.scene.transform_orientation_slots[0].type = self.restore_settings['orient']
             context.scene.tool_settings.use_snap = self.restore_settings['use_snap']
-            context.scene.tool_settings.snap_element = self.restore_settings['snap_element']
+            context.scene.tool_settings.snap_elements = self.restore_settings['snap_elements']
         # Didn't snap to grid, force to grid by calculating what the snapped translate would be
         else:
             op = context.active_operator
