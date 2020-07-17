@@ -468,7 +468,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                 tex_size = target_img.size[0], target_img.size[1]
 
         try:
-            offscreen = gpu.types.GPUOffScreen(tex_size[0], tex_size[1], samples=0)
+            offscreen = gpu.types.GPUOffScreen(tex_size[0], tex_size[1])
         except Exception as e:
             print(e)
             VIEW3D_OP_SprytileGui.clear_offscreen(self)
