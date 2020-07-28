@@ -1934,6 +1934,8 @@ class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
         layout.separator()
         layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
+        layout.operator("sprytile.viewport_setup")
+        layout.operator("sprytile.add_new_material")
         layout.separator()
         layout.operator("sprytile.make_double_sided")
         layout.separator()
