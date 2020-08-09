@@ -28,7 +28,7 @@ Download from [releases](https://github.com/ologon/Sprytile/releases).
 
 ### Community:
 
-* Chat with the fellow users in the [Discord server](https://discordapp.com/invite/Xj4Bc4U)
+* Chat with the fellow users in the [Discord server](http://discord.sprytile.xyz/)
 * Showcase your work or ask for support in the [forum](https://chemikhazi.itch.io/sprytile/community)
 
 ### Issue/Feature requests:
