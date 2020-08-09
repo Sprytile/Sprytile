@@ -2,7 +2,7 @@ bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
     # Final version number must be two numerals to support x.x.00
-    "version": (0, 5, 00),
+    "version": (0, 5, 10),
     "blender": (2, 80, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
