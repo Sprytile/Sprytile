@@ -310,11 +310,14 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         display_scale = context.scene.sprytile_ui.zoom
         display_size = VIEW3D_OP_SprytileGui.display_size
         display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
+        display_offset = Vector((VIEW3D_OP_SprytileGui.display_offset[0], VIEW3D_OP_SprytileGui.display_offset[1]))
         display_pad_x = 30
         display_pad_y = 5
 
         gui_min = Vector((region.width - (int(display_size[0]) + display_pad_x), display_pad_y))
         gui_max = Vector((region.width - display_pad_x, (int(display_size[1]) + display_pad_y)))
+        gui_min += display_offset
+        gui_max += display_offset
 
         self.gui_min = gui_min
         self.gui_max = gui_max
@@ -336,6 +339,9 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             context.scene.sprytile_ui.use_mouse = mouse_in_gui
             self.prev_in_region = mouse_in_region
 
+        if mouse_pt is not None and context.scene.sprytile_ui.middle_btn and VIEW3D_OP_SprytileGui.is_moving:
+           context.scene.sprytile_ui.use_mouse = True 
+
         if context.scene.sprytile_ui.use_mouse is False:
             ret_val = 'PASS_THROUGH'
             return ret_val
@@ -349,7 +355,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                 bpy.ops.sprytile.grid_cycle('INVOKE_REGION_WIN', direction=direction)
                 self.label_counter = VIEW3D_OP_SprytileGui.label_frames
 
-        if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
+        if mouse_pt is not None and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE', 'MOUSEMOVE', 'INBETWEEN_MOUSEMOVE'}:
             click_pos = Vector((mouse_pt.x - gui_min.x, mouse_pt.y - gui_min.y))
             ratio_pos = Vector((click_pos.x / display_size[0], click_pos.y / display_size[1]))
             tex_pos = Vector((ratio_pos.x * tex_size[0], ratio_pos.y * tex_size[1], 0))
@@ -368,6 +374,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
             VIEW3D_OP_SprytileGui.cursor_grid_pos = grid_pos
 
+            # Code for moving tile selection around
             if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and VIEW3D_OP_SprytileGui.is_selecting is False:
                 addon_prefs = context.preferences.addons[__package__].preferences
                 move_mod_pressed = False
@@ -384,7 +391,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                     VIEW3D_OP_SprytileGui.sel_start = grid_pos
                     VIEW3D_OP_SprytileGui.sel_origin = (tilegrid.tile_selection[0], tilegrid.tile_selection[1])
 
-            if VIEW3D_OP_SprytileGui.is_moving:
+            if VIEW3D_OP_SprytileGui.is_moving and event.type == 'LEFTMOUSE':
                 move_delta = Vector((grid_pos.x - VIEW3D_OP_SprytileGui.sel_start.x, grid_pos.y - VIEW3D_OP_SprytileGui.sel_start.y))
                 # Restrict movement inside tile grid
                 move_min = (VIEW3D_OP_SprytileGui.sel_origin[0] + move_delta.x,
@@ -403,6 +410,28 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
                 tilegrid.tile_selection[0] = VIEW3D_OP_SprytileGui.sel_origin[0] + move_delta.x
                 tilegrid.tile_selection[1] = VIEW3D_OP_SprytileGui.sel_origin[1] + move_delta.y
+            # End tile selection movement code
+
+            # Code for moving tile palette around
+            if context.scene.sprytile_ui.middle_btn:
+                if event.shift and not VIEW3D_OP_SprytileGui.is_moving:
+                    VIEW3D_OP_SprytileGui.is_moving = True
+                    VIEW3D_OP_SprytileGui.sel_origin = mouse_pt
+                if VIEW3D_OP_SprytileGui.is_moving:
+                    mouse_delta = mouse_pt - VIEW3D_OP_SprytileGui.sel_origin
+                    VIEW3D_OP_SprytileGui.sel_origin = mouse_pt
+
+                    display_offset += mouse_delta
+                    
+                    display_offset.x = max(display_offset.x, -(region.width - display_size[0] - display_pad_x * 2))
+                    if display_offset.x > 0:
+                        display_offset.x = 0
+                    
+                    display_offset.y = min(display_offset.y, (region.height - display_size[1] - display_pad_y * 2))
+                    display_offset.y = max(display_offset.y, display_pad_y)
+                    VIEW3D_OP_SprytileGui.display_offset = display_offset
+                    # print("Region size: {0},{1}, display size:{3}, offset:{2}".format(region.width, region.height, VIEW3D_OP_SprytileGui.display_offset, display_size))
+            # End tile palette movement code
 
             if VIEW3D_OP_SprytileGui.is_selecting:
                 sel_min = Vector((
@@ -419,12 +448,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                 tilegrid.tile_selection[2] = (sel_max.x - sel_min.x) + 1
                 tilegrid.tile_selection[3] = (sel_max.y - sel_min.y) + 1
 
-            do_release = event.type == 'LEFTMOUSE' and event.value == 'RELEASE'
+            do_release = event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'} and event.value == 'RELEASE'
             if do_release and (VIEW3D_OP_SprytileGui.is_selecting or VIEW3D_OP_SprytileGui.is_moving):
                 VIEW3D_OP_SprytileGui.is_selecting = False
                 VIEW3D_OP_SprytileGui.is_moving = False
                 VIEW3D_OP_SprytileGui.sel_start = None
                 VIEW3D_OP_SprytileGui.sel_origin = None
+        # End mouse processing
 
         # Cycle through grids on same material when right click
         if event.type == 'RIGHTMOUSE' and event.value == 'PRESS':
@@ -480,6 +510,7 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             VIEW3D_OP_SprytileGui.texture_grid = target_img.name
         VIEW3D_OP_SprytileGui.tex_size = tex_size
         VIEW3D_OP_SprytileGui.display_size = tex_size
+        VIEW3D_OP_SprytileGui.display_offset = 0, 0
         VIEW3D_OP_SprytileGui.current_grid = grid_id
         VIEW3D_OP_SprytileGui.loaded_grid = tilegrid
         self.get_zoom_level(context)
