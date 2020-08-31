@@ -431,12 +431,9 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             if context.scene.sprytile_ui.middle_btn:
                 if event.shift and not VIEW3D_OP_SprytileGui.is_moving:
                     VIEW3D_OP_SprytileGui.is_moving = True
-                    VIEW3D_OP_SprytileGui.sel_origin = mouse_pt
+                    VIEW3D_OP_SprytileGui.sel_origin = display_offset - mouse_pt
                 if VIEW3D_OP_SprytileGui.is_moving:
-                    mouse_delta = mouse_pt - VIEW3D_OP_SprytileGui.sel_origin
-                    VIEW3D_OP_SprytileGui.sel_origin = mouse_pt
-
-                    display_offset += mouse_delta
+                    display_offset = mouse_pt + VIEW3D_OP_SprytileGui.sel_origin
                     
                     display_offset.x = max(display_offset.x, display_min.x) 
                     display_offset.x = min(display_offset.x, display_max.x)
@@ -445,7 +442,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                     
                     context.scene.sprytile_ui.palette_pos[0] = display_offset.x
                     context.scene.sprytile_ui.palette_pos[1] = display_offset.y
-                    # print("Region size: {0},{1}, display size:{3}, offset:{2}".format(region.width, region.height, VIEW3D_OP_SprytileGui.display_offset, display_size))
             # End tile palette movement code
 
             if VIEW3D_OP_SprytileGui.is_selecting:
