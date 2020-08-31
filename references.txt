@@ -22,6 +22,14 @@ Mesh keymap:
 mesh.select_all,
 mesh.hide
 mesh.reveal
+view3d.move - Camera pan, to allow user to move tile palette
+
+code from development_iskeyfree.py, for checking user keymaps
+# wm = bpy.context.window_manager
+#
+# for context, keyboardmap in wm.keyconfigs.user.keymaps.items():
+#       for myitem in keyboardmap.keymap_items:
+#               print myitem.idname
 
 Change the key handler in the modal to operate through KeyMapItem found by this way.
 If the event matches, pass the event through
