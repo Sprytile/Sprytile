@@ -87,6 +87,11 @@ class SprytileGuiData(bpy.types.PropertyGroup):
     use_mouse : BoolProperty(name="GUI use mouse")
     middle_btn : BoolProperty(name="GUI middle mouse")
     is_dirty : BoolProperty(name="Srpytile GUI redraw flag")
+    palette_pos: IntVectorProperty(
+        name="Sprytile tile palette position",
+        size=2,
+        default=(0,0)
+    )
 
 
 class VIEW3D_OP_SprytileGui(bpy.types.Operator):
@@ -310,14 +315,24 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         display_scale = context.scene.sprytile_ui.zoom
         display_size = VIEW3D_OP_SprytileGui.display_size
         display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
-        display_offset = Vector((VIEW3D_OP_SprytileGui.display_offset[0], VIEW3D_OP_SprytileGui.display_offset[1]))
-        display_pad_x = 30
+        
+        display_pad_x = 30 if context.space_data.show_region_ui else 5
         display_pad_y = 5
 
-        gui_min = Vector((region.width - (int(display_size[0]) + display_pad_x), display_pad_y))
-        gui_max = Vector((region.width - display_pad_x, (int(display_size[1]) + display_pad_y)))
-        gui_min += display_offset
-        gui_max += display_offset
+        size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
+
+        display_min = Vector((display_pad_y + size_half.x, display_pad_y + size_half.y))
+        display_max = Vector((region.width - display_pad_x - size_half.x, region.height - display_pad_y - size_half.y))
+
+        display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
+
+        display_offset.x = max(display_offset.x, display_min.x)
+        display_offset.x = min(display_offset.x, display_max.x)
+        display_offset.y = max(display_offset.y, display_min.y)
+        display_offset.y = min(display_offset.y, display_max.y)
+
+        gui_min = display_offset - size_half
+        gui_max = display_offset + size_half
 
         self.gui_min = gui_min
         self.gui_max = gui_max
@@ -423,13 +438,13 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
                     display_offset += mouse_delta
                     
-                    display_offset.x = max(display_offset.x, -(region.width - display_size[0] - display_pad_x * 2))
-                    if display_offset.x > 0:
-                        display_offset.x = 0
+                    display_offset.x = max(display_offset.x, display_min.x) 
+                    display_offset.x = min(display_offset.x, display_max.x)
+                    display_offset.y = max(display_offset.y, display_min.y)
+                    display_offset.y = min(display_offset.y, display_max.y) 
                     
-                    display_offset.y = min(display_offset.y, (region.height - display_size[1] - display_pad_y * 2))
-                    display_offset.y = max(display_offset.y, display_pad_y)
-                    VIEW3D_OP_SprytileGui.display_offset = display_offset
+                    context.scene.sprytile_ui.palette_pos[0] = display_offset.x
+                    context.scene.sprytile_ui.palette_pos[1] = display_offset.y
                     # print("Region size: {0},{1}, display size:{3}, offset:{2}".format(region.width, region.height, VIEW3D_OP_SprytileGui.display_offset, display_size))
             # End tile palette movement code
 
@@ -510,7 +525,6 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             VIEW3D_OP_SprytileGui.texture_grid = target_img.name
         VIEW3D_OP_SprytileGui.tex_size = tex_size
         VIEW3D_OP_SprytileGui.display_size = tex_size
-        VIEW3D_OP_SprytileGui.display_offset = 0, 0
         VIEW3D_OP_SprytileGui.current_grid = grid_id
         VIEW3D_OP_SprytileGui.loaded_grid = tilegrid
         self.get_zoom_level(context)
