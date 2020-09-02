@@ -390,6 +390,12 @@ class SprytileSceneSettings(bpy.types.PropertyGroup):
         default=False
     )
 
+    allow_backface: bpy.props.BoolProperty(
+        name="Backface",
+        description="Should Sprytile work on backfaces",
+        default=False,
+    )
+
     def set_reload(self, value):
         self["auto_reload"] = value
         if value is True:

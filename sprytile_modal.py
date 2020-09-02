@@ -262,7 +262,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             do_pass_through = True
         # Hit face is backface
         if face.normal.dot(ray_direction) > 0:
-            do_pass_through = True
+            do_pass_through = not bpy.context.scene.sprytile_data.allow_backface
         # Hit face is hidden
         if face.hide:
             do_pass_through = True
