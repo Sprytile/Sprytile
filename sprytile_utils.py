@@ -2036,19 +2036,19 @@ class VIEW3D_PT_SprytileWorkflowPanel(bpy.types.Panel):
         row.prop(data, "cursor_snap", expand=True)
 
         row = layout.row(align=False)
-        # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.label
-        row.label(text="", icon="PIVOT_CURSOR")
-        row.prop(data, "cursor_flow", toggle=True)
-
-        # layout.prop(data, "snap_translate", toggle=True)
-
-        layout.prop(data, "world_pixels")
+        row.prop(data, "cursor_flow", toggle=True, text="", icon="PIVOT_CURSOR")
+        row.prop(context.scene.tool_settings, "use_transform_correct_face_attributes", toggle=True, text="", icon="UV")
+        #row.prop(bpy.ops.mesh.extrude_context_move, "use_dissolve_ortho_edges", toggle=True, text="", icon="ORIENTATION_NORMAL")
+        
+        layout.prop(data, "world_pixels", text="World Pixels")
+        
         layout.menu("VIEW3D_MT_SprytileWorkDropDown")
 
         split = layout.split(factor=0.3, align=True)
         split.prop(data, "auto_reload", toggle=True)
         split.operator("sprytile.reload_imgs")
-
+# ORIENTATION_NORMAL
+#bpy.ops.mesh.extrude_context_move(MESH_OT_extrude_context={"use_normal_flip":False, "use_dissolve_ortho_edges":True, "mirror":False}, TRANSFORM_OT_translate={"value":(0, 0, 0.84375), "orient_type":'NORMAL', "orient_matrix":((0, 0, -1), (1, 0, 0), (0, -1, 0)), "orient_matrix_type":'NORMAL', "constraint_axis":(False, False, True), "mirror":False, "use_proportional_edit":False, "proportional_edit_falloff":'SMOOTH', "proportional_size":1, "use_proportional_connected":False, "use_proportional_projected":False, "snap":False, "snap_target":'CLOSEST', "snap_point":(0, 0, 0), "snap_align":False, "snap_normal":(0, 0, 0), "gpencil_strokes":False, "cursor_transform":False, "texture_space":False, "remove_on_cancel":False, "release_confirm":True, "use_accurate":False, "use_automerge_and_split":False})
 
 # module classes
 classes = (

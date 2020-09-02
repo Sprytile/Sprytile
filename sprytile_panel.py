@@ -164,13 +164,9 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         row.prop(sprytile_data, "mesh_rotate")
         row.operator("sprytile.rotate_right", icon="TRIA_UP", text="")
 
-        if sprytile_data.paint_mode == 'MAKE_FACE':
-            row = layout.row(align=True)
-            row.prop(sprytile_data, "auto_merge", toggle=True)
-            row.prop(sprytile_data, "auto_join", toggle=True)
-
         if sprytile_data.paint_mode == 'PAINT':
-            row = layout.row(align=False)
+            box = layout.box()
+            row = box.row(align=False)
             split = row.split(factor=0.65)
 
             left_col = split.column(align=True)
@@ -194,14 +190,30 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
         #    layout.prop(sprytile_data, "paint_hinting")
 
         if sprytile_data.paint_mode == 'FILL':
-            layout.prop(sprytile_data, "auto_merge", toggle=True)
             box = layout.box()
-            box.prop(sprytile_data, "fill_lock_transform", toggle=True)
-            box.row().prop(sprytile_data, "fill_plane_size", text="Fill Plane")
-
+            row = box.row()
+            row.prop(sprytile_data, "fill_plane_size", text="Size")
+            row.prop(sprytile_data, "fill_lock_transform", toggle=True, text="", icon="CON_ROTLIMIT")
+        
+        # View axis and options
         row = layout.row(align=True)
-        row.prop(sprytile_data, "lock_normal", toggle=True)
+        row.prop(sprytile_data, "lock_normal", toggle=True, text="", icon="LOCKVIEW_{0}".format("ON" if sprytile_data.lock_normal else "OFF"))
         row.prop(sprytile_data, "normal_mode", expand=True)
+
+        if sprytile_data.paint_mode == 'FILL':
+            row.separator()
+            row.prop(sprytile_data, "auto_merge", toggle=True, text="", icon="AUTOMERGE_{0}".format("ON" if sprytile_data.auto_merge else "OFF"))
+
+        if sprytile_data.paint_mode == 'MAKE_FACE':
+            # row = layout.row(align=True)
+            row.separator()
+            row.prop(sprytile_data, "auto_merge", toggle=True, text="", icon="AUTOMERGE_{0}".format("ON" if sprytile_data.auto_merge else "OFF"))
+            row.prop(sprytile_data, "auto_join", toggle=True, text="", icon="MESH_GRID")
+            row.prop(sprytile_data, "allow_backface", toggle=True, text="", icon="NORMALS_FACE")
+
+        if sprytile_data.paint_mode == 'PAINT':
+            row.separator()
+            row.prop(sprytile_data, "allow_backface", toggle=True, text="", icon="NORMALS_FACE")
 
         layout.separator()
 
@@ -211,7 +223,6 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
                           scene.sprytile_list, "idx", rows=4)
 
         col = row.column(align=True)
-        # https://docs.blender.org/api/blender2.8/bpy.types.UILayout.html#bpy.types.UILayout.operator
         col.operator('sprytile.grid_add', icon='ADD', text='')
         col.operator('sprytile.grid_remove', icon='REMOVE', text='')
         col.menu('VIEW3D_MT_SprytileGridDropDown', icon='DOWNARROW_HLT', text='')
