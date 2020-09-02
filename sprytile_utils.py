@@ -964,6 +964,13 @@ class UTIL_OP_SprytileLoadTileset(bpy.types.Operator, ImportHelper):
         bpy.ops.sprytile.validate_grids('INVOKE_DEFAULT')
         bpy.data.textures.update()
 
+        addon_prefs = context.preferences.addons[__package__].preferences
+        if addon_prefs:
+            if addon_prefs.auto_pixel_viewport:
+                bpy.ops.sprytile.viewport_setup('INVOKE_DEFAULT')
+            if addon_prefs.auto_grid_setup:
+                bpy.ops.sprytile.setup_grid('INVOKE_DEFAULT')
+
 
 class UTIL_OP_SprytileNewTileset(bpy.types.Operator, ImportHelper):
     bl_idname = "sprytile.tileset_new"
@@ -1326,6 +1333,10 @@ class UTIL_OP_SprytileSetupGrid(bpy.types.Operator):
     bl_idname = "sprytile.setup_grid"
     bl_label = "Floor Grid To Pixels"
     bl_description = "Make floor grid display follow world pixel settings"
+
+    @classmethod
+    def description(cls, context, properties):
+        return "Set grid scale to {} pixels".format(context.scene.sprytile_data.world_pixels)
 
     def execute(self, context):
         return self.invoke(context, None)
@@ -1851,9 +1862,12 @@ class VIEW3D_MT_SprytileObjectDropDown(bpy.types.Menu):
         layout = self.layout
         layout.operator("sprytile.reset_sprytile")
         layout.separator()
-        layout.operator("sprytile.material_setup")
+        layout.operator("sprytile.setup_grid")
+        layout.separator()
         layout.operator("sprytile.texture_setup")
         layout.operator("sprytile.viewport_setup")
+        layout.separator()
+        layout.operator("sprytile.material_setup")
         layout.operator("sprytile.add_new_material")
         layout.separator()
         layout.operator("sprytile.props_teardown")
@@ -1894,6 +1908,7 @@ class VIEW3D_PT_SprytileObjectPanel(bpy.types.Panel):
         elif context.object.type != 'MESH':
             selection_enabled = False
 
+        layout.prop(context.scene.sprytile_data, "world_pixels")
         box = layout.box()
         box.label(text="Material Setup")
         if selection_enabled:
@@ -1932,9 +1947,10 @@ class VIEW3D_MT_SprytileWorkDropDown(bpy.types.Menu):
         layout.separator()
         layout.operator("sprytile.setup_grid")
         layout.separator()
-        layout.operator("sprytile.material_setup")
         layout.operator("sprytile.texture_setup")
         layout.operator("sprytile.viewport_setup")
+        layout.separator()
+        layout.operator("sprytile.material_setup")
         layout.operator("sprytile.add_new_material")
         layout.separator()
         layout.operator("sprytile.make_double_sided")

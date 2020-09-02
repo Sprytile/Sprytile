@@ -37,6 +37,7 @@ else:
 
 import bpy
 import bpy.utils.previews
+from bpy.app.handlers import persistent
 #from . import addon_updater_ops
 from bpy.utils.toolsystem import ToolDef
 from bpy.props import *
@@ -725,8 +726,27 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     )
 
     auto_adjust_viewport_shading: bpy.props.BoolProperty(
-        name="Automatically switch viewport to Look Dev mode",
-        description="If enabled, viewport shading mode will change to Look Dev while using Sprytile tools",
+        name="Automatically switch viewport to Material Preview mode",
+        description="If enabled, viewport shading mode will change to Material Preview while using Sprytile tools",
+        default=True,
+    )
+
+    auto_pixel_viewport: bpy.props.BoolProperty(
+        name="Automatically setup pixel viewport",
+        description="If enabled, loading a tileset will automatically setup the pixel viewport.\nDisable if you're not going for a flatshaded look",
+        default=False,
+    )
+
+    default_pixel_density: bpy.props.IntProperty(
+        name="Default Pixel Density",
+        description="How many pixels are displayed in one world unit",
+        default=32,
+        min=8
+    )
+
+    auto_grid_setup: bpy.props.BoolProperty(
+        name="Automatically setup grid",
+        description="If enabled, loading a tileset will set the grid size to the chosen pixel density.",
         default=True,
     )
 
@@ -819,7 +839,30 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         layout = self.layout
 
         layout.prop(self, "preview_transparency")
-        layout.prop(self, "auto_adjust_viewport_shading")
+
+        box = layout.box()
+
+        box.label(text="Global Options")
+        box.prop(self, "default_pixel_density")
+
+        row = box.row()
+        split = row.split(factor=0.2)
+
+        col = split.column()
+        col.label(text="On Load Tileset:")
+        
+        col = split.column()
+        col.prop(self, "auto_grid_setup")
+        col.prop(self, "auto_pixel_viewport")
+        
+        row = box.row()
+        split = row.split(factor=0.2)
+
+        col = split.column()
+        col.label(text="On Sprytile Edit:")
+
+        col = split.column()
+        col.prop(self, "auto_adjust_viewport_shading")
 
         #box = layout.box()
         #box.label(text = "Keyboard Shortcuts")
@@ -926,10 +969,10 @@ def generate_tool_keymap(keyconfig, paint_mode):
     km_items = keymap.keymap_items
     km_items.new("sprytile.modal_tool", 'LEFTMOUSE', 'PRESS')
     km_items.new("sprytile.tile_picker", 'LEFT_ALT', 'PRESS')
-    km_items.new("sprytile.rotate_left", 'FOUR', 'PRESS')
-    km_items.new("sprytile.rotate_right", 'FIVE', 'PRESS')
-    km_items.new("sprytile.flip_x_toggle", 'SIX', 'PRESS')
-    km_items.new("sprytile.flip_y_toggle", 'SEVEN', 'PRESS')
+    km_items.new("sprytile.rotate_left", 'Q', 'PRESS')
+    km_items.new("sprytile.rotate_right", 'E', 'PRESS')
+    km_items.new("sprytile.flip_x_toggle", 'Q', 'PRESS').shift = True
+    km_items.new("sprytile.flip_y_toggle", 'E', 'PRESS').shift = True
 
     if paint_mode in {'MAKE_FACE', 'FILL'}:
         km_items.new("sprytile.snap_cursor", 'S', 'PRESS')
@@ -989,6 +1032,20 @@ submodules = (
     tool_fill,
 )
 
+@persistent
+def sprytile_load_handler(dummy):
+    sprytile_data = bpy.context.scene.sprytile_data
+    
+    # Turn on auto reload
+    if sprytile_data.auto_reload:
+        bpy.ops.sprytile.reload_auto('INVOKE_REGION_WIN')
+
+    # Reasonable assumption that a file that does not have a path
+    # is new, so setup the pixel density according to preferences
+    if not bpy.data.filepath:
+        addon_prefs = bpy.context.preferences.addons[__package__].preferences
+        if addon_prefs:
+            sprytile_data.world_pixels = addon_prefs.default_pixel_density
 
 def register():
     #addon_updater_ops.register(bl_info)
@@ -1002,6 +1059,8 @@ def register():
     PROP_OP_SprytilePropsSetup.props_setup()
     register_tools()
     setup_keymap()
+
+    bpy.app.handlers.load_post.append(sprytile_load_handler)
 
 
 def unregister():
