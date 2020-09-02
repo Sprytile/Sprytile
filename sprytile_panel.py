@@ -191,8 +191,9 @@ class VIEW3D_PT_SprytilePanel(bpy.types.Panel):
 
         if sprytile_data.paint_mode == 'FILL':
             box = layout.box()
-            row = box.row()
-            row.prop(sprytile_data, "fill_plane_size", text="Size")
+            row = box.row(align=True)
+            row.prop(sprytile_data, "fill_plane_size", text="Fill Size")
+            row.separator()
             row.prop(sprytile_data, "fill_lock_transform", toggle=True, text="", icon="CON_ROTLIMIT")
         
         # View axis and options
