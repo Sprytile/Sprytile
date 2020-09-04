@@ -494,12 +494,11 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
-            selection = mesh.select_history.active
-            if isinstance(selection, bmesh.types.BMEdge):
-                # Figure out which side of the face this edge is on
-                # selected edge is considered the bottom of the face
-                vtx1 = world_matrix @ selection.verts[0].co.copy()
-                vtx2 = world_matrix @ selection.verts[1].co.copy()
+            for edge in face.edges
+                if not edge.select:
+                    continue
+                vtx1 = world_matrix @ edge.verts[0].co
+                vtx2 = world_matrix @ edge.verts[1].co
                 edge_center = (vtx1 + vtx2) / 2
                 face_center = world_matrix @ face.calc_center_bounds()
                 # Get the rough heading of the up vector
