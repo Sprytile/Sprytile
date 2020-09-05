@@ -494,7 +494,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
-            for edge in face.edges
+            for edge in face.edges:
                 if not edge.select:
                     continue
                 vtx1 = world_matrix @ edge.verts[0].co
