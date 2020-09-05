@@ -716,6 +716,9 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
 
     def handle_mouse(self, context, event, draw_preview):
         """"""
+        # Eat any tweak mouse events, default blender keymap has a translate command on tweak
+        if event.type in {'EVT_TWEAK_L', 'EVT_TWEAK_M', 'EVT_TWEAK_R'}:
+            return {'RUNNING_MODAL'}
         if 'MOUSE' not in event.type:
             return None
         
