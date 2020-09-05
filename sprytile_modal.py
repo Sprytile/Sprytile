@@ -492,6 +492,26 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         normal_inv = context.object.matrix_world.copy().inverted().transposed()
         face_normal = normal_inv @ face.normal.copy()
 
+        def calc_up_sel_vectors(vtx1, vtx2):
+            edge_center = (vtx1 + vtx2) / 2
+            face_center = world_matrix @ face.calc_center_bounds()
+            # Get the rough heading of the up vector
+            estimated_up = face_center - edge_center
+            estimated_up.normalize()
+
+            sel_vector = vtx2 - vtx1
+            sel_vector.normalize()
+
+            # Cross the face normal and hint vector to get the up vector
+            view_up_vector = face_normal.cross(sel_vector)
+            view_up_vector.normalize()
+
+            # If the calculated up faces away from rough up, reverse it
+            if view_up_vector.dot(estimated_up) < 0:
+                view_up_vector *= -1
+                sel_vector *= -1
+            return view_up_vector, sel_vector
+
         do_hint = data.paint_mode in {'PAINT', 'SET_NORMAL'} and data.paint_hinting
         if do_hint:
             for edge in face.edges:
@@ -499,24 +519,16 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                     continue
                 vtx1 = world_matrix @ edge.verts[0].co
                 vtx2 = world_matrix @ edge.verts[1].co
-                edge_center = (vtx1 + vtx2) / 2
-                face_center = world_matrix @ face.calc_center_bounds()
-                # Get the rough heading of the up vector
-                estimated_up = face_center - edge_center
-                estimated_up.normalize()
-
-                sel_vector = vtx2 - vtx1
-                sel_vector.normalize()
-
-                # Cross the face normal and hint vector to get the up vector
-                view_up_vector = face_normal.cross(sel_vector)
-                view_up_vector.normalize()
-
-                # If the calculated up faces away from rough up, reverse it
-                if view_up_vector.dot(estimated_up) < 0:
-                    view_up_vector *= -1
-                    sel_vector *= -1
+                view_up_vector, sel_vector = calc_up_sel_vectors(vtx1, vtx2)
                 return view_up_vector, sel_vector
+            # if face didn't have any selected edges, use the active edge selection
+            selection = mesh.select_history.active
+            if isinstance(selection, bmesh.types.BMEdge):
+                vtx1 = world_matrix @ selection.verts[0].co.copy()
+                vtx2 = world_matrix @ selection.verts[1].co.copy()
+                view_up_vector, sel_vector = calc_up_sel_vectors(vtx1, vtx2)
+                return view_up_vector, sel_vector
+            # No edges or edge selection, use normal face up vector finding
 
         # Find the edge of the hit face that most closely matches
         # the view up / view right vectors
@@ -706,7 +718,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         """"""
         if 'MOUSE' not in event.type:
             return None
-
+        
         #if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
         #    if context.scene.sprytile_data.is_snapping:
         #        direction = -1 if event.type == 'WHEELUPMOUSE' else 1
@@ -771,7 +783,6 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
             if arg == 'sel_mesh':
                 return {'PASS_THROUGH'}
-
         #sprytile_data = context.scene.sprytile_data
         #if event.shift and context.scene.sprytile_data.is_snapping:
         #    self.cursor_snap(context, event)
