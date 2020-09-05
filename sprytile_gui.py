@@ -84,6 +84,7 @@ class SprytileGuiData(bpy.types.PropertyGroup):
         name="Sprytile UI zoom",
         default=1.0
     )
+    init_zoom_flag: BoolProperty(name="Sprytile Initial Zoom Calc", default=False)
     use_mouse : BoolProperty(name="GUI use mouse")
     middle_btn : BoolProperty(name="GUI middle mouse")
     is_dirty : BoolProperty(name="Srpytile GUI redraw flag")
@@ -250,7 +251,30 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             zoom_level = self.calc_zoom(region, zoom_level, -1)
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
+        # Before setting new zoom, calculate palette position
+        display_offset, display_size, size_half, display_min, display_max = self.calc_palette_pos(context)
+        # Record if snapping to edges
+        is_snap_min_x = display_offset.x == display_min.x
+        is_snap_min_y = display_offset.y == display_min.y
+        is_snap_max_x = display_offset.x == display_max.x
+        is_snap_max_y = display_offset.y == display_max.y
+
+        # Set zoom level, then recalculate palette position
         context.scene.sprytile_ui.zoom = zoom_level
+        display_offset, display_size, size_half, display_min, display_max = self.calc_palette_pos(context)
+
+        # Snap to edges if previously snapped
+        if is_snap_min_x:
+            display_offset.x = display_min.x
+        if is_snap_min_y:
+            display_offset.y = display_min.y
+        if is_snap_max_x:
+            display_offset.x = display_max.x
+        if is_snap_max_y:
+            display_offset.y = display_max.y
+        
+        context.scene.sprytile_ui.palette_pos[0] = display_offset.x
+        context.scene.sprytile_ui.palette_pos[1] = display_offset.y
 
     def calc_zoom(self, region, zoom, steps):
         if steps == 0:
@@ -283,6 +307,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         return zoom
 
     def get_zoom_level(self, context):
+        if context.scene.sprytile_ui.init_zoom_flag:
+            return
         region = context.region
         display_size = VIEW3D_OP_SprytileGui.display_size
         target_height = region.height * 0.35
@@ -298,6 +324,29 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
             calc_height = round(display_size[1] * zoom_level)
 
         context.scene.sprytile_ui.zoom = zoom_level
+        context.scene.sprytile_ui.init_zoom_flag = True
+
+    def calc_palette_pos(self, context):
+        display_scale = context.scene.sprytile_ui.zoom
+        display_size = VIEW3D_OP_SprytileGui.display_size
+        display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
+        
+        display_pad_x = 30 if context.space_data.show_region_ui else 5
+        display_pad_y = 5
+
+        size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
+
+        display_min = Vector((display_pad_y + size_half.x, display_pad_y + size_half.y))
+        display_max = Vector((context.region.width - display_pad_x - size_half.x, context.region.height - display_pad_y - size_half.y))
+
+        display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
+
+        display_offset.x = max(display_offset.x, display_min.x)
+        display_offset.x = min(display_offset.x, display_max.x)
+        display_offset.y = max(display_offset.y, display_min.y)
+        display_offset.y = min(display_offset.y, display_max.y)
+
+        return display_offset, display_size, size_half, display_min, display_max
 
     def handle_ui(self, context, event):
         if event.type in {'LEFTMOUSE', 'MOUSEMOVE'}:
@@ -311,32 +360,15 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
 
         tilegrid = sprytile_utils.get_grid(context, obj.sprytile_gridid)
         tex_size = VIEW3D_OP_SprytileGui.tex_size
-
-        display_scale = context.scene.sprytile_ui.zoom
-        display_size = VIEW3D_OP_SprytileGui.display_size
-        display_size = round(display_size[0] * display_scale), round(display_size[1] * display_scale)
         
-        display_pad_x = 30 if context.space_data.show_region_ui else 5
-        display_pad_y = 5
-
-        size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
-
-        display_min = Vector((display_pad_y + size_half.x, display_pad_y + size_half.y))
-        display_max = Vector((region.width - display_pad_x - size_half.x, region.height - display_pad_y - size_half.y))
-
-        display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
-
-        display_offset.x = max(display_offset.x, display_min.x)
-        display_offset.x = min(display_offset.x, display_max.x)
-        display_offset.y = max(display_offset.y, display_min.y)
-        display_offset.y = min(display_offset.y, display_max.y)
-
+        display_offset, display_size, size_half, display_min, display_max = self.calc_palette_pos(context)
+        
         gui_min = display_offset - size_half
         gui_max = display_offset + size_half
 
         self.gui_min = gui_min
         self.gui_max = gui_max
-
+        
         reject_region = context.space_data.type != 'VIEW_3D' or region.type != 'WINDOW'
         if event is None or reject_region:
             ret_val = 'PASS_THROUGH'
