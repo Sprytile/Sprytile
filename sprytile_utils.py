@@ -657,6 +657,11 @@ class UTIL_OP_SprytileGridAdd(bpy.types.Operator):
         new_grid.mat_id = target_mat.mat_id
         new_grid.id = get_highest_grid_id(context) + 1
 
+        addon_prefs = bpy.context.preferences.addons[__package__].preferences
+        if addon_prefs:
+            new_grid.grid = addon_prefs.default_grid
+            new_grid.auto_pad_offset = addon_prefs.default_pad_offset
+
         if grid_idx > -1:
             new_grid.grid = target_mat.grids[grid_idx].grid
             target_mat.grids.move(new_idx, grid_idx + 1)
@@ -1139,6 +1144,11 @@ class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
                 mat_grid = mat_data_entry.grids.add()
                 mat_grid.mat_id = mat.name
                 mat_grid.id = get_highest_grid_id(context) + 1
+
+                addon_prefs = bpy.context.preferences.addons[__package__].preferences
+                if addon_prefs:
+                    mat_grid.grid = addon_prefs.default_grid
+                    mat_grid.auto_pad_offset = addon_prefs.default_pad_offset
 
         context.object.sprytile_gridid = get_highest_grid_id(context)
         bpy.ops.sprytile.build_grid_list()
