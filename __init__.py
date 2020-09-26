@@ -2,7 +2,7 @@ bl_info = {
     "name": "Sprytile Painter",
     "author": "Jeiel Aranal",
     # Final version number must be two numerals to support x.x.00
-    "version": (0, 5, 15),
+    "version": (0, 5, 20),
     "blender": (2, 80, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > Sprytile",
@@ -550,7 +550,7 @@ class SprytileMaterialGridSettings(bpy.types.PropertyGroup):
     )
     auto_pad_offset : FloatProperty(
         name="Pad Offset",
-        description="Subpixel padding amount",
+        description="Subpixel padding amount around edges of tiles",
         default=0.05,
         min=0.05,
         max=0.20
@@ -744,10 +744,27 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     )
 
     default_pixel_density: bpy.props.IntProperty(
-        name="Default Pixel Density",
+        name="Pixel Density",
         description="How many pixels are displayed in one world unit",
         default=32,
         min=8
+    )
+
+    default_grid: bpy.props.IntVectorProperty(
+        name="Grid Size",
+        description="Tileset grid size, in pixels",
+        min=1,
+        size=2,
+        subtype='XYZ',
+        default=(32, 32)
+    )
+
+    default_pad_offset: bpy.props.FloatProperty(
+        name="Subpixel Padding",
+        description="Default subpixel edge padding for tilesets",
+        default=0.05,
+        min=0.05,
+        max=0.20
     )
 
     auto_grid_setup: bpy.props.BoolProperty(
@@ -849,10 +866,22 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         box = layout.box()
 
         box.label(text="Global Options")
-        box.prop(self, "default_pixel_density")
 
         row = box.row()
-        split = row.split(factor=0.2)
+
+        size_left_col = 0.3
+        
+        split = row.split(factor=size_left_col)
+        col = split.column()
+        col.label(text="Default Settings:")
+
+        col = split.column(align=True)
+        col.prop(self, "default_pixel_density")
+        col.row().prop(self, "default_grid")
+        col.prop(self, "default_pad_offset")
+
+        row = box.row()
+        split = row.split(factor=size_left_col)
 
         col = split.column()
         col.label(text="On Load Tileset:")
@@ -862,7 +891,7 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         col.prop(self, "auto_pixel_viewport")
         
         row = box.row()
-        split = row.split(factor=0.2)
+        split = row.split(factor=size_left_col)
 
         col = split.column()
         col.label(text="On Sprytile Edit:")

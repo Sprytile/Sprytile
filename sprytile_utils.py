@@ -657,6 +657,11 @@ class UTIL_OP_SprytileGridAdd(bpy.types.Operator):
         new_grid.mat_id = target_mat.mat_id
         new_grid.id = get_highest_grid_id(context) + 1
 
+        addon_prefs = bpy.context.preferences.addons[__package__].preferences
+        if addon_prefs:
+            new_grid.grid = addon_prefs.default_grid
+            new_grid.auto_pad_offset = addon_prefs.default_pad_offset
+
         if grid_idx > -1:
             new_grid.grid = target_mat.grids[grid_idx].grid
             target_mat.grids.move(new_idx, grid_idx + 1)
@@ -1140,6 +1145,11 @@ class UTIL_OP_SprytileValidateGridList(bpy.types.Operator):
                 mat_grid.mat_id = mat.name
                 mat_grid.id = get_highest_grid_id(context) + 1
 
+                addon_prefs = bpy.context.preferences.addons[__package__].preferences
+                if addon_prefs:
+                    mat_grid.grid = addon_prefs.default_grid
+                    mat_grid.auto_pad_offset = addon_prefs.default_pad_offset
+
         context.object.sprytile_gridid = get_highest_grid_id(context)
         bpy.ops.sprytile.build_grid_list()
 
@@ -1594,11 +1604,22 @@ class UTIL_OP_SprytileSnapCursor(bpy.types.Operator):
 
         up_vector, right_vector, plane_normal = get_current_grid_vectors(scene)
 
-        #if event.shift and event.value == 'PRESS':
-        #    if scene.sprytile_data.cursor_snap == 'GRID':
-        #        scene.sprytile_data.cursor_snap = 'VERTEX'
-        #    else:
-        #        scene.sprytile_data.cursor_snap = 'GRID'
+        if event.ctrl and event.value == 'PRESS':
+            if scene.sprytile_data.cursor_snap == 'GRID':
+               scene.sprytile_data.cursor_snap = 'VERTEX'
+            else:
+               scene.sprytile_data.cursor_snap = 'GRID'
+            return
+        
+        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            move_step = -1 if event.type == 'WHEELUPMOUSE' else 1
+            
+            target_grid = get_grid(context, context.object.sprytile_gridid)
+            pixel_move = 1 if event.shift else math.floor(target_grid.grid[1] / 2)
+            
+            step_vec = scene.sprytile_data.paint_normal_vector * (pixel_move / scene.sprytile_data.world_pixels) * move_step
+            scene.cursor.location = scene.cursor.location + step_vec
+            return
 
         # Snap cursor, depending on setting
         if scene.sprytile_data.cursor_snap == 'GRID':
@@ -1619,19 +1640,12 @@ class UTIL_OP_SprytileSnapCursor(bpy.types.Operator):
 
         elif scene.sprytile_data.cursor_snap == 'VERTEX':
             # Get if user is holding down tile picker modifier
-            #check_modifier = False
-            #addon_prefs = context.preferences.addons[__package__].preferences
-            #if addon_prefs.tile_picker_key == 'Alt':
-            #    check_modifier = event.alt
-            #if addon_prefs.tile_picker_key == 'Ctrl':
-            #    check_modifier = event.ctrl
-            #if addon_prefs.tile_picker_key == 'Shift':
-            #    check_modifier = event.shift
+            check_modifier = event.alt
 
             location, normal, face_index, distance = sprytile_modal.VIEW3D_OP_SprytileModalTool.raycast_object(context.object, ray_origin, ray_vector)
             if location is None:
-                #if check_modifier:
-                #    scene.sprytile_data.lock_normal = False
+                if check_modifier:
+                   scene.sprytile_data.lock_normal = False
                 return
             # Location in world space, convert to object space
             matrix = context.object.matrix_world.copy()
@@ -1660,15 +1674,15 @@ class UTIL_OP_SprytileSnapCursor(bpy.types.Operator):
                 scene.cursor.location = matrix @ face.verts[closest_vtx].co
 
             # If find face tile button pressed, set work plane normal too
-            #if check_modifier:
-            #    sprytile_data = context.scene.sprytile_data
-            #    # Check if mouse is hitting object
-            #    target_normal = context.object.matrix_world.to_quaternion() @ normal
-            #    face_up_vector, face_right_vector = self.get_face_up_vector(context, face_index, 0.4)
-            #    if face_up_vector is not None:
-            #        sprytile_data.paint_normal_vector = target_normal
-            #        sprytile_data.paint_up_vector = face_up_vector
-            #        sprytile_data.lock_normal = True
+            if check_modifier:
+               sprytile_data = context.scene.sprytile_data
+               # Check if mouse is hitting object
+               target_normal = context.object.matrix_world.to_quaternion() @ normal
+               face_up_vector, face_right_vector = sprytile_modal.VIEW3D_OP_SprytileModalTool.get_face_up_vector(context.object, context, face_index, 0.4)
+               if face_up_vector is not None:
+                   sprytile_data.paint_normal_vector = target_normal
+                   sprytile_data.paint_up_vector = face_up_vector
+                   sprytile_data.lock_normal = True
 
 
 class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
