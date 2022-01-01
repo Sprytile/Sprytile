@@ -592,12 +592,15 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         rv3d = context.region_data
 
         middle_btn = context.scene.sprytile_ui.middle_btn
-
-        VIEW3D_OP_SprytileGui.draw_offscreen(context)
-        VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
+        try: 
+            VIEW3D_OP_SprytileGui.draw_offscreen(context)
+            VIEW3D_OP_SprytileGui.draw_to_viewport(self.gui_min, self.gui_max, show_extra,
                                      self.label_counter, tilegrid, sprytile_data,
                                      context.scene.cursor.location, region, rv3d,
                                      middle_btn, context)
+        except:
+            print("Error occured in drawback callback handler")
+
 
     @staticmethod
     def draw_selection(mvpMat, color, sel_min, sel_max, adjust=1):

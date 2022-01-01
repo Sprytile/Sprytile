@@ -5,18 +5,18 @@ import bmesh
 import bpy
 import numpy
 from bpy_extras import view3d_utils
-from mathutils import Vector, Matrix, Quaternion
+from mathutils import Matrix, Quaternion, Vector
 from mathutils.bvhtree import BVHTree
-from mathutils.geometry import intersect_line_plane, distance_point_to_plane
+from mathutils.geometry import distance_point_to_plane, intersect_line_plane
 
+import sprytile_preview
+import sprytile_utils
+import sprytile_uv
 from rx import Observable
 from sprytile_tools.tool_build import ToolBuild
-from sprytile_tools.tool_paint import ToolPaint
 from sprytile_tools.tool_fill import ToolFill
-import sprytile_uv
+from sprytile_tools.tool_paint import ToolPaint
 from sprytile_uv import UvDataLayers
-import sprytile_utils
-import sprytile_preview
 
 
 class DataObjectDict(dict):
@@ -456,7 +456,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
             el.index_update()
             el.ensure_lookup_table()
 
-        bmesh.update_edit_mesh(context.object.data, True, True)
+        bmesh.update_edit_mesh(context.object.data)
 
         # Update the collision BVHTree with new data
         self.refresh_mesh = True
@@ -927,7 +927,7 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         self.tree = None
         self.tools = None
         if context.object.mode == 'EDIT':
-            bmesh.update_edit_mesh(context.object.data, True, True)
+            bmesh.update_edit_mesh(context.object.data)
 
 
 # module classes
