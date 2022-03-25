@@ -52,6 +52,8 @@ class VIEW3D_OP_SprytileModalTool(bpy.types.Operator):
         'FILL' : "Sprytile Fill Tool Map"
         }
 
+    draw_preview = False
+
     @staticmethod
     def calculate_view_axis(context):
         if context.area.type != 'VIEW_3D':
