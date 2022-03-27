@@ -273,8 +273,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
         if is_snap_max_y:
             display_offset.y = display_max.y
         
-        context.scene.sprytile_ui.palette_pos[0] = display_offset.x
-        context.scene.sprytile_ui.palette_pos[1] = display_offset.y
+        context.scene.sprytile_ui.palette_pos[0] = int(display_offset.x)
+        context.scene.sprytile_ui.palette_pos[1] = int(display_offset.y)
 
     def calc_zoom(self, region, zoom, steps):
         if steps == 0:
@@ -472,8 +472,8 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                     display_offset.y = max(display_offset.y, display_min.y)
                     display_offset.y = min(display_offset.y, display_max.y) 
                     
-                    context.scene.sprytile_ui.palette_pos[0] = display_offset.x
-                    context.scene.sprytile_ui.palette_pos[1] = display_offset.y
+                    context.scene.sprytile_ui.palette_pos[0] = int(display_offset.x)
+                    context.scene.sprytile_ui.palette_pos[1] = int(display_offset.y)
             # End tile palette movement code
 
             if VIEW3D_OP_SprytileGui.is_selecting:
