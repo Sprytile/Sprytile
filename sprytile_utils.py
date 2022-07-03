@@ -1335,7 +1335,7 @@ class UTIL_OP_SprytileMakeDoubleSided(bpy.types.Operator):
 
         mesh.faces.index_update()
         mesh.faces.ensure_lookup_table()
-        bmesh.update_edit_mesh(context.object.data, True, True)
+        bmesh.update_edit_mesh(context.object.data)
         return {'FINISHED'}
 
 

@@ -486,10 +486,10 @@ class VIEW3D_OP_SprytileGui(bpy.types.Operator):
                     max(grid_pos.y, VIEW3D_OP_SprytileGui.sel_start.y)
                 ))
 
-                tilegrid.tile_selection[0] = sel_min.x
-                tilegrid.tile_selection[1] = sel_min.y
-                tilegrid.tile_selection[2] = (sel_max.x - sel_min.x) + 1
-                tilegrid.tile_selection[3] = (sel_max.y - sel_min.y) + 1
+                tilegrid.tile_selection[0] = int(sel_min.x)
+                tilegrid.tile_selection[1] = int(sel_min.y)
+                tilegrid.tile_selection[2] = int((sel_max.x - sel_min.x) + 1)
+                tilegrid.tile_selection[3] = int((sel_max.y - sel_min.y) + 1)
 
             do_release = event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'} and event.value == 'RELEASE'
             if do_release and (VIEW3D_OP_SprytileGui.is_selecting or VIEW3D_OP_SprytileGui.is_moving):
