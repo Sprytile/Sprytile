@@ -35,7 +35,7 @@ Download from [releases](https://github.com/ologon/Sprytile/releases).
 
 ### Issue/Feature requests:
 
-Bug reports for this port can be submitted to [GitHub issues](https://github.com/ologon/Sprytile/issues)
+Bug reports for this port can be submitted to [GitHub issues](https://github.com/ionthedev/ReSprytile/issues)
 
 ### Acknowledgments:
 
