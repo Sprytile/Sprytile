@@ -2,13 +2,13 @@ bl_info = {
     "name": "ReSprytile",
     "author": "Jeiel Aranal             Updated by: Brandon Friend",
     # Final version number must be two numerals to support x.x.00
-    "version": (0, 6, 3),
+    "version": (0, 6, 1),
     "blender": (3, 4, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
     "location": "View3D > UI panel > ReSprytile",
-    "wiki_url": "http://itch.sprytile.xyz",
+    "wiki_url": "https://docs.sprytile.xyz/quick-start/",
     "tracker_url": "https://github.com/ionthedev/ReSprytile/issues",
-    "updater_info": "http://ionthedev.com",
+    "updater_info": "https://github.com/ionthedev/ReSprytile",
     "category": "Paint"
 }
 
@@ -23,7 +23,7 @@ if cmd_subfolder not in sys.path:
 locals_list = locals()
 if "bpy" in locals_list:
     from importlib import reload
-    #reload(addon_updater_ops)
+    
     reload(sprytile_gui)
     reload(sprytile_modal)
     reload(sprytile_panel)
@@ -39,7 +39,7 @@ else:
 import bpy
 import bpy.utils.previews
 from bpy.app.handlers import persistent
-#from . import addon_updater_ops
+from . import addon_updater_ops
 from bpy.utils.toolsystem import ToolDef
 from bpy.props import *
 import rna_keymap_ui
@@ -827,37 +827,37 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
     #)
 
     # addon updater preferences
-    #auto_check_update: bpy.props.BoolProperty(
-    #    name="Auto-check for Update",
-    #    description="If enabled, auto-check for updates using an interval",
-    #    default=False,
-    #)
-    #updater_intrval_months: bpy.props.IntProperty(
-    #    name='Months',
-    #    description="Number of months between checking for updates",
-    #    default=0,
-    #    min=0
-    #)
-    #updater_intrval_days: bpy.props.IntProperty(
-    #    name='Days',
-    #    description="Number of days between checking for updates",
-    #    default=7,
-    #    min=0,
-    #)
-    #updater_intrval_hours: bpy.props.IntProperty(
-    #    name='Hours',
-    #    description="Number of hours between checking for updates",
-    #    default=0,
-    #    min=0,
-    #    max=23
-    #)
-    #updater_intrval_minutes: bpy.props.IntProperty(
-    #    name='Minutes',
-    #    description="Number of minutes between checking for updates",
-    #    default=0,
-    #    min=0,
-    #    max=59
-    #)
+    auto_check_update: bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=False,
+    )
+    updater_intrval_months: bpy.props.IntProperty(
+        name='Months',
+        description="Number of months between checking for updates",
+        default=0,
+        min=0
+    )
+    updater_intrval_days: bpy.props.IntProperty(
+        name='Days',
+        description="Number of days between checking for updates",
+        default=7,
+        min=0,
+    )
+    updater_intrval_hours: bpy.props.IntProperty(
+        name='Hours',
+        description="Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23
+    )
+    updater_intrval_minutes: bpy.props.IntProperty(
+        name='Minutes',
+        description="Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59
+    )
 
     def draw(self, context):
         layout = self.layout
@@ -900,24 +900,24 @@ class SprytileAddonPreferences(bpy.types.AddonPreferences):
         col = split.column()
         col.prop(self, "auto_adjust_viewport_shading")
 
-        #box = layout.box()
-        #box.label(text = "Keyboard Shortcuts")
-        #box.prop(self, "tile_picker_key")
-        #box.prop(self, "tile_sel_move_key")
+        box = layout.box()
+        box.label(text = "Keyboard Shortcuts")
+        box.prop(self, "tile_picker_key")
+        box.prop(self, "tile_sel_move_key")
 
-        #kc = bpy.context.window_manager.keyconfigs.user
-        #km = kc.keymaps['Mesh']
-        #kmi_idx = km.keymap_items.find('sprytile.modal_tool')
-        #if kmi_idx >= 0:
-        #    box.label(text="Tile Mode Shortcut")
-        #    col = box.column()
+        kc = bpy.context.window_manager.keyconfigs.user
+        km = kc.keymaps['Mesh']
+        kmi_idx = km.keymap_items.find('sprytile.modal_tool')
+        if kmi_idx >= 0:
+            box.label(text="Tile Mode Shortcut")
+            col = box.column()
 
-        #    kmi = km.keymap_items[kmi_idx]
-        #    km = km.active()
-        #    col.context_pointer_set("keymap", km)
-        #    rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
+            kmi = km.keymap_items[kmi_idx]
+            km = km.active()
+            col.context_pointer_set("keymap", km)
+            rna_keymap_ui.draw_kmi([], kc, km, kmi, col, 0)
 
-        #addon_updater_ops.update_settings_ui(self, context)
+        addon_updater_ops.update_settings_ui(self, context)
 
 
 @ToolDef.from_fn
@@ -1084,7 +1084,7 @@ def sprytile_load_handler(dummy):
             sprytile_data.world_pixels = addon_prefs.default_pixel_density
 
 def register():
-    #addon_updater_ops.register(bl_info)
+    addon_updater_ops.register(bl_info)
 
     for cl in classes:
         bpy.utils.register_class(cl)
@@ -1100,6 +1100,7 @@ def register():
 
 
 def unregister():
+    addon_updater_ops.unregister()
     teardown_keymap()
     unregister_tools()
     PROP_OP_SprytilePropsTeardown.props_teardown()
