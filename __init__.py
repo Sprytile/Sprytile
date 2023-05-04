@@ -1,13 +1,13 @@
 bl_info = {
-    "name": "Sprytile 3.4 FIX",
+    "name": "ReSprytile",
     "author": "Jeiel Aranal             Updated by: Brandon Friend",
     # Final version number must be two numerals to support x.x.00
-    "version": (0, 5, 25),
+    "version": (0, 6, 0),
     "blender": (3, 4, 0),
     "description": "A utility for creating tile based low spec scenes with paint/map editor tools",
-    "location": "View3D > UI panel > Sprytile",
+    "location": "View3D > UI panel > ReSprytile",
     "wiki_url": "http://itch.sprytile.xyz",
-    "tracker_url": "https://github.com/ChemiKhazi/Sprytile/issues",
+    "tracker_url": "https://github.com/ionthedev/ReSprytile/issues",
     "updater_info": "http://ionthedev.com",
     "category": "Paint"
 }
