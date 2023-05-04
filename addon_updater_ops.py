@@ -969,15 +969,15 @@ def register(bl_info):
     updater.private_token = None  # "tokenstring"
 
     # choose your own username, must match website (not needed for GitLab)
-    updater.user = "chemikhazi"
+    updater.user = "ionthedev"
 
     # choose your own repository, must match git name
-    updater.repo = "sprytile"
+    updater.repo = "ReSprytile"
 
     # updater.addon = # define at top of module, MUST be done first
 
     # Website for manual addon download, optional but recommended to set
-    updater.website = "https://chemikhazi.itch.io/sprytile"
+    updater.website = "https://github.com/ionthedev/ReSprytile"
 
     # used to check/compare versions
     updater.current_version = bl_info["version"]
