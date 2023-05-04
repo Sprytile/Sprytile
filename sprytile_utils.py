@@ -760,11 +760,11 @@ class UTIL_OP_SprytileStartTool(bpy.types.Operator):
         return self.invoke(context, None)
 
     def invoke(self, context, event):
-        if self.mode is 0:
+        if self.mode == 0:
             context.scene.sprytile_data.paint_mode = 'SET_NORMAL'
-        if self.mode is 1:
+        if self.mode == 1:
             context.scene.sprytile_data.paint_mode = 'PAINT'
-        if self.mode is 2:
+        if self.mode == 2:
             context.scene.sprytile_data.paint_mode = 'MAKE_FACE'
         bpy.ops.sprytile.modal_tool('INVOKE_REGION_WIN')
         return {'FINISHED'}

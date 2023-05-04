@@ -804,8 +804,8 @@ def update_settings_ui(self, context):
         split = subcol.split(align=True)
         split.enabled = False
         split.scale_y = 2
-        split.operator(addon_updater_check_now.bl_idname,
-                       updater.error)
+        split.operator(addon_updater_check_now.bl_idname, text=updater.error)
+
         split = subcol.split(align=True)
         split.scale_y = 2
         split.operator(addon_updater_check_now.bl_idname, text="", icon="FILE_REFRESH")
@@ -851,8 +851,8 @@ def update_settings_ui(self, context):
 
     elif updater.update_ready == True and updater.manual_only == True:
         col.scale_y = 2
-        col.operator("wm.url_open",
-                     "Download " + str(updater.update_version)).url = updater.website
+        col.operator("wm.url_open", text="Download " + str(updater.update_version), icon='URL').url = updater.website
+
     else:  # i.e. that updater.update_ready == False
         subcol = col.row(align=True)
         subcol.scale_y = 1
@@ -873,20 +873,22 @@ def update_settings_ui(self, context):
             col.operator(addon_updater_check_now.bl_idname, text="Install latest {} / old version".format(branch))
         else:
             col.operator(addon_updater_check_now.bl_idname, text="Reinstall / install old version")
-        lastdate = "none found"
-        backuppath = os.path.join(updater.stage_path, "backup")
-        if "backup_date" in updater.json and os.path.isdir(backuppath):
+        last_date = "none found"
+        backup_path  = os.path.join(updater.stage_path, "backup")
+        if "backup_date" in updater.json and os.path.isdir(backup_path):
             if updater.json["backup_date"] == "":
-                lastdate = "Date not found"
+                last_date = "Date not found"
             else:
-                lastdate = updater.json["backup_date"]
-        col.operator(addon_updater_check_now.bl_idname, text="Restore addon backup ({})".format(lastdate))
+                last_date = updater.json["backup_date"]
+        backup_text = "Restore addon backup ({})".format(last_date)
+        col.operator(addon_updater_check_now.bl_idname, text=backup_text)
 
     row = box.row()
     row.scale_y = 0.7
     lastcheck = updater.json["last_check"]
-    if updater.error != None and updater.error_msg != None:
-        row.label(updater.error_msg)
+    if updater.error is not None and updater.error_msg is not None:
+        row.label(text=updater.error_msg)
+
     elif movemosue == True:
         row.label(text="Move mouse if button doesn't update")
     elif lastcheck != "" and lastcheck != None:
@@ -963,12 +965,12 @@ def register(bl_info):
     updater.user = "ionthedev"
 
     # choose your own repository, must match git name
-    updater.repo = "ReSprytile"
+    updater.repo = "resprytile"
 
     # updater.addon = # define at top of module, MUST be done first
 
     # Website for manual addon download, optional but recommended to set
-    updater.website = "https://github.com/ionthedev/ReSprytile"
+    updater.website = "https://github.com/ionthedev/ReSprytile/"
 
     # used to check/compare versions
     updater.current_version = bl_info["version"]
