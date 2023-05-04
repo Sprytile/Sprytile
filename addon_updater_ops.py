@@ -55,7 +55,7 @@ updater.addon = "resprytile"
 
 
 # simple popup for prompting checking for update & allow to install if available
-class ADDON_OP_addon_updater_install_popup(bpy.types.Operator):
+class addon_updater_install_popup(bpy.types.Operator):
     """Check and install update if available"""
     bl_label = "Update {x} addon".format(x=updater.addon)
     bl_idname = updater.addon + ".updater_install_popup"
@@ -135,7 +135,7 @@ class ADDON_OP_addon_updater_install_popup(bpy.types.Operator):
 
 
 # User preference check-now operator
-class ADDON_OP_addon_updater_check_now(bpy.types.Operator):
+class addon_updater_check_now(bpy.types.Operator):
     bl_label = "Check now for " + updater.addon + " update"
     bl_idname = updater.addon + ".updater_check_now"
     bl_description = "Check now for an update to the {x} addon".format(
@@ -170,7 +170,7 @@ class ADDON_OP_addon_updater_check_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_update_now(bpy.types.Operator):
+class addon_updater_update_now(bpy.types.Operator):
     bl_label = "Update " + updater.addon + " addon now"
     bl_idname = updater.addon + ".updater_update_now"
     bl_description = "Update to the latest version of the {x} addon".format(
@@ -225,7 +225,7 @@ class ADDON_OP_addon_updater_update_now(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_update_target(bpy.types.Operator):
+class addon_updater_update_target(bpy.types.Operator):
     bl_label = updater.addon + " addon version target"
     bl_idname = updater.addon + ".updater_update_target"
     bl_description = "Install a targeted version of the {x} addon".format(
@@ -301,7 +301,7 @@ class ADDON_OP_addon_updater_update_target(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_install_manually(bpy.types.Operator):
+class addon_updater_install_manually(bpy.types.Operator):
     """As a fallback, direct the user to download the addon manually"""
     bl_label = "Install update manually"
     bl_idname = updater.addon + ".updater_install_manually"
@@ -362,7 +362,7 @@ class ADDON_OP_addon_updater_install_manually(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_updated_successful(bpy.types.Operator):
+class addon_updater_updated_successful(bpy.types.Operator):
     """Addon in place, popup telling user it completed or what went wrong"""
     bl_label = "Installation Report"
     bl_idname = updater.addon + ".updater_update_successful"
@@ -430,7 +430,7 @@ class ADDON_OP_addon_updater_updated_successful(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_restore_backup(bpy.types.Operator):
+class addon_updater_restore_backup(bpy.types.Operator):
     """Restore addon from backup"""
     bl_label = "Restore backup"
     bl_idname = updater.addon + ".updater_restore_backup"
@@ -451,7 +451,7 @@ class ADDON_OP_addon_updater_restore_backup(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_ignore(bpy.types.Operator):
+class addon_updater_ignore(bpy.types.Operator):
     """Prevent future update notice popups"""
     bl_label = "Ignore update"
     bl_idname = updater.addon + ".updater_ignore"
@@ -475,7 +475,7 @@ class ADDON_OP_addon_updater_ignore(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class ADDON_OP_addon_updater_end_background(bpy.types.Operator):
+class addon_updater_end_background(bpy.types.Operator):
     """Stop checking for update in the background"""
     bl_label = "End background check"
     bl_idname = updater.addon + ".end_background_check"
@@ -804,28 +804,25 @@ def update_settings_ui(self, context):
         split = subcol.split(align=True)
         split.enabled = False
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
+        split.operator(addon_updater_check_now.bl_idname,
                        updater.error)
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       text="", icon="FILE_REFRESH")
+        split.operator(addon_updater_check_now.bl_idname, text="", icon="FILE_REFRESH")
 
     elif updater.update_ready == None and updater.async_checking == False:
         col.scale_y = 2
-        col.operator(ADDON_OP_addon_updater_check_now.bl_idname)
+        col.operator(addon_updater_check_now.bl_idname)
     elif updater.update_ready == None:  # async is running
         subcol = col.row(align=True)
         subcol.scale_y = 1
         split = subcol.split(align=True)
         split.enabled = False
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       "Checking...")
+        split.operator(addon_updater_check_now.bl_idname, text="Checking...")
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       text="", icon="X")
+        split.operator(addon_updater_check_now.bl_idname, text="", icon="X")
 
     elif updater.include_branches == True and \
             len(updater.tags) == len(updater.include_branch_list) and \
@@ -835,11 +832,10 @@ def update_settings_ui(self, context):
         subcol.scale_y = 1
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       "Update directly to " + str(updater.include_branch_list[0]))
+        split.operator(addon_updater_check_now.bl_idname, text="Update directly to " + str(updater.include_branch_list[0]))
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
+        split.operator(addon_updater_check_now.bl_idname,
                        text="", icon="FILE_REFRESH")
 
     elif updater.update_ready == True and updater.manual_only == False:
@@ -847,11 +843,10 @@ def update_settings_ui(self, context):
         subcol.scale_y = 1
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       "Update now to " + str(updater.update_version))
+        split.operator(addon_updater_check_now.bl_idname, text="Update now to " + str(updater.update_version))
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
+        split.operator(addon_updater_check_now.bl_idname,
                        text="", icon="FILE_REFRESH")
 
     elif updater.update_ready == True and updater.manual_only == True:
@@ -864,11 +859,10 @@ def update_settings_ui(self, context):
         split = subcol.split(align=True)
         split.enabled = False
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
-                       "Addon is up to date")
+        split.operator(addon_updater_check_now.bl_idname, text="Addon is up to date")
         split = subcol.split(align=True)
         split.scale_y = 2
-        split.operator(ADDON_OP_addon_updater_check_now.bl_idname,
+        split.operator(addon_updater_check_now.bl_idname,
                        text="", icon="FILE_REFRESH")
 
     if updater.manual_only == False:
@@ -876,9 +870,9 @@ def update_settings_ui(self, context):
         # col.operator(addon_updater_update_target.bl_idname,
         if updater.include_branches == True and len(updater.include_branch_list) > 0:
             branch = updater.include_branch_list[0]
-            col.operator(ADDON_OP_addon_updater_check_now.bl_idname, text="Install latest {} / old version".format(branch))
+            col.operator(addon_updater_check_now.bl_idname, text="Install latest {} / old version".format(branch))
         else:
-            col.operator(ADDON_OP_addon_updater_check_now.bl_idname, text="Reinstall / install old version")
+            col.operator(addon_updater_check_now.bl_idname, text="Reinstall / install old version")
         lastdate = "none found"
         backuppath = os.path.join(updater.stage_path, "backup")
         if "backup_date" in updater.json and os.path.isdir(backuppath):
@@ -886,7 +880,7 @@ def update_settings_ui(self, context):
                 lastdate = "Date not found"
             else:
                 lastdate = updater.json["backup_date"]
-        col.operator(ADDON_OP_addon_updater_check_now.bl_idname, text="Restore addon backup ({})".format(lastdate))
+        col.operator(addon_updater_check_now.bl_idname, text="Restore addon backup ({})".format(lastdate))
 
     row = box.row()
     row.scale_y = 0.7
@@ -1078,6 +1072,15 @@ def register(bl_info):
     # The register line items for all operators/panels
     # If using bpy.utils.register_module(__name__) to register elsewhere
     # in the addon, delete these lines (also from unregister)
+    bpy.utils.register_class(addon_updater_install_popup)
+    bpy.utils.register_class(addon_updater_check_now)
+    bpy.utils.register_class(addon_updater_update_now)
+    bpy.utils.register_class(addon_updater_update_target)
+    bpy.utils.register_class(addon_updater_install_manually)
+    bpy.utils.register_class(addon_updater_updated_successful)
+    bpy.utils.register_class(addon_updater_restore_backup)
+    bpy.utils.register_class(addon_updater_ignore)
+    bpy.utils.register_class(addon_updater_end_background)
 
     # special situation: we just updated the addon, show a popup
     # to tell the user it worked
@@ -1086,6 +1089,15 @@ def register(bl_info):
 
 
 def unregister():
+    bpy.utils.unregister_class(addon_updater_install_popup)
+    bpy.utils.unregister_class(addon_updater_check_now)
+    bpy.utils.unregister_class(addon_updater_update_now)
+    bpy.utils.unregister_class(addon_updater_update_target)
+    bpy.utils.unregister_class(addon_updater_install_manually)
+    bpy.utils.unregister_class(addon_updater_updated_successful)
+    bpy.utils.unregister_class(addon_updater_restore_backup)
+    bpy.utils.unregister_class(addon_updater_ignore)
+    bpy.utils.unregister_class(addon_updater_end_background)
 
     # clear global vars since they may persist if not restarting blender
     updater.clear_state()  # clear internal vars, avoids reloading oddities
