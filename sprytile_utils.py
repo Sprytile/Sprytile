@@ -1248,7 +1248,7 @@ class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):
             if context.scene.sprytile_data.auto_reload is False:
                 self.cancel(context)
                 return {'CANCELLED'}
-
+            
             if self.check_files():
                 for window in context.window_manager.windows:
                     for area in window.screen.areas:
@@ -1281,13 +1281,18 @@ class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):
         self.last_check_time = None
         self.check_files()
         wm = context.window_manager
-        self._timer = wm.event_timer_add(2, window=context.window)
+        if self._timer is not None:
+            wm.event_timer_remove(self._timer)
+        self._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
         wm = context.window_manager
-        wm.event_timer_remove(self._timer)
+        if isinstance(self._timer, bpy.types.Timer):
+            wm.event_timer_remove(self._timer)
+        self._timer = None
+
 
 
 class UTIL_OP_SprytileUpdateCheck(bpy.types.Operator):
