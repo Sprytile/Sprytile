@@ -12,71 +12,83 @@ from . import sprytile_utils, sprytile_modal
 from gpu_extras.batch import batch_for_shader
 from sprytile_tools.tool_build import ToolBuild
 from sprytile_tools.tool_paint import ToolPaint
-import sprytile_preview
 
+# Define ShaderCreateInfo for Flat Shader
+flat_shader_info = gpu.types.GPUShaderCreateInfo()
 
-# Shaders
-flat_vertex_shader = '''
-    uniform mat4 u_modelViewProjectionMatrix;
+# Define vertex inputs and uniforms (constants)
+flat_shader_info.vertex_in(0, 'VEC2', "i_position")
+flat_shader_info.vertex_in(1, 'VEC4', "i_color")
+flat_shader_info.push_constant('MAT4', "u_modelViewProjectionMatrix")
 
-    in vec2 i_position;
-    in vec4 i_color;
+# Define Fragment Outputs
+flat_shader_info.fragment_out(0, 'VEC4', 'frag_color')
 
-    out vec4 o_color;
-
+# Set Vertex and Fragment Source
+flat_shader_info.vertex_source(
+    '''
+    vec4 o_color;
     void main()
     {
         o_color = i_color;
         gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
     }
-'''
+    '''
+)
 
-flat_fragment_shader = '''
-    in vec4 o_color;
-    out vec4 frag_color;
-
+flat_shader_info.fragment_source(
+    '''
+    vec4 o_color;
     void main()
     {
         frag_color = o_color;
     }
-'''
+    '''
+)
 
-image_vertex_shader = '''
-    uniform mat4 u_modelViewProjectionMatrix;
+flat_shader = gpu.shader.create_from_info(flat_shader_info)
 
-    in vec2 i_position;
-    in vec4 i_color;
-    in vec2 i_uv;
+# Define ShaderCreateInfo for Image Shader
+image_shader_info = gpu.types.GPUShaderCreateInfo()
 
-    out vec2 o_uv;
-    out vec4 o_color;
+# Define vertex inputs, uniforms (constants), and samplers
+image_shader_info.vertex_in(0, 'VEC2', "i_position")
+image_shader_info.vertex_in(1, 'VEC4', "i_color")
+image_shader_info.vertex_in(2, 'VEC2', "i_uv")
+image_shader_info.sampler(0, 'FLOAT_2D', "u_image")
+image_shader_info.push_constant('MAT4', "u_modelViewProjectionMatrix")
+image_shader_info.push_constant('FLOAT', "u_correct")
 
+# Define Fragment Outputs
+image_shader_info.fragment_out(0, 'VEC4', 'frag_color')
+
+# Set Vertex and Fragment Source
+image_shader_info.vertex_source(
+    '''
+    vec2 o_uv;
+    vec4 o_color;
     void main()
     {
         o_uv = i_uv;
         o_color = i_color;
         gl_Position = u_modelViewProjectionMatrix * vec4(i_position, 0.0, 1.0);
     }
-'''
+    '''
+)
 
-image_fragment_shader = '''
-    uniform sampler2D u_image;
-    uniform float u_correct;
-
-    in vec2 o_uv;
-    in vec4 o_color;
-    out vec4 frag_color;
-
+image_shader_info.fragment_source(
+    '''
+    vec4 o_color;
+    vec2 o_uv;
     void main()
     {
         vec4 col = texture(u_image, o_uv) * o_color;
         frag_color = pow(col, vec4(u_correct));
     }
-'''
+    '''
+)
 
-flat_shader = gpu.types.GPUShader(flat_vertex_shader, flat_fragment_shader)
-image_shader = gpu.types.GPUShader(image_vertex_shader, image_fragment_shader)
-
+image_shader = gpu.shader.create_from_info(image_shader_info)
 
 
 class SprytileGuiData(bpy.types.PropertyGroup):
