@@ -2,7 +2,7 @@
     <img src="sprytile-logo.png?raw=true" height="100px"/>
     <h1 align="center">ReSprytile</h1>
     <h2 align="center">Fork of Sprytile Painter</h2>
-    <h3 align="center">Updated for Blender 3.6 on ARM macOS</h3>
+    <h3 align="center">Updated for Blender 3.6</h3>
     <h4 align="center">
         A <img src="https://download.blender.org/institute/logos/blender-socket.png" height="20px"/> addon for creating tile based low spec 3D scenes. (Unofficial port for blender 3.6)
     </h4>
@@ -25,7 +25,7 @@ Download from [releases](https://github.com/ologon/Sprytile/releases).
 
 ### Getting Started:
 
-* [Sprytile Basics Tutorial](http://docs.sprytile.xyz/quick-start/) ([video](https://youtu.be/-ezYZgMp-R0))
+* [Sprytile Basics Tutorial](http://docs.sprytile.xyz/quick-start/) ([video](https://youtu.be/-ezYZgMp-R0)) 
 * Blender 2.8 specific [tips](https://itch.io/post/1034106)
 
 ### Community:
