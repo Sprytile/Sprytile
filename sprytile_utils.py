@@ -1703,6 +1703,16 @@ class UTIL_OP_SprytileTilePicker(bpy.types.Operator):
             return {'FINISHED'}
 
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            if context.preferences.inputs.use_mouse_emulate_3_button:
+                mouse_event = 'RIGHTMOUSE'
+            else:
+                mouse_event = 'LEFTMOUSE'
+        else:
+            mouse_event = event.type
+            
+        if mouse_event == 'LEFTMOUSE':
+            self.tile_pick(context, event)
+        elif mouse_event == 'RIGHTMOUSE':
             self.tile_pick(context, event)
 
         return {'RUNNING_MODAL'}
