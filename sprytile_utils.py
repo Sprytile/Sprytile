@@ -1234,6 +1234,8 @@ class UTIL_OP_SprytileReloadImages(bpy.types.Operator):
                 if area.type in {'VIEW_3D', 'IMAGE_EDITOR'}:
                     area.tag_redraw()
         return {'FINISHED'}
+    
+
 
 
 class UTIL_OP_SprytileReloadImagesAuto(bpy.types.Operator):

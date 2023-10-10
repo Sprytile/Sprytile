@@ -281,7 +281,7 @@ if system_info['is_apple_silicon']:
             region = context.region
             zoom_level = context.scene.sprytile_ui.zoom
             zoom_level = self.calc_zoom(region, zoom_level, zoom_shift)
-            display_size = VIEW3D_OP_SprytileGui.display_size
+            display_size = VIEW3D_OP_SprytileGui.display_size/4
 
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
             height_min = min(128, display_size[1])
@@ -307,13 +307,13 @@ if system_info['is_apple_silicon']:
 
             # Snap to edges if previously snapped
             if is_snap_min_x:
-                display_offset.x = display_min.x
+                display_offset.x = display_min.x/3
             if is_snap_min_y:
-                display_offset.y = display_min.y
+                display_offset.y = display_min.y/3
             if is_snap_max_x:
-                display_offset.x = display_max.x
+                display_offset.x = display_max.x*3
             if is_snap_max_y:
-                display_offset.y = display_max.y
+                display_offset.y = display_max.y*3
             
             context.scene.sprytile_ui.palette_pos[0] = int(display_offset.x)
             context.scene.sprytile_ui.palette_pos[1] = int(display_offset.y)
@@ -344,7 +344,7 @@ if system_info['is_apple_silicon']:
                 count += step
 
             if VIEW3D_OP_SprytileGui.display_size[1] > region.height:
-                zoom = min(region.height / VIEW3D_OP_SprytileGui.display_size[1], zoom)
+                zoom = min(region.height*2 / VIEW3D_OP_SprytileGui.display_size[1], zoom)
 
             return zoom
 
@@ -355,7 +355,7 @@ if system_info['is_apple_silicon']:
             display_size = VIEW3D_OP_SprytileGui.display_size
             target_height = region.height * 0.35
 
-            zoom_level = round(region.height / display_size[1])
+            zoom_level = round(region.height*2 / display_size[1])
 
             if zoom_level <= 0:
                 zoom_level = self.calc_zoom(region, 1, -1)
@@ -378,8 +378,8 @@ if system_info['is_apple_silicon']:
 
             size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
 
-            display_min = Vector((display_pad_y + size_half.x, display_pad_y + size_half.y))
-            display_max = Vector((context.region.width - display_pad_x - size_half.x, context.region.height - display_pad_y - size_half.y))
+            display_min = Vector((display_pad_y/3 + size_half.x/3, display_pad_y/3 + size_half.y/3))
+            display_max = Vector((context.region.width*3 - display_pad_x - size_half.x, context.region.height*3 - display_pad_y - size_half.y))
 
             display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
 
@@ -510,9 +510,9 @@ if system_info['is_apple_silicon']:
                         display_offset = mouse_pt + VIEW3D_OP_SprytileGui.sel_origin
                         
                         display_offset.x = max(display_offset.x, display_min.x) 
-                        display_offset.x = min(display_offset.x, display_max.x)
+                        display_offset.x = min(display_offset.x, display_max.x/4)
                         display_offset.y = max(display_offset.y, display_min.y)
-                        display_offset.y = min(display_offset.y, display_max.y) 
+                        display_offset.y = min(display_offset.y, display_max.y/4) 
                         
                         context.scene.sprytile_ui.palette_pos[0] = int(display_offset.x)
                         context.scene.sprytile_ui.palette_pos[1] = int(display_offset.y)
@@ -1388,12 +1388,12 @@ else:
             display_size = VIEW3D_OP_SprytileGui.display_size
 
             calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
-            height_min = min(128, display_size[1])
+            height_min = min(512, display_size[1])
             while calc_size[1] < height_min:
                 zoom_level = self.calc_zoom(region, zoom_level, 1)
                 calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
-            while calc_size[0] > region.width or calc_size[1] > region.height:
+            while calc_size[0] > region.width*3 or calc_size[1] > region.height*3:
                 zoom_level = self.calc_zoom(region, zoom_level, -1)
                 calc_size = round(display_size[0] * zoom_level), round(display_size[1] * zoom_level)
 
@@ -1482,8 +1482,8 @@ else:
 
             size_half = Vector((int(display_size[0]/2), int(display_size[1]/2)))
 
-            display_min = Vector((display_pad_y + size_half.x, display_pad_y + size_half.y))
-            display_max = Vector((context.region.width - display_pad_x - size_half.x, context.region.height - display_pad_y - size_half.y))
+            display_min = Vector((display_pad_y/3 + size_half.x/3, display_pad_y/3 + size_half.y/3))
+            display_max = Vector((context.region.width*3 - display_pad_x*3 - size_half.x*3, context.region.height*3 - display_pad_y*3 - size_half.y*3))
 
             display_offset = Vector((context.scene.sprytile_ui.palette_pos[0], context.scene.sprytile_ui.palette_pos[1]))
 
